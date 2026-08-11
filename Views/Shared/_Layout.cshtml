@@ -1,0 +1,113 @@
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+}
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - Comparação de Propostas</title>
+
+    <script src="~/lib/phoenix/vendors/imagesloaded/imagesloaded.pkgd.min.js"></script>
+    <script src="~/lib/phoenix/vendors/simplebar/simplebar.min.js"></script>
+    <script src="~/lib/phoenix/assets/js/config.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    <link href="~/lib/phoenix/vendors/simplebar/simplebar.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.8/css/line.css" />
+    <link href="~/lib/phoenix/assets/css/theme.min.css" type="text/css" rel="stylesheet" />
+    <link href="~/lib/phoenix/assets/css/user.min.css" type="text/css" rel="stylesheet" />
+    <link href="~/lib/phoenix/vendors/datatables.net-bs5/css/dataTables.bootstrap5.min.css" type="text/css" rel="stylesheet" />
+    <link href="~/lib/phoenix/vendors/datatables.net-buttons-bs5/buttons.bootstrap5.min.css" type="text/css" rel="stylesheet" />
+    <link href="~/css/site.css" rel="stylesheet" />
+
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body id="page-top">
+
+    <form id="globalAntiForgeryForm" style="display:none;">
+        @Html.AntiForgeryToken()
+    </form>
+
+    <main class="main" id="top">
+
+        <partial name="PartialViews/_SidebarNav" />
+
+        <nav class="navbar navbar-top fixed-top navbar-expand" id="navbarDefault">
+            <div class="collapse navbar-collapse justify-content-between">
+                <div class="navbar-logo">
+                    <button class="btn navbar-toggler navbar-toggler-humburger-icon hover-bg-transparent" type="button" data-bs-toggle="collapse" data-bs-target="#navbarVerticalCollapse" aria-controls="navbarVerticalCollapse" aria-expanded="false" aria-label="Toggle Navigation">
+                        <span class="navbar-toggle-icon"><span class="toggle-line"></span></span>
+                    </button>
+                    <a class="navbar-brand me-1 me-sm-3" asp-controller="Processos" asp-action="Index">
+                        <div class="d-flex align-items-center">
+                            <p class="logo-text ms-2 d-none d-sm-block">Comparação de Propostas</p>
+                        </div>
+                    </a>
+                </div>
+                <ul class="navbar-nav navbar-nav-icons flex-row">
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Processos" asp-action="Create">
+                            <span class="fas fa-plus me-1"></span> Novo Processo
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <div class="content">
+            @if (TempData["Sucesso"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    @TempData["Sucesso"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+                </div>
+            }
+            @if (TempData["EmailWarning"] != null)
+            {
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    @TempData["EmailWarning"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+                </div>
+            }
+
+            @RenderBody()
+
+            <footer class="footer">
+                <div class="row g-0 justify-content-between fs--1 mt-4 mb-3">
+                    <div class="col-12 col-sm-auto text-center">
+                        <p class="mb-0 text-body-tertiary">Comparação de Propostas</p>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </main>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="~/lib/phoenix/vendors/popper/popper.min.js"></script>
+    <script src="~/lib/phoenix/vendors/bootstrap/bootstrap.min.js"></script>
+    <script src="~/lib/phoenix/vendors/anchorjs/anchor.min.js"></script>
+    <script src="~/lib/phoenix/vendors/is/is.min.js"></script>
+    <script src="~/lib/phoenix/vendors/fontawesome/all.min.js"></script>
+    <script src="~/lib/phoenix/vendors/lodash/lodash.min.js"></script>
+    <script src="~/lib/phoenix/vendors/list.js/list.min.js"></script>
+    <script src="~/lib/phoenix/vendors/dayjs/dayjs.min.js"></script>
+    <script src="~/lib/phoenix/assets/js/phoenix.js"></script>
+
+    <script src="~/lib/phoenix/vendors/datatables.net/js/dataTables.min.js"></script>
+    <script src="~/lib/phoenix/vendors/datatables.net-bs5/js/dataTables.bootstrap5.min.js"></script>
+    <script src="~/lib/phoenix/vendors/datatables.net-buttons/js/dataTables.buttons.min.js"></script>
+    <script src="~/lib/phoenix/vendors/datatables.net-buttons-bs5/buttons.bootstrap5.min.js"></script>
+    <script src="~/lib/phoenix/vendors/datatables.net-buttons/js/buttons.colVis.min.js"></script>
+    <script src="~/lib/phoenix/vendors/datatables.net-buttons/js/buttons.print.min.js"></script>
+    <script src="~/lib/phoenix/vendors/datatables.net-buttons/js/buttons.html5.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="~/js/inicialize-table-datatable.js"></script>
+    <script src="~/js/site-delete.js"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

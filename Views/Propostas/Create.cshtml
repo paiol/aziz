@@ -1,0 +1,50 @@
+@model ComparacaoPropostas.Models.Entities.Proposta
+@{
+    ViewData["Title"] = "Nova Proposta";
+}
+
+<h2>Nova Proposta — @ViewBag.ProcessoNome</h2>
+
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            <input type="hidden" asp-for="ProcessoId" />
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Fornecedor" class="form-label"></label>
+                    <input asp-for="Fornecedor" class="form-control" />
+                    <span asp-validation-for="Fornecedor" class="text-danger"></span>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="ValorTotal" class="form-label"></label>
+                    <input asp-for="ValorTotal" class="form-control" type="number" step="0.01" />
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="PrazoEntregaDias" class="form-label"></label>
+                    <input asp-for="PrazoEntregaDias" class="form-control" type="number" />
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="ValidadeProposta" class="form-label"></label>
+                    <input asp-for="ValidadeProposta" class="form-control" type="date" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Status" class="form-label"></label>
+                    <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<ComparacaoPropostas.Models.Entities.Enums.StatusProposta>()"></select>
+                </div>
+
+                <div class="col-12">
+                    <label asp-for="Observacoes" class="form-label"></label>
+                    <textarea asp-for="Observacoes" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">Guardar</button>
+                <a asp-controller="Processos" asp-action="Details" asp-route-id="@Model.ProcessoId" class="btn btn-subtle-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>

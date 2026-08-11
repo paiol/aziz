@@ -1,0 +1,97 @@
+@model ComparacaoPropostas.ViewModels.Comparacao.ComparacaoViewModel
+@{
+    ViewData["Title"] = "Comparação de Propostas";
+    var processo = Model.Processo;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-1">Comparação de Propostas</h2>
+        <p class="text-body-tertiary mb-0">@processo.Nome</p>
+    </div>
+    <div>
+        <a class="btn btn-subtle-secondary" asp-controller="Processos" asp-action="Details" asp-route-id="@processo.Id">Voltar ao Processo</a>
+        <a class="btn btn-subtle-primary" asp-action="Itens" asp-route-processoId="@processo.Id">Comparar Itens</a>
+    </div>
+</div>
+
+@if (Model.Propostas.Count == 0)
+{
+    <div class="alert alert-info">Ainda não existem propostas para comparar neste processo.</div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body comparacao-table-wrapper">
+            <table class="table comparacao-table">
+                <thead>
+                    <tr>
+                        <th class="linha-label">Fornecedor</th>
+                        @foreach (var col in Model.Propostas)
+                        {
+                            <th>@col.Fornecedor</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="linha-label">Estado</td>
+                        @foreach (var col in Model.Propostas)
+                        {
+                            <td><span class="@col.Status.ToBadgeClass()">@col.Status.ToLabel()</span></td>
+                        }
+                    </tr>
+                    <tr>
+                        <td class="linha-label">Valor Total</td>
+                        @foreach (var col in Model.Propostas)
+                        {
+                            <td class="@(col.ValorTotalMelhor ? "cell-melhor" : "")">@col.ValorTotal.ToString("C")</td>
+                        }
+                    </tr>
+                    <tr>
+                        <td class="linha-label">Prazo de Entrega</td>
+                        @foreach (var col in Model.Propostas)
+                        {
+                            if (col.PrazoEntregaDias.HasValue)
+                            {
+                                <td class="@(col.PrazoMelhor ? "cell-melhor" : "")">@col.PrazoEntregaDias dias</td>
+                            }
+                            else
+                            {
+                                <td class="cell-indisponivel">-</td>
+                            }
+                        }
+                    </tr>
+
+                    @foreach (var linha in Model.LinhasCriterios)
+                    {
+                        <tr>
+                            <td class="linha-label">@linha.CriterioNome <span class="text-body-tertiary">(@linha.Peso.ToString("0.##")%)</span></td>
+                            @foreach (var col in Model.Propostas)
+                            {
+                                var nota = linha.NotasPorProposta.GetValueOrDefault(col.PropostaId);
+                                var melhor = linha.MelhorPorProposta.GetValueOrDefault(col.PropostaId);
+                                if (nota.HasValue)
+                                {
+                                    <td class="@(melhor ? "cell-melhor" : "")">@nota.Value.ToString("0.##")</td>
+                                }
+                                else
+                                {
+                                    <td class="cell-indisponivel">Sem nota</td>
+                                }
+                            }
+                        </tr>
+                    }
+
+                    <tr>
+                        <td class="linha-label">Pontuação Ponderada</td>
+                        @foreach (var col in Model.Propostas)
+                        {
+                            <td class="@(col.PontuacaoMelhor ? "cell-melhor" : "")">@col.PontuacaoPonderada.ToString("0.00")</td>
+                        }
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

@@ -1,0 +1,49 @@
+@model List<ComparacaoPropostas.Models.Entities.CriterioAvaliacao>
+@{
+    ViewData["Title"] = "Critérios de Avaliação";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Critérios de Avaliação</h2>
+    <a class="btn btn-primary" asp-action="Create"><span class="fas fa-plus me-1"></span> Novo Critério</a>
+</div>
+
+<form method="get" class="mb-3 d-flex gap-2">
+    <select name="dominio" class="form-select w-auto" onchange="this.form.submit()">
+        <option value="">Todos os domínios</option>
+        @foreach (var d in (List<string>)ViewBag.Dominios)
+        {
+            <option value="@d" selected="@(d == (string)ViewBag.DominioSelecionado)">@d</option>
+        }
+    </select>
+</form>
+
+<div class="card">
+    <div class="card-body">
+        <table class="table table-hover data-table">
+            <thead>
+                <tr>
+                    <th>Critério</th>
+                    <th>Categoria</th>
+                    <th>Domínio</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in Model)
+                {
+                    <tr>
+                        <td>@c.Nome</td>
+                        <td>@c.Categoria</td>
+                        <td>@c.Dominio</td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-subtle-secondary" asp-action="Edit" asp-route-id="@c.Id">Editar</a>
+                            <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
+                                    data-url="@Url.Action("Delete", new { id = c.Id })" data-id="@c.Id">Apagar</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

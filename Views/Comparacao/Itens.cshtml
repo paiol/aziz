@@ -1,0 +1,61 @@
+@model ComparacaoPropostas.ViewModels.Comparacao.ComparacaoItensViewModel
+@{
+    ViewData["Title"] = "Comparação de Itens";
+    var processo = Model.Processo;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-1">Comparação de Itens</h2>
+        <p class="text-body-tertiary mb-0">@processo.Nome</p>
+    </div>
+    <div>
+        <a class="btn btn-subtle-primary" asp-action="Index" asp-route-processoId="@processo.Id">Ver Comparação Geral</a>
+        <a class="btn btn-subtle-secondary" asp-controller="Processos" asp-action="Details" asp-route-id="@processo.Id">Voltar ao Processo</a>
+    </div>
+</div>
+
+@if (Model.Linhas.Count == 0)
+{
+    <div class="alert alert-info">Ainda não existem itens cotados para comparar neste processo.</div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body comparacao-table-wrapper">
+            <table class="table comparacao-table">
+                <thead>
+                    <tr>
+                        <th class="linha-label">Item</th>
+                        @foreach (var col in Model.Propostas)
+                        {
+                            <th>@col.Fornecedor</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var linha in Model.Linhas)
+                    {
+                        <tr>
+                            <td class="linha-label">@linha.NomeItem @(string.IsNullOrWhiteSpace(linha.Unidade) ? "" : $"({linha.Unidade})")</td>
+                            @foreach (var col in Model.Propostas)
+                            {
+                                var incluido = linha.IncluidoPorProposta.GetValueOrDefault(col.PropostaId);
+                                var preco = linha.PrecoPorProposta.GetValueOrDefault(col.PropostaId);
+                                var melhor = linha.MelhorPorProposta.GetValueOrDefault(col.PropostaId);
+                                if (incluido && preco.HasValue)
+                                {
+                                    <td class="@(melhor ? "cell-melhor" : "")">@preco.Value.ToString("C")</td>
+                                }
+                                else
+                                {
+                                    <td class="cell-indisponivel">Não incluído</td>
+                                }
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

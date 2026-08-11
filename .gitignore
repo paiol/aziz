@@ -1,0 +1,14 @@
+## .NET
+bin/
+obj/
+*.user
+
+## Visual Studio
+.vs/
+
+## Local secrets / environment overrides
+appsettings.Development.json
+appsettings.*.local.json
+
+## Uploaded files (runtime data, not source)
+wwwroot/uploads/

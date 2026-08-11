@@ -1,0 +1,50 @@
+@model ComparacaoPropostas.Models.Entities.ItemProposta
+@{
+    ViewData["Title"] = "Editar Item da Proposta";
+    var itens = (List<ComparacaoPropostas.Models.Entities.ItemMaterial>)ViewBag.Itens;
+}
+
+<h2>Editar Item — @ViewBag.PropostaFornecedor</h2>
+
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="PropostaId" />
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="ItemMaterialId" class="form-label">Item</label>
+                    <select asp-for="ItemMaterialId" class="form-select">
+                        @foreach (var i in itens)
+                        {
+                            <option value="@i.Id">@i.NomeItem</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label asp-for="Quantidade" class="form-label"></label>
+                    <input asp-for="Quantidade" class="form-control" type="number" step="0.001" />
+                </div>
+                <div class="col-md-2">
+                    <label asp-for="PrecoUnitario" class="form-label"></label>
+                    <input asp-for="PrecoUnitario" class="form-control" type="number" step="0.01" />
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <div class="form-check">
+                        <input asp-for="Incluido" class="form-check-input" />
+                        <label asp-for="Incluido" class="form-check-label"></label>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label asp-for="Observacao" class="form-label"></label>
+                    <input asp-for="Observacao" class="form-control" />
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">Guardar</button>
+                <a asp-action="Index" asp-route-propostaId="@Model.PropostaId" class="btn btn-subtle-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>

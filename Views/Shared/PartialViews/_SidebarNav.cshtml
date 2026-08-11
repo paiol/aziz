@@ -1,0 +1,53 @@
+@{
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    string ActiveClass(params string[] controllers) => controllers.Contains(controller) ? "active" : "";
+}
+<nav class="navbar navbar-vertical navbar-expand-lg">
+    <script>
+        var navbarStyle = window.config.config.phoenixNavbarStyle;
+        if (navbarStyle && navbarStyle !== 'transparent') {
+            document.querySelector('body').classList.add(`navbar-${navbarStyle}`);
+        }
+    </script>
+    <div class="collapse navbar-collapse" id="navbarVerticalCollapse">
+        <div class="navbar-vertical-content">
+            <ul class="navbar-nav flex-column" id="navbarVerticalNav">
+
+                <li class="nav-item">
+                    <div class="nav-item-wrapper">
+                        <a class="nav-link label-1 @ActiveClass("Processos")" asp-controller="Processos" asp-action="Index">
+                            <div class="d-flex align-items-center">
+                                <span class="nav-link-icon"><span class="fas fa-folder-open"></span></span>
+                                <span class="nav-link-text-wrapper"><span class="nav-link-text">Processos</span></span>
+                            </div>
+                        </a>
+                    </div>
+                </li>
+
+                <li class="nav-item">
+                    <p class="navbar-vertical-label">Avaliação</p>
+                    <hr class="navbar-vertical-line" />
+
+                    <div class="nav-item-wrapper">
+                        <a class="nav-link label-1 @ActiveClass("Criterios")" asp-controller="Criterios" asp-action="Index">
+                            <div class="d-flex align-items-center">
+                                <span class="nav-link-icon"><span class="fas fa-list-check"></span></span>
+                                <span class="nav-link-text-wrapper"><span class="nav-link-text">Critérios de Avaliação</span></span>
+                            </div>
+                        </a>
+                    </div>
+
+                    <div class="nav-item-wrapper">
+                        <a class="nav-link label-1 @ActiveClass("ItensMaterial")" asp-controller="ItensMaterial" asp-action="Index">
+                            <div class="d-flex align-items-center">
+                                <span class="nav-link-icon"><span class="fas fa-boxes-stacked"></span></span>
+                                <span class="nav-link-text-wrapper"><span class="nav-link-text">Itens / Materiais</span></span>
+                            </div>
+                        </a>
+                    </div>
+                </li>
+
+            </ul>
+        </div>
+    </div>
+</nav>

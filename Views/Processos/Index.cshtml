@@ -1,0 +1,49 @@
+@model List<ComparacaoPropostas.ViewModels.Processos.ProcessoIndexVM>
+@{
+    ViewData["Title"] = "Processos";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Processos</h2>
+    <a class="btn btn-primary" asp-action="Create"><span class="fas fa-plus me-1"></span> Novo Processo</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <table class="table table-hover data-table">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Tipo</th>
+                    <th>Estado</th>
+                    <th>Prazo Final</th>
+                    <th>Orçamento Estimado</th>
+                    <th>Propostas</th>
+                    <th>Menor Valor</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Model)
+                {
+                    <tr>
+                        <td><a asp-action="Details" asp-route-id="@p.Id">@p.Nome</a></td>
+                        <td>@p.TipoProcesso</td>
+                        <td><span class="@p.Status.ToBadgeClass()">@p.Status.ToLabel()</span></td>
+                        <td>@(p.PrazoFinal?.ToString("dd/MM/yyyy") ?? "-")</td>
+                        <td>@(p.OrcamentoEstimado?.ToString("C") ?? "-")</td>
+                        <td>@p.TotalPropostas</td>
+                        <td>@(p.MenorValorOfertado?.ToString("C") ?? "-")</td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-subtle-secondary" asp-action="Edit" asp-route-id="@p.Id">Editar</a>
+                            <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
+                                    data-url="@Url.Action("Delete", new { id = p.Id })" data-id="@p.Id">
+                                Apagar
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

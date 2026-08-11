@@ -1,0 +1,15 @@
+using ComparacaoPropostas.Models.Entities.Enums;
+
+namespace ComparacaoPropostas.ViewModels.Processos;
+
+public class ProcessoIndexVM
+{
+    public int Id { get; set; }
+    public string Nome { get; set; } = "";
+    public StatusProcesso Status { get; set; }
+    public DateTime? PrazoFinal { get; set; }
+    public string TipoProcesso { get; set; } = "";
+    public decimal? OrcamentoEstimado { get; set; }
+    public int TotalPropostas { get; set; }
+    public decimal? MenorValorOfertado { get; set; }
+}

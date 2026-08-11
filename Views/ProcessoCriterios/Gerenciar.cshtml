@@ -1,0 +1,61 @@
+@model ComparacaoPropostas.ViewModels.Criterios.GerenciarCriteriosVM
+@{
+    ViewData["Title"] = "Gerir Critérios";
+}
+
+<h2>Critérios do Processo: @Model.ProcessoNome</h2>
+<p class="text-body-tertiary">Domínio: @Model.TipoProcesso — os pesos dos critérios selecionados devem somar aproximadamente 100%.</p>
+
+@if (Model.Itens.Count == 0)
+{
+    <div class="alert alert-warning">
+        Não existem critérios cadastrados para o domínio "@Model.TipoProcesso".
+        <a asp-controller="Criterios" asp-action="Create">Criar um critério</a> para este domínio primeiro.
+    </div>
+}
+else
+{
+    <form asp-action="Gerenciar" method="post">
+        <input type="hidden" asp-for="ProcessoId" />
+        <input type="hidden" asp-for="ProcessoNome" />
+        <input type="hidden" asp-for="TipoProcesso" />
+
+        <div class="card">
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th style="width:60px"></th>
+                            <th>Critério</th>
+                            <th>Categoria</th>
+                            <th style="width:160px">Peso (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var i = 0; i < Model.Itens.Count; i++)
+                        {
+                            <tr>
+                                <td>
+                                    <input type="hidden" asp-for="Itens[i].CriterioAvaliacaoId" />
+                                    <input type="hidden" asp-for="Itens[i].Nome" />
+                                    <input type="hidden" asp-for="Itens[i].Categoria" />
+                                    <input type="checkbox" class="form-check-input" asp-for="Itens[i].Selecionado" />
+                                </td>
+                                <td>@Model.Itens[i].Nome</td>
+                                <td>@Model.Itens[i].Categoria</td>
+                                <td>
+                                    <input type="number" step="0.01" class="form-control form-control-sm" asp-for="Itens[i].Peso" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <button type="submit" class="btn btn-primary">Guardar Critérios</button>
+            <a asp-controller="Processos" asp-action="Details" asp-route-id="@Model.ProcessoId" class="btn btn-subtle-secondary">Cancelar</a>
+        </div>
+    </form>
+}

@@ -1,0 +1,124 @@
+@model ComparacaoPropostas.ViewModels.Processos.ProcessoDetailVM
+@{
+    ViewData["Title"] = Model.Processo.Nome;
+    var p = Model.Processo;
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <h2 class="mb-1">@p.Nome</h2>
+        <span class="@p.Status.ToBadgeClass()">@p.Status.ToLabel()</span>
+        <span class="text-body-tertiary ms-2">@p.TipoProcesso</span>
+    </div>
+    <div>
+        <a class="btn btn-subtle-secondary" asp-action="Edit" asp-route-id="@p.Id">Editar Processo</a>
+        <a class="btn btn-success" asp-controller="Comparacao" asp-action="Index" asp-route-processoId="@p.Id">
+            <span class="fas fa-scale-balanced me-1"></span> Ver Comparação
+        </a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-header"><h5 class="mb-0">Detalhes</h5></div>
+            <div class="card-body">
+                <p>@(string.IsNullOrWhiteSpace(p.Descricao) ? "Sem descrição." : p.Descricao)</p>
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Prazo Final</dt>
+                    <dd class="col-sm-8">@(p.PrazoFinal?.ToString("dd/MM/yyyy") ?? "-")</dd>
+                    <dt class="col-sm-4">Orçamento Estimado</dt>
+                    <dd class="col-sm-8">@(p.OrcamentoEstimado?.ToString("C") ?? "-")</dd>
+                    <dt class="col-sm-4">Criado por</dt>
+                    <dd class="col-sm-8">@(p.CriadoPor ?? "-")</dd>
+                    <dt class="col-sm-4">E-mails a Notificar</dt>
+                    <dd class="col-sm-8">@(p.EmailsNotificacao ?? "-")</dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Propostas (@Model.Propostas.Count)</h5>
+                <a class="btn btn-sm btn-primary" asp-controller="Propostas" asp-action="Create" asp-route-processoId="@p.Id">
+                    <span class="fas fa-plus me-1"></span> Nova Proposta
+                </a>
+            </div>
+            <div class="card-body p-0">
+                @if (Model.Propostas.Count == 0)
+                {
+                    <p class="text-body-tertiary p-3 mb-0">Ainda não há propostas para este processo.</p>
+                }
+                else
+                {
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Fornecedor</th>
+                                <th>Valor Total</th>
+                                <th>Estado</th>
+                                <th>Pontuação Ponderada</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var pr in Model.Propostas)
+                            {
+                                <tr>
+                                    <td>@pr.Fornecedor</td>
+                                    <td>@pr.ValorTotal.ToString("C")</td>
+                                    <td><span class="@pr.Status.ToBadgeClass()">@pr.Status.ToLabel()</span></td>
+                                    <td><strong>@pr.PontuacaoPonderada.ToString("0.00")</strong></td>
+                                    <td class="text-end">
+                                        <a class="btn btn-sm btn-subtle-primary" asp-controller="Avaliacoes" asp-action="Editar" asp-route-propostaId="@pr.Id">Avaliar</a>
+                                        <a class="btn btn-sm btn-subtle-secondary" asp-controller="Propostas" asp-action="Edit" asp-route-id="@pr.Id">Editar</a>
+                                        <a class="btn btn-sm btn-subtle-secondary" asp-controller="ItensProposta" asp-action="Index" asp-route-propostaId="@pr.Id">Itens</a>
+                                        <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
+                                                data-url="@Url.Action("Delete", "Propostas", new { id = pr.Id })" data-id="@pr.Id">Apagar</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Critérios (@Model.SomaPesos.ToString("0")%)</h5>
+                <a class="btn btn-sm btn-subtle-primary" asp-controller="ProcessoCriterios" asp-action="Gerenciar" asp-route-processoId="@p.Id">Gerir</a>
+            </div>
+            <ul class="list-group list-group-flush">
+                @if (p.Criterios.Count == 0)
+                {
+                    <li class="list-group-item text-body-tertiary">Nenhum critério atribuído ainda.</li>
+                }
+                else
+                {
+                    @foreach (var c in p.Criterios.OrderByDescending(c => c.Peso))
+                    {
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>@c.CriterioAvaliacao.Nome</span>
+                            <strong>@c.Peso.ToString("0.##")%</strong>
+                        </li>
+                    }
+                }
+            </ul>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header"><h5 class="mb-0">Estado do Processo</h5></div>
+            <div class="card-body">
+                <form asp-action="MudarStatus" asp-route-id="@p.Id" method="post">
+                    <select name="novoStatus" class="form-select mb-2" asp-items="Html.GetEnumSelectList<ComparacaoPropostas.Models.Entities.Enums.StatusProcesso>()">
+                    </select>
+                    <button type="submit" class="btn btn-primary w-100">Atualizar Estado</button>
+                </form>
+                <div class="form-text mt-2">Ao marcar como "Decidido" é enviado um e-mail com a classificação final aos endereços configurados.</div>
+            </div>
+        </div>
+    </div>
+</div>

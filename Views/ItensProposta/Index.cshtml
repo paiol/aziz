@@ -1,0 +1,46 @@
+@model List<ComparacaoPropostas.Models.Entities.ItemProposta>
+@{
+    var proposta = (ComparacaoPropostas.Models.Entities.Proposta)ViewBag.Proposta;
+    ViewData["Title"] = "Itens da Proposta";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Itens da Proposta — @proposta.Fornecedor</h2>
+    <a class="btn btn-primary" asp-action="Create" asp-route-propostaId="@proposta.Id"><span class="fas fa-plus me-1"></span> Novo Item</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Incluído</th>
+                    <th>Quantidade</th>
+                    <th>Preço Unitário</th>
+                    <th>Subtotal</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.ItemMaterial.NomeItem</td>
+                        <td>@(item.Incluido ? "Sim" : "Não")</td>
+                        <td>@item.Quantidade</td>
+                        <td>@item.PrecoUnitario.ToString("C")</td>
+                        <td>@item.Subtotal.ToString("C")</td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-subtle-secondary" asp-action="Edit" asp-route-id="@item.Id">Editar</a>
+                            <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
+                                    data-url="@Url.Action("Delete", new { id = item.Id })" data-id="@item.Id">Apagar</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<a class="btn btn-subtle-secondary mt-3" asp-controller="Processos" asp-action="Details" asp-route-id="@proposta.ProcessoId">Voltar ao Processo</a>
