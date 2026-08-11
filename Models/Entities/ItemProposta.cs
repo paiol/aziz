@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
 namespace ComparacaoPropostas.Models.Entities;
 
@@ -8,9 +9,11 @@ public class ItemProposta
     public int Id { get; set; }
 
     public int PropostaId { get; set; }
+    [ValidateNever]
     public Proposta Proposta { get; set; } = null!;
 
     public int ItemMaterialId { get; set; }
+    [ValidateNever]
     public ItemMaterial ItemMaterial { get; set; } = null!;
 
     [Display(Name = "Incluído")]

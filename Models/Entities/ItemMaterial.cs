@@ -18,5 +18,10 @@ public class ItemMaterial
     [Display(Name = "Descrição")]
     public string? Descricao { get; set; }
 
+    [Display(Name = "Item Pai")]
+    public int? ItemPaiId { get; set; }
+    public ItemMaterial? ItemPai { get; set; }
+    public ICollection<ItemMaterial> SubItens { get; set; } = new List<ItemMaterial>();
+
     public ICollection<ItemProposta> ItensProposta { get; set; } = new List<ItemProposta>();
 }

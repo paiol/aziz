@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using ComparacaoPropostas.Models.Entities.Enums;
 
 namespace ComparacaoPropostas.Models.Entities;
@@ -8,6 +9,8 @@ public class Proposta
     public int Id { get; set; }
 
     public int ProcessoId { get; set; }
+
+    [ValidateNever]
     public Processo Processo { get; set; } = null!;
 
     [Required, Display(Name = "Fornecedor")]

@@ -19,6 +19,12 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 var app = builder.Build();
 
 var ptPT = new CultureInfo("pt-PT");
+// Proposals are priced in Cabo Verde Escudos, not Euros — override just the
+// currency symbol/pattern on the pt-PT culture so every ToString("C") call
+// across the app renders as "17 979 097,49 CVE" instead of "€".
+ptPT.NumberFormat.CurrencySymbol = "CVE";
+ptPT.NumberFormat.CurrencyPositivePattern = 3; // "n $" -> amount, space, symbol
+ptPT.NumberFormat.CurrencyNegativePattern = 8; // "-n $"
 app.UseRequestLocalization(new RequestLocalizationOptions
 {
     DefaultRequestCulture = new RequestCulture(ptPT),

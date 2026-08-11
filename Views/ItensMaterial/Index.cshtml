@@ -7,10 +7,11 @@
     <h2 class="mb-0">Itens / Materiais</h2>
     <a class="btn btn-primary" asp-action="Create"><span class="fas fa-plus me-1"></span> Novo Item</a>
 </div>
+<p class="text-body-tertiary">Um item pode ter vários sub-itens (mini itens) — úteis quando um material se desdobra em várias componentes cotáveis separadamente.</p>
 
 <div class="card">
     <div class="card-body">
-        <table class="table table-hover data-table">
+        <table class="table table-hover">
             <thead>
                 <tr>
                     <th>Nome</th>
@@ -22,8 +23,18 @@
             <tbody>
                 @foreach (var item in Model)
                 {
+                    var isSubItem = item.ItemPaiId != null;
                     <tr>
-                        <td>@item.NomeItem</td>
+                        <td>
+                            @if (isSubItem)
+                            {
+                                <span class="text-body-tertiary ms-3">&#8627; @item.NomeItem</span>
+                            }
+                            else
+                            {
+                                <strong>@item.NomeItem</strong>
+                            }
+                        </td>
                         <td>@item.Categoria</td>
                         <td>@item.Unidade</td>
                         <td class="text-end">

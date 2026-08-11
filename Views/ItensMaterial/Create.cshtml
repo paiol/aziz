@@ -1,6 +1,7 @@
 @model ComparacaoPropostas.Models.Entities.ItemMaterial
 @{
     ViewData["Title"] = "Novo Item";
+    var itensPai = (List<ComparacaoPropostas.Models.Entities.ItemMaterial>)ViewBag.ItensPai;
 }
 
 <h2>Novo Item / Material</h2>
@@ -22,6 +23,17 @@
                 <div class="col-md-3">
                     <label asp-for="Unidade" class="form-label"></label>
                     <input asp-for="Unidade" class="form-control" placeholder="un, m, kg..." />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="ItemPaiId" class="form-label">Item Pai (opcional)</label>
+                    <select asp-for="ItemPaiId" class="form-select">
+                        <option value="">— Nenhum (item de topo) —</option>
+                        @foreach (var pai in itensPai)
+                        {
+                            <option value="@pai.Id">@pai.NomeItem</option>
+                        }
+                    </select>
+                    <div class="form-text">Escolhe um item pai se este for um sub-item/mini item de outro material.</div>
                 </div>
                 <div class="col-12">
                     <label asp-for="Descricao" class="form-label"></label>

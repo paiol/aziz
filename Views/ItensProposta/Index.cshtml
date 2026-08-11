@@ -1,17 +1,17 @@
-@model List<ComparacaoPropostas.Models.Entities.ItemProposta>
+@model ComparacaoPropostas.ViewModels.ItensProposta.ItensPropostaIndexVM
 @{
-    var proposta = (ComparacaoPropostas.Models.Entities.Proposta)ViewBag.Proposta;
+    var proposta = Model.Proposta;
     ViewData["Title"] = "Itens da Proposta";
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="mb-0">Itens da Proposta — @proposta.Fornecedor</h2>
-    <a class="btn btn-primary" asp-action="Create" asp-route-propostaId="@proposta.Id"><span class="fas fa-plus me-1"></span> Novo Item</a>
+    <a class="btn btn-primary" asp-action="Create" asp-route-propostaId="@proposta.Id"><span class="fas fa-plus me-1"></span> Adicionar Itens</a>
 </div>
 
-<div class="card">
+<div class="card mb-3">
     <div class="card-body">
-        <table class="table table-hover">
+        <table class="table table-hover mb-0">
             <thead>
                 <tr>
                     <th>Item</th>
@@ -23,7 +23,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var item in Model)
+                @foreach (var item in Model.Itens)
                 {
                     <tr>
                         <td>@item.ItemMaterial.NomeItem</td>
@@ -38,9 +38,53 @@
                         </td>
                     </tr>
                 }
+                @if (Model.Itens.Count == 0)
+                {
+                    <tr><td colspan="6" class="text-body-tertiary">Ainda não há itens nesta proposta.</td></tr>
+                }
             </tbody>
+            @if (Model.Itens.Count > 0)
+            {
+                <tfoot>
+                    <tr class="fw-bold border-top border-2">
+                        <td colspan="2">Total Geral</td>
+                        <td>@Model.QuantidadeGeral</td>
+                        <td></td>
+                        <td>@Model.ValorGeral.ToString("C")</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            }
         </table>
     </div>
 </div>
 
-<a class="btn btn-subtle-secondary mt-3" asp-controller="Processos" asp-action="Details" asp-route-id="@proposta.ProcessoId">Voltar ao Processo</a>
+@if (Model.ResumoPorItem.Count > 1)
+{
+    <div class="card mb-3">
+        <div class="card-header"><h5 class="mb-0">Resumo por Item</h5></div>
+        <div class="card-body p-0">
+            <table class="table mb-0">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Quantidade Total</th>
+                        <th>Valor Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.ResumoPorItem)
+                    {
+                        <tr>
+                            <td>@r.NomeItem</td>
+                            <td>@r.QuantidadeTotal</td>
+                            <td>@r.ValorTotal.ToString("C")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<a class="btn btn-subtle-secondary" asp-controller="Processos" asp-action="Details" asp-route-id="@proposta.ProcessoId">Voltar ao Processo</a>

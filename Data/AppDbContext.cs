@@ -74,6 +74,14 @@ public class AppDbContext : DbContext
             e.HasIndex(a => new { a.PropostaId, a.ProcessoCriterioId }).IsUnique();
         });
 
+        modelBuilder.Entity<ItemMaterial>(e =>
+        {
+            e.HasOne(im => im.ItemPai)
+                .WithMany(im => im.SubItens)
+                .HasForeignKey(im => im.ItemPaiId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<ItemProposta>(e =>
         {
             e.Property(p => p.Quantidade).HasPrecision(18, 3);
