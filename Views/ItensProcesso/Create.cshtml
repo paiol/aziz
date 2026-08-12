@@ -1,28 +1,12 @@
 @model ComparacaoPropostas.ViewModels.ItensProcesso.NovosItensProcessoVM
 @{
     ViewData["Title"] = "Adicionar Itens a Pedir";
-    var itens = (List<ComparacaoPropostas.Models.Entities.ItemMaterial>)ViewBag.Itens;
-    var dominios = (List<string>)ViewBag.Dominios;
 }
 
 <h2>Adicionar Itens a Pedir — @ViewBag.ProcessoNome</h2>
-<p class="text-body-tertiary">Indica os itens e quantidades a pedir. Depois de gravar, podes descarregar o Excel para enviar ao fornecedor.</p>
+<p class="text-body-tertiary">Escreve para procurar um item nos catálogos (Item Energia, MBB, FBB, Core e Itens/Materiais). Depois de gravar, podes descarregar o Excel para enviar ao fornecedor.</p>
 
 <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-<div class="card mb-3">
-    <div class="card-body">
-        <label class="form-label">Filtrar itens por domínio</label>
-        <select id="filtro-dominio" class="form-select" style="max-width:360px">
-            <option value="">Todos os domínios</option>
-            @foreach (var d in dominios)
-            {
-                <option value="@d" selected="@(d == (string)ViewBag.AreaSugerida)">@d</option>
-            }
-        </select>
-        <div class="form-text">Pré-selecionado com a Área do Pedido de Proposta (@ViewBag.AreaSugerida) — podes mudar.</div>
-    </div>
-</div>
 
 <form asp-action="Create" method="post">
     <input type="hidden" name="ProcessoId" value="@Model.ProcessoId" />
@@ -32,7 +16,7 @@
             <table class="table mb-0">
                 <thead>
                     <tr>
-                        <th style="min-width:260px">Item</th>
+                        <th style="min-width:320px">Item</th>
                         <th style="width:160px">Quantidade Solicitada</th>
                         <th>Observação</th>
                         <th style="width:50px"></th>
@@ -58,14 +42,11 @@
     <tr>
         <td>
             <input type="hidden" name="Itens.Index" value="__INDEX__" class="js-row-index" />
-            <select name="Itens[__INDEX__].ItemMaterialId" class="form-select form-select-sm js-item-select" required>
-                <option value="">— Selecione —</option>
-                @foreach (var i in itens)
-                {
-                    var prefixo = i.ItemPaiId != null ? "— " : "";
-                    <option value="@i.Id" data-dominio="@(i.Dominio ?? "")">@prefixo@i.NomeItem</option>
-                }
-            </select>
+            <input type="hidden" name="Itens[__INDEX__].ChaveItem" class="js-chave-item" required />
+            <div class="position-relative">
+                <input type="text" class="form-control form-control-sm js-item-search" placeholder="Escreva para procurar (ex: disjuntor, antena...)" autocomplete="off" required />
+                <div class="list-group position-absolute w-100 shadow-sm js-item-resultados" style="z-index:1000; max-height:260px; overflow-y:auto; display:none;"></div>
+            </div>
         </td>
         <td><input type="number" step="0.001" value="1" name="Itens[__INDEX__].QuantidadeSolicitada" class="form-control form-control-sm" required /></td>
         <td><input type="text" name="Itens[__INDEX__].Observacao" class="form-control form-control-sm" /></td>
@@ -79,21 +60,71 @@
     <script>
         (function () {
             var rowCount = 0;
+            var areaSugerida = @Html.Raw(System.Text.Json.JsonSerializer.Serialize((string)(ViewBag.AreaSugerida ?? "")));
+            var buscarUrl = '@Url.Action("BuscarItens")';
+            var debounceTimer = null;
 
-            function aplicarFiltroEm(select) {
-                var filtro = document.getElementById('filtro-dominio').value;
-                var selecaoAtual = select.value;
-                select.querySelectorAll('option[data-dominio]').forEach(function (opt) {
-                    var visivel = !filtro || opt.getAttribute('data-dominio') === filtro || opt.getAttribute('data-dominio') === '';
-                    opt.hidden = !visivel;
-                    opt.disabled = !visivel;
-                });
-                var aindaVisivel = select.querySelector('option[value="' + selecaoAtual + '"]:not([hidden])');
-                if (selecaoAtual && !aindaVisivel) select.value = '';
+            function origemBadge(origem) {
+                var cores = { 'Catálogo': 'secondary', 'Energia': 'warning text-dark', 'MBB': 'info text-dark', 'FBB': 'primary', 'Core': 'dark' };
+                var cor = cores[origem] || 'secondary';
+                return '<span class="badge bg-' + cor + ' ms-2">' + origem + '</span>';
             }
 
-            function aplicarFiltroEmTodas() {
-                document.querySelectorAll('.js-item-select').forEach(aplicarFiltroEm);
+            function renderResultados(container, resultados, onEscolher) {
+                container.innerHTML = '';
+                if (resultados.length === 0) {
+                    container.style.display = 'none';
+                    return;
+                }
+                resultados.forEach(function (r) {
+                    var el = document.createElement('button');
+                    el.type = 'button';
+                    el.className = 'list-group-item list-group-item-action py-2';
+                    var detalhe = [r.categoria, r.unidade, r.dominio].filter(Boolean).join(' · ');
+                    el.innerHTML = '<div class="d-flex justify-content-between align-items-center">' +
+                        '<div><div>' + r.nome + '</div>' +
+                        (detalhe ? '<small class="text-body-tertiary">' + detalhe + '</small>' : '') +
+                        '</div>' + origemBadge(r.origem) + '</div>';
+                    el.addEventListener('click', function () { onEscolher(r); });
+                    container.appendChild(el);
+                });
+                container.style.display = 'block';
+            }
+
+            function buscar(termo, dominio, callback) {
+                var url = buscarUrl + '?termo=' + encodeURIComponent(termo || '') + '&dominio=' + encodeURIComponent(dominio || '');
+                fetch(url).then(function (resp) { return resp.json(); }).then(callback).catch(function () { callback([]); });
+            }
+
+            function ligarLinha(tr) {
+                var input = tr.querySelector('.js-item-search');
+                var chaveInput = tr.querySelector('.js-chave-item');
+                var resultados = tr.querySelector('.js-item-resultados');
+
+                function escolher(r) {
+                    chaveInput.value = r.chave;
+                    input.value = r.nome;
+                    resultados.style.display = 'none';
+                }
+
+                input.addEventListener('input', function () {
+                    chaveInput.value = '';
+                    clearTimeout(debounceTimer);
+                    var termo = input.value.trim();
+                    debounceTimer = setTimeout(function () {
+                        buscar(termo, areaSugerida, function (lista) { renderResultados(resultados, lista, escolher); });
+                    }, 250);
+                });
+
+                input.addEventListener('focus', function () {
+                    if (!input.value.trim() && areaSugerida) {
+                        buscar('', areaSugerida, function (lista) { renderResultados(resultados, lista, escolher); });
+                    }
+                });
+
+                document.addEventListener('click', function (e) {
+                    if (!tr.contains(e.target)) resultados.style.display = 'none';
+                });
             }
 
             function adicionarLinha() {
@@ -109,13 +140,13 @@
                     e.target.closest('tr').remove();
                 });
 
-                var select = clone.querySelector('.js-item-select');
+                var tr = clone.querySelector('tr');
                 document.getElementById('itens-tbody').appendChild(clone);
-                aplicarFiltroEm(select);
+                ligarLinha(tr);
+                tr.querySelector('.js-item-search').focus();
             }
 
             document.getElementById('btn-add-row').addEventListener('click', adicionarLinha);
-            document.getElementById('filtro-dominio').addEventListener('change', aplicarFiltroEmTodas);
             adicionarLinha();
         })();
     </script>

@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ComparacaoPropostas.Data;
-using ComparacaoPropostas.Helper;
 using ComparacaoPropostas.Models.Entities;
 using ComparacaoPropostas.Models.Entities.Enums;
 using ComparacaoPropostas.Services;
@@ -41,8 +40,6 @@ public class ItensProcessoController : Controller
         if (processo == null) return NotFound();
 
         ViewBag.ProcessoNome = processo.Nome;
-        ViewBag.Itens = CatalogoItensHelper.CarregarIndentado(_db);
-        ViewBag.Dominios = CatalogoItensHelper.ObterDominios(_db);
         ViewBag.AreaSugerida = processo.PedidoProposta.Area;
         return View(new NovosItensProcessoVM { ProcessoId = processoId });
     }
@@ -51,30 +48,139 @@ public class ItensProcessoController : Controller
     [ValidateAntiForgeryToken]
     public IActionResult Create(NovosItensProcessoVM model)
     {
-        var processo = _db.Processos.Find(model.ProcessoId);
+        var processo = _db.Processos.Include(p => p.PedidoProposta).FirstOrDefault(p => p.Id == model.ProcessoId);
         if (processo == null) return NotFound();
 
-        var linhasValidas = (model.Itens ?? new()).Where(i => i.ItemMaterialId > 0).ToList();
+        var linhasValidas = (model.Itens ?? new()).Where(i => !string.IsNullOrWhiteSpace(i.ChaveItem)).ToList();
         if (linhasValidas.Count == 0)
-            ModelState.AddModelError("", "Adicione pelo menos uma linha de item.");
+            ModelState.AddModelError("", "Adicione pelo menos uma linha de item (escolha um item da lista de sugestões).");
 
         if (!ModelState.IsValid)
         {
             ViewBag.ProcessoNome = processo.Nome;
-            ViewBag.Itens = CatalogoItensHelper.CarregarIndentado(_db);
-            ViewBag.Dominios = CatalogoItensHelper.ObterDominios(_db);
+            ViewBag.AreaSugerida = processo.PedidoProposta.Area;
             return View(model);
         }
 
+        var adicionados = 0;
         foreach (var linha in linhasValidas)
         {
-            linha.ProcessoId = model.ProcessoId;
-            _db.ItensPedido.Add(linha);
+            var itemMaterialId = ResolverChaveItem(linha.ChaveItem);
+            if (itemMaterialId == null) continue;
+
+            _db.ItensPedido.Add(new ItemPedido
+            {
+                ProcessoId = model.ProcessoId,
+                ItemMaterialId = itemMaterialId.Value,
+                QuantidadeSolicitada = linha.QuantidadeSolicitada,
+                Observacao = linha.Observacao
+            });
+            adicionados++;
         }
         _db.SaveChanges();
 
-        TempData["Sucesso"] = $"{linhasValidas.Count} item(ns) adicionado(s) ao pedido.";
+        TempData["Sucesso"] = $"{adicionados} item(ns) adicionado(s) ao pedido.";
         return RedirectToAction(nameof(Index), new { processoId = model.ProcessoId });
+    }
+
+    // Cross-catalog typeahead used by the item picker: matches by name across the shared
+    // ItemMaterial catalog and the 4 domain-specific tables (Energia/MBB/FBB/Core). With no
+    // "termo", falls back to listing items tagged with "dominio" so the picker can show a
+    // starter list for the Processo's suggested Área on focus.
+    [HttpGet]
+    public IActionResult BuscarItens(string? termo, string? dominio)
+    {
+        termo = (termo ?? "").Trim();
+        dominio = (dominio ?? "").Trim();
+
+        if (termo.Length < 2 && dominio.Length == 0)
+            return Json(new List<ItemBuscaResultado>());
+
+        var resultados = new List<ItemBuscaResultado>();
+
+        resultados.AddRange(_db.ItensMaterial.Where(i => i.ItemPaiId == null).ToList()
+            .Where(i => CorrespondeAoFiltro(i.NomeItem, i.Dominio, termo, dominio))
+            .Take(10).Select(i => new ItemBuscaResultado { Chave = $"material:{i.Id}", Nome = i.NomeItem, Categoria = i.Categoria, Unidade = i.Unidade, Dominio = i.Dominio, Origem = "Catálogo" }));
+
+        resultados.AddRange(_db.ItensEnergia.ToList()
+            .Where(i => CorrespondeAoFiltro(i.Nome, i.Dominio, termo, dominio))
+            .Take(10).Select(i => new ItemBuscaResultado { Chave = $"energia:{i.Id}", Nome = i.Nome, Categoria = i.Categoria, Unidade = i.Unidade, Dominio = i.Dominio, Origem = "Energia" }));
+
+        resultados.AddRange(_db.ItensMbb.ToList()
+            .Where(i => CorrespondeAoFiltro(i.Nome, i.Dominio, termo, dominio))
+            .Take(10).Select(i => new ItemBuscaResultado { Chave = $"mbb:{i.Id}", Nome = i.Nome, Categoria = i.Categoria, Unidade = i.Unidade, Dominio = i.Dominio, Origem = "MBB" }));
+
+        resultados.AddRange(_db.ItensFbb.ToList()
+            .Where(i => CorrespondeAoFiltro(i.Nome, i.Dominio, termo, dominio))
+            .Take(10).Select(i => new ItemBuscaResultado { Chave = $"fbb:{i.Id}", Nome = i.Nome, Categoria = i.Categoria, Unidade = i.Unidade, Dominio = i.Dominio, Origem = "FBB" }));
+
+        resultados.AddRange(_db.ItensCore.ToList()
+            .Where(i => CorrespondeAoFiltro(i.Nome, i.Dominio, termo, dominio))
+            .Take(10).Select(i => new ItemBuscaResultado { Chave = $"core:{i.Id}", Nome = i.Nome, Categoria = i.Categoria, Unidade = i.Unidade, Dominio = i.Dominio, Origem = "Core" }));
+
+        return Json(resultados.OrderBy(r => r.Nome).Take(30));
+    }
+
+    private static bool CorrespondeAoFiltro(string nomeItem, string? dominioItem, string termo, string dominio)
+    {
+        if (termo.Length >= 2) return nomeItem.Contains(termo, StringComparison.OrdinalIgnoreCase);
+        if (dominio.Length > 0) return string.Equals(dominioItem, dominio, StringComparison.OrdinalIgnoreCase);
+        return false;
+    }
+
+    // Bridges a pick from any of the 4 domain catalogs into the shared ItemMaterial table
+    // (found-or-created by name) so ItemPedido/ItemProposta/Excel/Comparação keep working
+    // against a single catalog, exactly as before this picker existed.
+    private int? ResolverChaveItem(string chave)
+    {
+        var partes = chave.Split(':', 2);
+        if (partes.Length != 2 || !int.TryParse(partes[1], out var id)) return null;
+
+        if (partes[0] == "material")
+            return _db.ItensMaterial.Any(m => m.Id == id) ? id : null;
+
+        string nome, dominioPadrao;
+        string? categoria, unidade, dominio;
+
+        switch (partes[0])
+        {
+            case "energia":
+                var e = _db.ItensEnergia.Find(id);
+                if (e == null) return null;
+                (nome, categoria, unidade, dominio, dominioPadrao) = (e.Nome, e.Categoria, e.Unidade, e.Dominio, "Energia");
+                break;
+            case "mbb":
+                var m = _db.ItensMbb.Find(id);
+                if (m == null) return null;
+                (nome, categoria, unidade, dominio, dominioPadrao) = (m.Nome, m.Categoria, m.Unidade, m.Dominio, "MBB");
+                break;
+            case "fbb":
+                var f = _db.ItensFbb.Find(id);
+                if (f == null) return null;
+                (nome, categoria, unidade, dominio, dominioPadrao) = (f.Nome, f.Categoria, f.Unidade, f.Dominio, "FBB");
+                break;
+            case "core":
+                var c = _db.ItensCore.Find(id);
+                if (c == null) return null;
+                (nome, categoria, unidade, dominio, dominioPadrao) = (c.Nome, c.Categoria, c.Unidade, c.Dominio, "Core");
+                break;
+            default:
+                return null;
+        }
+
+        var existente = _db.ItensMaterial.FirstOrDefault(im => im.NomeItem == nome);
+        if (existente != null) return existente.Id;
+
+        var novo = new ItemMaterial
+        {
+            NomeItem = nome,
+            Categoria = categoria,
+            Unidade = unidade,
+            Dominio = string.IsNullOrWhiteSpace(dominio) ? dominioPadrao : dominio
+        };
+        _db.ItensMaterial.Add(novo);
+        _db.SaveChanges();
+        return novo.Id;
     }
 
     [HttpPost]

@@ -1,9 +1,25 @@
-using ComparacaoPropostas.Models.Entities;
-
 namespace ComparacaoPropostas.ViewModels.ItensProcesso;
 
 public class NovosItensProcessoVM
 {
     public int ProcessoId { get; set; }
-    public List<ItemPedido> Itens { get; set; } = new();
+    public List<NovaLinhaItemPedido> Itens { get; set; } = new();
+}
+
+public class NovaLinhaItemPedido
+{
+    // Composite key from the search picker, e.g. "material:5", "energia:12", "mbb:7".
+    public string ChaveItem { get; set; } = "";
+    public decimal QuantidadeSolicitada { get; set; }
+    public string? Observacao { get; set; }
+}
+
+public class ItemBuscaResultado
+{
+    public string Chave { get; set; } = "";
+    public string Nome { get; set; } = "";
+    public string? Categoria { get; set; }
+    public string? Unidade { get; set; }
+    public string? Dominio { get; set; }
+    public string Origem { get; set; } = "";
 }
