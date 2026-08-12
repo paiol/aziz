@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using ComparacaoPropostas.Models.Entities.Enums;
 
 namespace ComparacaoPropostas.Models.Entities;
@@ -8,18 +7,20 @@ public class PedidoProposta
 {
     public int Id { get; set; }
 
-    public int ProcessoId { get; set; }
-    [ValidateNever]
-    public Processo Processo { get; set; } = null!;
+    [Required, Display(Name = "Tipo de Proposta")]
+    public string TipoProposta { get; set; } = "";
 
-    [Required, Display(Name = "Fornecedor")]
-    public string Fornecedor { get; set; } = "";
+    [Required, Display(Name = "Área")]
+    public string Area { get; set; } = "";
 
     [Display(Name = "Estado")]
     public StatusPedido Status { get; set; } = StatusPedido.Pendente;
 
     public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
 
-    public ICollection<ItemPedido> ItensPedido { get; set; } = new List<ItemPedido>();
-    public ICollection<Proposta> Propostas { get; set; } = new List<Proposta>();
+    [Required, Display(Name = "Pessoa Criou")]
+    public string PessoaCriou { get; set; } = "";
+
+    // Set once a Processo picks this Pedido as its 1-1 origin; null while still Pendente.
+    public Processo? Processo { get; set; }
 }

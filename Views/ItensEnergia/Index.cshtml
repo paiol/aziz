@@ -1,0 +1,43 @@
+@model List<ComparacaoPropostas.Models.Entities.ItemEnergia>
+@{
+    ViewData["Title"] = "Item Energia";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Item Energia</h2>
+    <a class="btn btn-primary" asp-action="Create"><span class="fas fa-plus me-1"></span> Novo Item</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <table class="table table-hover data-table">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Tipo</th>
+                    <th>Categoria</th>
+                    <th>Unidade</th>
+                    <th>Domínio</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.Nome</td>
+                        <td>@item.Tipo</td>
+                        <td>@item.Categoria</td>
+                        <td>@item.Unidade</td>
+                        <td>@item.Dominio</td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-subtle-secondary" asp-action="Edit" asp-route-id="@item.Id">Editar</a>
+                            <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
+                                    data-url="@Url.Action("Delete", new { id = item.Id })" data-id="@item.Id">Apagar</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

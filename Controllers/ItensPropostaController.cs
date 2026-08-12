@@ -19,7 +19,6 @@ public class ItensPropostaController : Controller
     public IActionResult Index(int propostaId)
     {
         var proposta = _db.Propostas
-            .Include(p => p.PedidoProposta)
             .Include(p => p.ItensProposta).ThenInclude(ip => ip.ItemMaterial)
             .FirstOrDefault(p => p.Id == propostaId);
 

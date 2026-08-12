@@ -8,7 +8,7 @@
     <div>
         <h2 class="mb-1">@p.Nome</h2>
         <span class="@p.Status.ToBadgeClass()">@p.Status.ToLabel()</span>
-        <span class="text-body-tertiary ms-2">@p.TipoProcesso</span>
+        <span class="text-body-tertiary ms-2">@p.PedidoProposta.TipoProposta — @p.PedidoProposta.Area</span>
     </div>
     <div>
         <a class="btn btn-subtle-secondary" asp-action="Edit" asp-route-id="@p.Id">Editar Processo</a>
@@ -39,19 +39,13 @@
 
         <div class="card mb-3">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <div>
-                    <h5 class="mb-0">Pedidos de Proposta (@Model.TotalPedidos)</h5>
-                    @if (Model.PedidosPendentes > 0)
-                    {
-                        <span class="text-body-tertiary small">@Model.PedidosPendentes a aguardar resposta</span>
-                    }
-                </div>
-                <a class="btn btn-sm btn-primary" asp-controller="Pedidos" asp-action="Index" asp-route-processoId="@p.Id">
-                    <span class="fas fa-paper-plane me-1"></span> Gerir Pedidos
+                <h5 class="mb-0">Itens a Pedir (@Model.TotalItensPedido)</h5>
+                <a class="btn btn-sm btn-primary" asp-controller="ItensProcesso" asp-action="Index" asp-route-processoId="@p.Id">
+                    <span class="fas fa-paper-plane me-1"></span> Gerir Itens / Excel
                 </a>
             </div>
             <div class="card-body">
-                <p class="text-body-tertiary mb-0">Cria um pedido para gerar o Excel a enviar ao fornecedor; quando ele responder, importa o ficheiro para criar a proposta automaticamente.</p>
+                <p class="text-body-tertiary mb-0">Adiciona os itens e quantidades a pedir ao fornecedor, descarrega o Excel, e importa a resposta preenchida para criar a proposta automaticamente.</p>
             </div>
         </div>
 

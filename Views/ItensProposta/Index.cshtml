@@ -9,12 +9,6 @@
     <a class="btn btn-primary" asp-action="Create" asp-route-propostaId="@proposta.Id"><span class="fas fa-plus me-1"></span> Adicionar Itens</a>
 </div>
 
-@if (proposta.PedidoPropostaId.HasValue)
-{
-    <div class="alert alert-info">
-        Esta proposta foi criada a partir de um <a asp-controller="Pedidos" asp-action="Index" asp-route-processoId="@proposta.ProcessoId" class="alert-link">Pedido de Proposta</a> enviado ao fornecedor.
-    </div>
-}
 
 <div class="card mb-3">
     <div class="card-body">

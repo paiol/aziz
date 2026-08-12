@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using ComparacaoPropostas.Models.Entities.Enums;
 
 namespace ComparacaoPropostas.Models.Entities;
@@ -6,6 +7,12 @@ namespace ComparacaoPropostas.Models.Entities;
 public class Processo
 {
     public int Id { get; set; }
+
+    // The Pedido de Proposta that originated this Processo (1-1, required — a
+    // Processo is always born from a Pedido now, not the other way around).
+    public int PedidoPropostaId { get; set; }
+    [ValidateNever]
+    public PedidoProposta PedidoProposta { get; set; } = null!;
 
     [Required, Display(Name = "Nome do Processo")]
     public string Nome { get; set; } = "";
@@ -23,8 +30,8 @@ public class Processo
     [Display(Name = "Orçamento Estimado")]
     public decimal? OrcamentoEstimado { get; set; }
 
-    [Required, Display(Name = "Tipo de Processo")]
-    public string TipoProcesso { get; set; } = "";
+    [Required, Display(Name = "Fornecedor")]
+    public string Fornecedor { get; set; } = "";
 
     [Display(Name = "Criado por")]
     public string? CriadoPor { get; set; }
@@ -36,5 +43,5 @@ public class Processo
 
     public ICollection<Criterio> Criterios { get; set; } = new List<Criterio>();
     public ICollection<Proposta> Propostas { get; set; } = new List<Proposta>();
-    public ICollection<PedidoProposta> Pedidos { get; set; } = new List<PedidoProposta>();
+    public ICollection<ItemPedido> ItensPedido { get; set; } = new List<ItemPedido>();
 }

@@ -26,6 +26,7 @@ public class ProcessosController : Controller
     public IActionResult Index()
     {
         var lista = _db.Processos
+            .Include(p => p.PedidoProposta)
             .OrderByDescending(p => p.CriadoEm)
             .Select(p => new ProcessoIndexVM
             {
@@ -33,7 +34,9 @@ public class ProcessosController : Controller
                 Nome = p.Nome,
                 Status = p.Status,
                 PrazoFinal = p.PrazoFinal,
-                TipoProcesso = p.TipoProcesso,
+                TipoProposta = p.PedidoProposta.TipoProposta,
+                Area = p.PedidoProposta.Area,
+                Fornecedor = p.Fornecedor,
                 OrcamentoEstimado = p.OrcamentoEstimado,
                 TotalPropostas = p.Propostas.Count,
                 MenorValorOfertado = p.Propostas.Any() ? p.Propostas.Min(pr => pr.ValorTotal) : (decimal?)null
@@ -46,20 +49,19 @@ public class ProcessosController : Controller
     public IActionResult Details(int id)
     {
         var processo = _db.Processos
+            .Include(p => p.PedidoProposta)
             .Include(p => p.Criterios)
+            .Include(p => p.ItensPedido)
             .Include(p => p.Propostas).ThenInclude(pr => pr.Avaliacoes)
             .FirstOrDefault(p => p.Id == id);
 
         if (processo == null) return NotFound();
 
-        var pedidos = _db.Pedidos.Where(pd => pd.ProcessoId == id).ToList();
-
         var vm = new ProcessoDetailVM
         {
             Processo = processo,
             SomaPesos = processo.Criterios.Sum(c => c.Peso),
-            TotalPedidos = pedidos.Count,
-            PedidosPendentes = pedidos.Count(pd => pd.Status == Models.Entities.Enums.StatusPedido.Pendente),
+            TotalItensPedido = processo.ItensPedido.Count,
             Propostas = processo.Propostas
                 .Select(p => new PropostaResumo
                 {
@@ -76,8 +78,17 @@ public class ProcessosController : Controller
         return View(vm);
     }
 
+    private void CarregarPedidosDisponiveis(int? incluirId = null)
+    {
+        ViewBag.PedidosDisponiveis = _db.Pedidos
+            .Where(p => p.Processo == null || p.Id == incluirId)
+            .OrderByDescending(p => p.CriadoEm)
+            .ToList();
+    }
+
     public IActionResult Create()
     {
+        CarregarPedidosDisponiveis();
         return View(new Processo());
     }
 
@@ -85,11 +96,19 @@ public class ProcessosController : Controller
     [ValidateAntiForgeryToken]
     public IActionResult Create(Processo processo)
     {
-        if (!ModelState.IsValid) return View(processo);
+        if (!ModelState.IsValid)
+        {
+            CarregarPedidosDisponiveis(processo.PedidoPropostaId);
+            return View(processo);
+        }
 
         try
         {
             _db.Processos.Add(processo);
+
+            var pedido = _db.Pedidos.Find(processo.PedidoPropostaId);
+            if (pedido != null) pedido.Status = StatusPedido.Respondido;
+
             _db.SaveChanges();
             TempData["Sucesso"] = "Processo criado com sucesso.";
             return RedirectToAction(nameof(Details), new { id = processo.Id });
@@ -98,13 +117,14 @@ public class ProcessosController : Controller
         {
             _logger.LogError(ex, "Erro ao criar processo.");
             ModelState.AddModelError("", "Não foi possível criar o processo.");
+            CarregarPedidosDisponiveis(processo.PedidoPropostaId);
             return View(processo);
         }
     }
 
     public IActionResult Edit(int id)
     {
-        var processo = _db.Processos.Find(id);
+        var processo = _db.Processos.Include(p => p.PedidoProposta).FirstOrDefault(p => p.Id == id);
         if (processo == null) return NotFound();
         return View(processo);
     }
@@ -114,6 +134,12 @@ public class ProcessosController : Controller
     public IActionResult Edit(int id, Processo processo)
     {
         if (id != processo.Id) return NotFound();
+
+        // PedidoPropostaId is fixed at creation (1-1 origin) — never rebind it from the edit form.
+        var existente = _db.Processos.AsNoTracking().First(p => p.Id == id);
+        processo.PedidoPropostaId = existente.PedidoPropostaId;
+        ModelState.Remove(nameof(Processo.PedidoPropostaId));
+
         if (!ModelState.IsValid) return View(processo);
 
         try

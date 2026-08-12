@@ -7,8 +7,7 @@ public class ProcessoDetailVM
     public Processo Processo { get; set; } = null!;
     public List<PropostaResumo> Propostas { get; set; } = new();
     public decimal SomaPesos { get; set; }
-    public int TotalPedidos { get; set; }
-    public int PedidosPendentes { get; set; }
+    public int TotalItensPedido { get; set; }
 }
 
 public class PropostaResumo

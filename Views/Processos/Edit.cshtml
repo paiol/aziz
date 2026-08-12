@@ -9,7 +9,12 @@
     <div class="card-body">
         <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
             <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="PedidoPropostaId" />
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="alert alert-light border mb-3">
+                Pedido de Proposta de origem: <strong>@Model.PedidoProposta.TipoProposta — @Model.PedidoProposta.Area</strong> (não editável)
+            </div>
 
             <div class="row g-3">
                 <div class="col-md-8">
@@ -18,9 +23,9 @@
                     <span asp-validation-for="Nome" class="text-danger"></span>
                 </div>
                 <div class="col-md-4">
-                    <label asp-for="TipoProcesso" class="form-label"></label>
-                    <input asp-for="TipoProcesso" class="form-control" />
-                    <span asp-validation-for="TipoProcesso" class="text-danger"></span>
+                    <label asp-for="Fornecedor" class="form-label"></label>
+                    <input asp-for="Fornecedor" class="form-control" />
+                    <span asp-validation-for="Fornecedor" class="text-danger"></span>
                 </div>
 
                 <div class="col-12">

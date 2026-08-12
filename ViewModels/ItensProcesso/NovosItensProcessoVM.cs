@@ -1,10 +1,9 @@
 using ComparacaoPropostas.Models.Entities;
 
-namespace ComparacaoPropostas.ViewModels.Pedidos;
+namespace ComparacaoPropostas.ViewModels.ItensProcesso;
 
-public class NovoPedidoVM
+public class NovosItensProcessoVM
 {
     public int ProcessoId { get; set; }
-    public string Fornecedor { get; set; } = "";
     public List<ItemPedido> Itens { get; set; } = new();
 }
