@@ -1,10 +1,15 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
 namespace ComparacaoPropostas.Models.Entities;
 
-public class CriterioAvaliacao
+public class Criterio
 {
     public int Id { get; set; }
+
+    public int ProcessoId { get; set; }
+    [ValidateNever]
+    public Processo Processo { get; set; } = null!;
 
     [Required, Display(Name = "Critério")]
     public string Nome { get; set; } = "";
@@ -15,8 +20,8 @@ public class CriterioAvaliacao
     [Display(Name = "Descrição")]
     public string? Descricao { get; set; }
 
-    [Required, Display(Name = "Domínio")]
-    public string Dominio { get; set; } = "";
+    [Display(Name = "Peso (%)")]
+    public decimal Peso { get; set; }
 
-    public ICollection<ProcessoCriterio> ProcessosCriterio { get; set; } = new List<ProcessoCriterio>();
+    public ICollection<Avaliacao> Avaliacoes { get; set; } = new List<Avaliacao>();
 }

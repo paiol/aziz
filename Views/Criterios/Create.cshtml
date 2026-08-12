@@ -1,38 +1,82 @@
-@model ComparacaoPropostas.Models.Entities.CriterioAvaliacao
+@model ComparacaoPropostas.ViewModels.Criterios.NovosCriteriosVM
 @{
-    ViewData["Title"] = "Novo Critério";
+    ViewData["Title"] = "Adicionar Critérios";
 }
 
-<h2>Novo Critério de Avaliação</h2>
+<h2>Adicionar Critérios — @ViewBag.ProcessoNome</h2>
+<p class="text-body-tertiary">Adiciona quantos critérios precisares. Os pesos devem somar aproximadamente 100% no total (incluindo os já existentes).</p>
 
-<div class="card">
-    <div class="card-body">
-        <form asp-action="Create" method="post">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label asp-for="Nome" class="form-label"></label>
-                    <input asp-for="Nome" class="form-control" />
-                    <span asp-validation-for="Nome" class="text-danger"></span>
-                </div>
-                <div class="col-md-3">
-                    <label asp-for="Categoria" class="form-label"></label>
-                    <input asp-for="Categoria" class="form-control" placeholder="Técnica / Financeira" />
-                </div>
-                <div class="col-md-3">
-                    <label asp-for="Dominio" class="form-label"></label>
-                    <input asp-for="Dominio" class="form-control" placeholder="Ex: Equipamentos e Materiais" />
-                    <span asp-validation-for="Dominio" class="text-danger"></span>
-                </div>
-                <div class="col-12">
-                    <label asp-for="Descricao" class="form-label"></label>
-                    <textarea asp-for="Descricao" class="form-control" rows="3"></textarea>
-                </div>
-            </div>
-            <div class="mt-4">
-                <button type="submit" class="btn btn-primary">Guardar</button>
-                <a asp-action="Index" class="btn btn-subtle-secondary">Cancelar</a>
-            </div>
-        </form>
+<div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+<form asp-action="Create" method="post">
+    <input type="hidden" name="ProcessoId" value="@Model.ProcessoId" />
+
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table mb-0">
+                <thead>
+                    <tr>
+                        <th style="min-width:220px">Critério</th>
+                        <th style="min-width:160px">Categoria</th>
+                        <th style="width:120px">Peso (%)</th>
+                        <th>Descrição</th>
+                        <th style="width:50px"></th>
+                    </tr>
+                </thead>
+                <tbody id="itens-tbody"></tbody>
+            </table>
+        </div>
+        <div class="card-footer">
+            <button type="button" id="btn-add-row" class="btn btn-sm btn-subtle-primary">
+                <span class="fas fa-plus me-1"></span> Adicionar Linha
+            </button>
+        </div>
     </div>
-</div>
+
+    <div class="mt-3">
+        <button type="submit" class="btn btn-primary">Guardar Critérios</button>
+        <a asp-action="Index" asp-route-processoId="@Model.ProcessoId" class="btn btn-subtle-secondary">Cancelar</a>
+    </div>
+</form>
+
+<template id="item-row-template">
+    <tr>
+        <td>
+            <input type="hidden" name="Itens.Index" value="__INDEX__" class="js-row-index" />
+            <input type="text" name="Itens[__INDEX__].Nome" class="form-control form-control-sm" placeholder="Ex: Preço" required />
+        </td>
+        <td><input type="text" name="Itens[__INDEX__].Categoria" class="form-control form-control-sm" placeholder="Técnica / Financeira" /></td>
+        <td><input type="number" step="0.01" value="0" name="Itens[__INDEX__].Peso" class="form-control form-control-sm" required /></td>
+        <td><input type="text" name="Itens[__INDEX__].Descricao" class="form-control form-control-sm" /></td>
+        <td class="text-end">
+            <button type="button" class="btn btn-sm btn-subtle-danger js-remove-row"><span class="fas fa-xmark"></span></button>
+        </td>
+    </tr>
+</template>
+
+@section Scripts {
+    <script>
+        (function () {
+            var rowCount = 0;
+
+            function adicionarLinha() {
+                var tpl = document.getElementById('item-row-template');
+                var clone = tpl.content.cloneNode(true);
+                var idx = 'r' + (rowCount++);
+
+                clone.querySelector('.js-row-index').value = idx;
+                clone.querySelectorAll('[name]').forEach(function (el) {
+                    el.name = el.name.replace('__INDEX__', idx);
+                });
+                clone.querySelector('.js-remove-row').addEventListener('click', function (e) {
+                    e.target.closest('tr').remove();
+                });
+
+                document.getElementById('itens-tbody').appendChild(clone);
+            }
+
+            document.getElementById('btn-add-row').addEventListener('click', adicionarLinha);
+            adicionarLinha();
+        })();
+    </script>
+}

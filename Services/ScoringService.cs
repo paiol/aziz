@@ -15,7 +15,7 @@ public class ScoringService : IScoringService
     }
 
     public decimal CalcularNotaPonderada(Avaliacao avaliacao)
-        => avaliacao.Nota * (avaliacao.ProcessoCriterio.Peso / 100m);
+        => avaliacao.Nota * (avaliacao.Criterio.Peso / 100m);
 
     public decimal CalcularNotaMedia(Proposta proposta)
     {
@@ -35,7 +35,7 @@ public class ScoringService : IScoringService
     public ComparacaoViewModel BuildComparacao(int processoId)
     {
         var processo = _db.Processos
-            .Include(p => p.Criterios).ThenInclude(c => c.CriterioAvaliacao)
+            .Include(p => p.Criterios)
             .Include(p => p.Propostas).ThenInclude(pr => pr.Avaliacoes)
             .FirstOrDefault(p => p.Id == processoId)
             ?? throw new KeyNotFoundException($"Processo {processoId} não encontrado.");
@@ -75,8 +75,8 @@ public class ScoringService : IScoringService
             .OrderByDescending(c => c.Peso)
             .Select(c => new LinhaCriterio
             {
-                ProcessoCriterioId = c.Id,
-                CriterioNome = c.CriterioAvaliacao.Nome,
+                CriterioId = c.Id,
+                CriterioNome = c.Nome,
                 Peso = c.Peso
             })
             .ToList();
@@ -85,7 +85,7 @@ public class ScoringService : IScoringService
         {
             foreach (var proposta in processo.Propostas)
             {
-                var avaliacao = proposta.Avaliacoes.FirstOrDefault(a => a.ProcessoCriterioId == linha.ProcessoCriterioId);
+                var avaliacao = proposta.Avaliacoes.FirstOrDefault(a => a.CriterioId == linha.CriterioId);
                 linha.NotasPorProposta[proposta.Id] = avaliacao?.Nota;
             }
 

@@ -11,9 +11,9 @@ public class Avaliacao
     [ValidateNever]
     public Proposta Proposta { get; set; } = null!;
 
-    public int ProcessoCriterioId { get; set; }
+    public int CriterioId { get; set; }
     [ValidateNever]
-    public ProcessoCriterio ProcessoCriterio { get; set; } = null!;
+    public Criterio Criterio { get; set; } = null!;
 
     [Display(Name = "Nota")]
     public decimal Nota { get; set; }

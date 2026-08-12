@@ -8,8 +8,7 @@ public class AppDbContext : DbContext
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     public DbSet<Processo> Processos => Set<Processo>();
-    public DbSet<CriterioAvaliacao> CriteriosAvaliacao => Set<CriterioAvaliacao>();
-    public DbSet<ProcessoCriterio> ProcessosCriterio => Set<ProcessoCriterio>();
+    public DbSet<Criterio> Criterios => Set<Criterio>();
     public DbSet<Proposta> Propostas => Set<Proposta>();
     public DbSet<Avaliacao> Avaliacoes => Set<Avaliacao>();
     public DbSet<ItemMaterial> ItensMaterial => Set<ItemMaterial>();
@@ -39,7 +38,7 @@ public class AppDbContext : DbContext
             // Restrict (not Cascade/SetNull): SQL Server rejects SetNull here too, since
             // Proposta is already reachable from Processo via a Cascade path (ProcessoId),
             // and a second actionable path through PedidoProposta creates the same
-            // multiple-cascade-paths conflict seen with Avaliacao->ProcessoCriterio.
+            // multiple-cascade-paths conflict seen with Avaliacao->Criterio.
             // PedidosController.Delete unlinks any Propostas before removing the Pedido.
             e.HasOne(p => p.PedidoProposta)
                 .WithMany(pp => pp.Propostas)
@@ -72,21 +71,14 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
-        modelBuilder.Entity<ProcessoCriterio>(e =>
+        modelBuilder.Entity<Criterio>(e =>
         {
-            e.Property(p => p.Peso).HasPrecision(5, 2);
+            e.Property(c => c.Peso).HasPrecision(5, 2);
 
-            e.HasOne(pc => pc.Processo)
+            e.HasOne(c => c.Processo)
                 .WithMany(p => p.Criterios)
-                .HasForeignKey(pc => pc.ProcessoId)
+                .HasForeignKey(c => c.ProcessoId)
                 .OnDelete(DeleteBehavior.Cascade);
-
-            e.HasOne(pc => pc.CriterioAvaliacao)
-                .WithMany(c => c.ProcessosCriterio)
-                .HasForeignKey(pc => pc.CriterioAvaliacaoId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            e.HasIndex(pc => new { pc.ProcessoId, pc.CriterioAvaliacaoId }).IsUnique();
         });
 
         modelBuilder.Entity<Avaliacao>(e =>
@@ -101,14 +93,14 @@ public class AppDbContext : DbContext
             // Restrict (not Cascade) to avoid SQL Server's multiple-cascade-paths error:
             // Avaliacao already cascades from Proposta, which itself cascades from Processo,
             // so deleting a Processo/Proposta already removes its Avaliacoes via that path.
-            // Removing a single ProcessoCriterio while Avaliacoes still reference it must be
-            // handled explicitly in application code (delete the Avaliacoes first).
-            e.HasOne(a => a.ProcessoCriterio)
-                .WithMany(pc => pc.Avaliacoes)
-                .HasForeignKey(a => a.ProcessoCriterioId)
+            // Removing a single Criterio while Avaliacoes still reference it must be handled
+            // explicitly in application code (delete the Avaliacoes first).
+            e.HasOne(a => a.Criterio)
+                .WithMany(c => c.Avaliacoes)
+                .HasForeignKey(a => a.CriterioId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            e.HasIndex(a => new { a.PropostaId, a.ProcessoCriterioId }).IsUnique();
+            e.HasIndex(a => new { a.PropostaId, a.CriterioId }).IsUnique();
         });
 
         modelBuilder.Entity<ItemMaterial>(e =>

@@ -107,19 +107,19 @@
         <div class="card mb-3">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Critérios (@Model.SomaPesos.ToString("0")%)</h5>
-                <a class="btn btn-sm btn-subtle-primary" asp-controller="ProcessoCriterios" asp-action="Gerenciar" asp-route-processoId="@p.Id">Gerir</a>
+                <a class="btn btn-sm btn-subtle-primary" asp-controller="Criterios" asp-action="Index" asp-route-processoId="@p.Id">Gerir</a>
             </div>
             <ul class="list-group list-group-flush">
                 @if (p.Criterios.Count == 0)
                 {
-                    <li class="list-group-item text-body-tertiary">Nenhum critério atribuído ainda.</li>
+                    <li class="list-group-item text-body-tertiary">Nenhum critério definido ainda.</li>
                 }
                 else
                 {
                     @foreach (var c in p.Criterios.OrderByDescending(c => c.Peso))
                     {
                         <li class="list-group-item d-flex justify-content-between">
-                            <span>@c.CriterioAvaliacao.Nome</span>
+                            <span>@c.Nome</span>
                             <strong>@c.Peso.ToString("0.##")%</strong>
                         </li>
                     }

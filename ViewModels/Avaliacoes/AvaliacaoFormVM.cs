@@ -10,7 +10,7 @@ public class AvaliacaoFormVM
 
 public class ItemAvaliacaoVM
 {
-    public int ProcessoCriterioId { get; set; }
+    public int CriterioId { get; set; }
     public string CriterioNome { get; set; } = "";
     public decimal Peso { get; set; }
     public decimal Nota { get; set; }

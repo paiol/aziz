@@ -19,7 +19,7 @@ public class AvaliacoesController : Controller
     {
         var proposta = _db.Propostas
             .Include(p => p.Avaliacoes)
-            .Include(p => p.Processo).ThenInclude(pr => pr.Criterios).ThenInclude(c => c.CriterioAvaliacao)
+            .Include(p => p.Processo).ThenInclude(pr => pr.Criterios)
             .FirstOrDefault(p => p.Id == propostaId);
 
         if (proposta == null) return NotFound();
@@ -33,11 +33,11 @@ public class AvaliacoesController : Controller
                 .OrderByDescending(c => c.Peso)
                 .Select(c =>
                 {
-                    var existente = proposta.Avaliacoes.FirstOrDefault(a => a.ProcessoCriterioId == c.Id);
+                    var existente = proposta.Avaliacoes.FirstOrDefault(a => a.CriterioId == c.Id);
                     return new ItemAvaliacaoVM
                     {
-                        ProcessoCriterioId = c.Id,
-                        CriterioNome = c.CriterioAvaliacao.Nome,
+                        CriterioId = c.Id,
+                        CriterioNome = c.Nome,
                         Peso = c.Peso,
                         Nota = existente?.Nota ?? 0,
                         Comentario = existente?.Comentario
@@ -58,7 +58,7 @@ public class AvaliacoesController : Controller
 
         foreach (var item in model.Itens)
         {
-            var existente = proposta.Avaliacoes.FirstOrDefault(a => a.ProcessoCriterioId == item.ProcessoCriterioId);
+            var existente = proposta.Avaliacoes.FirstOrDefault(a => a.CriterioId == item.CriterioId);
             if (existente != null)
             {
                 existente.Nota = item.Nota;
@@ -69,7 +69,7 @@ public class AvaliacoesController : Controller
                 _db.Avaliacoes.Add(new Avaliacao
                 {
                     PropostaId = model.PropostaId,
-                    ProcessoCriterioId = item.ProcessoCriterioId,
+                    CriterioId = item.CriterioId,
                     Nota = item.Nota,
                     Comentario = item.Comentario
                 });

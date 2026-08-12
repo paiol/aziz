@@ -25,7 +25,7 @@ public class PropostaColuna
 
 public class LinhaCriterio
 {
-    public int ProcessoCriterioId { get; set; }
+    public int CriterioId { get; set; }
     public string CriterioNome { get; set; } = "";
     public decimal Peso { get; set; }
     public Dictionary<int, decimal?> NotasPorProposta { get; set; } = new();

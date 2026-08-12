@@ -1,85 +1,108 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ComparacaoPropostas.Data;
 using ComparacaoPropostas.Models.Entities;
+using ComparacaoPropostas.ViewModels.Criterios;
 
 namespace ComparacaoPropostas.Controllers;
 
 public class CriteriosController : Controller
 {
     private readonly AppDbContext _db;
-    private readonly ILogger<CriteriosController> _logger;
 
-    public CriteriosController(AppDbContext db, ILogger<CriteriosController> logger)
+    public CriteriosController(AppDbContext db)
     {
         _db = db;
-        _logger = logger;
     }
 
-    public IActionResult Index(string? dominio)
+    public IActionResult Index(int processoId)
     {
-        var query = _db.CriteriosAvaliacao.AsQueryable();
-        if (!string.IsNullOrWhiteSpace(dominio))
-            query = query.Where(c => c.Dominio == dominio);
+        var processo = _db.Processos.Find(processoId);
+        if (processo == null) return NotFound();
 
-        ViewBag.Dominios = _db.CriteriosAvaliacao.Select(c => c.Dominio).Distinct().OrderBy(d => d).ToList();
-        ViewBag.DominioSelecionado = dominio;
+        var criterios = _db.Criterios
+            .Where(c => c.ProcessoId == processoId)
+            .OrderByDescending(c => c.Peso)
+            .ToList();
 
-        return View(query.OrderBy(c => c.Dominio).ThenBy(c => c.Nome).ToList());
+        ViewBag.Processo = processo;
+        return View(criterios);
     }
 
-    public IActionResult Create() => View(new CriterioAvaliacao());
+    public IActionResult Create(int processoId)
+    {
+        var processo = _db.Processos.Find(processoId);
+        if (processo == null) return NotFound();
+
+        ViewBag.ProcessoNome = processo.Nome;
+        return View(new NovosCriteriosVM { ProcessoId = processoId });
+    }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Create(CriterioAvaliacao criterio)
+    public IActionResult Create(NovosCriteriosVM model)
     {
-        if (!ModelState.IsValid) return View(criterio);
+        var processo = _db.Processos.Find(model.ProcessoId);
+        if (processo == null) return NotFound();
 
-        _db.CriteriosAvaliacao.Add(criterio);
+        var linhasValidas = (model.Itens ?? new()).Where(i => !string.IsNullOrWhiteSpace(i.Nome)).ToList();
+        if (linhasValidas.Count == 0)
+        {
+            ModelState.AddModelError("", "Adicione pelo menos um critério.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            ViewBag.ProcessoNome = processo.Nome;
+            return View(model);
+        }
+
+        foreach (var linha in linhasValidas)
+        {
+            linha.ProcessoId = model.ProcessoId;
+            _db.Criterios.Add(linha);
+        }
         _db.SaveChanges();
-        TempData["Sucesso"] = "Critério criado com sucesso.";
-        return RedirectToAction(nameof(Index));
+
+        TempData["Sucesso"] = $"{linhasValidas.Count} critério(s) adicionado(s).";
+        return RedirectToAction(nameof(Index), new { processoId = model.ProcessoId });
     }
 
     public IActionResult Edit(int id)
     {
-        var criterio = _db.CriteriosAvaliacao.Find(id);
+        var criterio = _db.Criterios.Find(id);
         if (criterio == null) return NotFound();
         return View(criterio);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Edit(int id, CriterioAvaliacao criterio)
+    public IActionResult Edit(int id, Criterio criterio)
     {
         if (id != criterio.Id) return NotFound();
         if (!ModelState.IsValid) return View(criterio);
 
-        _db.CriteriosAvaliacao.Update(criterio);
+        _db.Criterios.Update(criterio);
         _db.SaveChanges();
         TempData["Sucesso"] = "Critério atualizado com sucesso.";
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Index), new { processoId = criterio.ProcessoId });
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Delete(int id)
     {
-        try
-        {
-            var criterio = _db.CriteriosAvaliacao.Find(id);
-            if (criterio == null) return NotFound();
+        var criterio = _db.Criterios.Include(c => c.Avaliacoes).FirstOrDefault(c => c.Id == id);
+        if (criterio == null) return NotFound();
 
-            _db.CriteriosAvaliacao.Remove(criterio);
-            _db.SaveChanges();
-            TempData["Sucesso"] = "Critério removido com sucesso.";
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Erro ao remover critério {Id}. Provavelmente está em uso por algum processo.", id);
-            TempData["EmailWarning"] = "Não foi possível remover: este critério está a ser usado num ou mais processos.";
-        }
+        var processoId = criterio.ProcessoId;
 
-        return RedirectToAction(nameof(Index));
+        // Avaliacao->Criterio is Restrict (not Cascade), so remove dependent Avaliacoes explicitly.
+        _db.Avaliacoes.RemoveRange(criterio.Avaliacoes);
+        _db.Criterios.Remove(criterio);
+        _db.SaveChanges();
+
+        TempData["Sucesso"] = "Critério removido.";
+        return RedirectToAction(nameof(Index), new { processoId });
     }
 }

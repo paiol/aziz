@@ -46,7 +46,7 @@ public class ProcessosController : Controller
     public IActionResult Details(int id)
     {
         var processo = _db.Processos
-            .Include(p => p.Criterios).ThenInclude(c => c.CriterioAvaliacao)
+            .Include(p => p.Criterios)
             .Include(p => p.Propostas).ThenInclude(pr => pr.Avaliacoes)
             .FirstOrDefault(p => p.Id == id);
 
@@ -159,7 +159,7 @@ public class ProcessosController : Controller
     {
         var processo = _db.Processos
             .Include(p => p.Propostas).ThenInclude(pr => pr.Avaliacoes)
-            .ThenInclude(a => a.ProcessoCriterio)
+            .ThenInclude(a => a.Criterio)
             .FirstOrDefault(p => p.Id == id);
 
         if (processo == null) return NotFound();

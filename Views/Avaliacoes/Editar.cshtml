@@ -8,8 +8,8 @@
 @if (Model.Itens.Count == 0)
 {
     <div class="alert alert-warning">
-        Este processo ainda não tem critérios atribuídos.
-        <a asp-controller="ProcessoCriterios" asp-action="Gerenciar" asp-route-processoId="@Model.ProcessoId">Atribuir critérios</a> primeiro.
+        Este processo ainda não tem critérios definidos.
+        <a asp-controller="Criterios" asp-action="Index" asp-route-processoId="@Model.ProcessoId">Definir critérios</a> primeiro.
     </div>
 }
 else
@@ -35,7 +35,7 @@ else
                         {
                             <tr>
                                 <td>
-                                    <input type="hidden" asp-for="Itens[i].ProcessoCriterioId" />
+                                    <input type="hidden" asp-for="Itens[i].CriterioId" />
                                     <input type="hidden" asp-for="Itens[i].CriterioNome" />
                                     <input type="hidden" asp-for="Itens[i].Peso" />
                                     @Model.Itens[i].CriterioNome

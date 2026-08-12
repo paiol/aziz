@@ -34,7 +34,7 @@ public class Processo
 
     public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
 
-    public ICollection<ProcessoCriterio> Criterios { get; set; } = new List<ProcessoCriterio>();
+    public ICollection<Criterio> Criterios { get; set; } = new List<Criterio>();
     public ICollection<Proposta> Propostas { get; set; } = new List<Proposta>();
     public ICollection<PedidoProposta> Pedidos { get; set; } = new List<PedidoProposta>();
 }

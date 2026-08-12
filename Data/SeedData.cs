@@ -11,15 +11,6 @@ public static class SeedData
 
         const string dominio = "Equipamentos e Materiais";
 
-        var criterios = new List<CriterioAvaliacao>
-        {
-            new() { Nome = "Preço", Categoria = "Financeira", Dominio = dominio },
-            new() { Nome = "Prazo de Entrega", Categoria = "Financeira", Dominio = dominio },
-            new() { Nome = "Qualidade Técnica da Solução", Categoria = "Técnica", Dominio = dominio },
-            new() { Nome = "Garantia e Suporte", Categoria = "Técnica", Dominio = dominio },
-        };
-        db.CriteriosAvaliacao.AddRange(criterios);
-
         var item = new ItemMaterial { NomeItem = "Quadro Elétrico de Distribuição", Categoria = "Equipamentos", Unidade = "un" };
         db.ItensMaterial.Add(item);
 
@@ -34,14 +25,17 @@ public static class SeedData
         };
         db.Processos.Add(processo);
 
+        var nomesCriterios = new[] { "Preço", "Prazo de Entrega", "Qualidade Técnica da Solução", "Garantia e Suporte" };
+        var categorias = new[] { "Financeira", "Financeira", "Técnica", "Técnica" };
         var pesos = new decimal[] { 40, 20, 25, 15 };
-        var processoCriterios = criterios.Select((c, i) => new ProcessoCriterio
+        var criterios = nomesCriterios.Select((nome, i) => new Criterio
         {
             Processo = processo,
-            CriterioAvaliacao = c,
+            Nome = nome,
+            Categoria = categorias[i],
             Peso = pesos[i]
         }).ToList();
-        db.ProcessosCriterio.AddRange(processoCriterios);
+        db.Criterios.AddRange(criterios);
 
         var fornecedores = new[] { "Inovagera Tecnologia e Sistemas de Energia, Lda.", "Resul - Componentes de Energia, S.A." };
         var valores = new[] { 17979097.49m, 18105623.27m };
@@ -64,12 +58,12 @@ public static class SeedData
             };
             db.Propostas.Add(proposta);
 
-            for (var c = 0; c < processoCriterios.Count; c++)
+            for (var c = 0; c < criterios.Count; c++)
             {
                 db.Avaliacoes.Add(new Avaliacao
                 {
                     Proposta = proposta,
-                    ProcessoCriterio = processoCriterios[c],
+                    Criterio = criterios[c],
                     Nota = notasPorFornecedor[i][c]
                 });
             }
