@@ -13,6 +13,12 @@ public class Proposta
     [ValidateNever]
     public Processo Processo { get; set; } = null!;
 
+    // Set only when this Proposta was created by importing a supplier's filled
+    // response to a PedidoProposta; null for proposals entered manually.
+    public int? PedidoPropostaId { get; set; }
+    [ValidateNever]
+    public PedidoProposta? PedidoProposta { get; set; }
+
     [Required, Display(Name = "Fornecedor")]
     public string Fornecedor { get; set; } = "";
 

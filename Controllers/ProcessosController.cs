@@ -52,10 +52,14 @@ public class ProcessosController : Controller
 
         if (processo == null) return NotFound();
 
+        var pedidos = _db.Pedidos.Where(pd => pd.ProcessoId == id).ToList();
+
         var vm = new ProcessoDetailVM
         {
             Processo = processo,
             SomaPesos = processo.Criterios.Sum(c => c.Peso),
+            TotalPedidos = pedidos.Count,
+            PedidosPendentes = pedidos.Count(pd => pd.Status == Models.Entities.Enums.StatusPedido.Pendente),
             Propostas = processo.Propostas
                 .Select(p => new PropostaResumo
                 {

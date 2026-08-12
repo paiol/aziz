@@ -1,0 +1,95 @@
+@model ComparacaoPropostas.ViewModels.Pedidos.NovoPedidoVM
+@{
+    ViewData["Title"] = "Novo Pedido de Proposta";
+    var itens = (List<ComparacaoPropostas.Models.Entities.ItemMaterial>)ViewBag.Itens;
+}
+
+<h2>Novo Pedido de Proposta — @ViewBag.ProcessoNome</h2>
+<p class="text-body-tertiary">Indica o fornecedor e os itens/quantidades que vais pedir. Depois de gravar, podes descarregar o Excel para enviar.</p>
+
+<div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+<form asp-action="Create" method="post">
+    <input type="hidden" name="ProcessoId" value="@Model.ProcessoId" />
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <label class="form-label">Fornecedor</label>
+            <input type="text" name="Fornecedor" class="form-control" required />
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table mb-0">
+                <thead>
+                    <tr>
+                        <th style="min-width:260px">Item</th>
+                        <th style="width:160px">Quantidade Solicitada</th>
+                        <th>Observação</th>
+                        <th style="width:50px"></th>
+                    </tr>
+                </thead>
+                <tbody id="itens-tbody"></tbody>
+            </table>
+        </div>
+        <div class="card-footer">
+            <button type="button" id="btn-add-row" class="btn btn-sm btn-subtle-primary">
+                <span class="fas fa-plus me-1"></span> Adicionar Linha
+            </button>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <button type="submit" class="btn btn-primary">Guardar Pedido</button>
+        <a asp-action="Index" asp-route-processoId="@Model.ProcessoId" class="btn btn-subtle-secondary">Cancelar</a>
+    </div>
+</form>
+
+<template id="item-row-template">
+    <tr>
+        <td>
+            <input type="hidden" name="Itens.Index" value="__INDEX__" class="js-row-index" />
+            <select name="Itens[__INDEX__].ItemMaterialId" class="form-select form-select-sm" required>
+                <option value="">— Selecione —</option>
+                @foreach (var i in itens)
+                {
+                    var prefixo = i.ItemPaiId != null ? "— " : "";
+                    <option value="@i.Id">@prefixo@i.NomeItem</option>
+                }
+            </select>
+        </td>
+        <td><input type="number" step="0.001" value="1" name="Itens[__INDEX__].QuantidadeSolicitada" class="form-control form-control-sm" required /></td>
+        <td><input type="text" name="Itens[__INDEX__].Observacao" class="form-control form-control-sm" /></td>
+        <td class="text-end">
+            <button type="button" class="btn btn-sm btn-subtle-danger js-remove-row"><span class="fas fa-xmark"></span></button>
+        </td>
+    </tr>
+</template>
+
+@section Scripts {
+    <script>
+        (function () {
+            var rowCount = 0;
+
+            function adicionarLinha() {
+                var tpl = document.getElementById('item-row-template');
+                var clone = tpl.content.cloneNode(true);
+                var idx = 'r' + (rowCount++);
+
+                clone.querySelector('.js-row-index').value = idx;
+                clone.querySelectorAll('[name]').forEach(function (el) {
+                    el.name = el.name.replace('__INDEX__', idx);
+                });
+                clone.querySelector('.js-remove-row').addEventListener('click', function (e) {
+                    e.target.closest('tr').remove();
+                });
+
+                document.getElementById('itens-tbody').appendChild(clone);
+            }
+
+            document.getElementById('btn-add-row').addEventListener('click', adicionarLinha);
+            adicionarLinha();
+        })();
+    </script>
+}

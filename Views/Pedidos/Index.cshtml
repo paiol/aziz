@@ -1,0 +1,96 @@
+@model List<ComparacaoPropostas.Models.Entities.PedidoProposta>
+@{
+    var processo = (ComparacaoPropostas.Models.Entities.Processo)ViewBag.Processo;
+    ViewData["Title"] = "Pedidos de Proposta";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-1">Pedidos de Proposta</h2>
+        <p class="text-body-tertiary mb-0">@processo.Nome</p>
+    </div>
+    <div>
+        <a class="btn btn-primary" asp-action="Create" asp-route-processoId="@processo.Id">
+            <span class="fas fa-plus me-1"></span> Novo Pedido
+        </a>
+        <a class="btn btn-subtle-secondary" asp-controller="Processos" asp-action="Details" asp-route-id="@processo.Id">Voltar ao Processo</a>
+    </div>
+</div>
+
+@if (Model.Count == 0)
+{
+    <div class="alert alert-info">
+        Ainda não há pedidos de proposta para este processo. Cria um pedido, descarrega o Excel e envia ao fornecedor —
+        quando ele responder, importa o ficheiro preenchido para criar a proposta automaticamente.
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Fornecedor</th>
+                        <th>Estado</th>
+                        <th>Itens Pedidos</th>
+                        <th>Propostas Geradas</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model)
+                    {
+                        <tr>
+                            <td>@p.Fornecedor</td>
+                            <td>
+                                @if (p.Status == ComparacaoPropostas.Models.Entities.Enums.StatusPedido.Respondido)
+                                {
+                                    <span class="badge bg-success">Respondido</span>
+                                }
+                                else if (p.Status == ComparacaoPropostas.Models.Entities.Enums.StatusPedido.Cancelado)
+                                {
+                                    <span class="badge bg-secondary">Cancelado</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark">Pendente</span>
+                                }
+                            </td>
+                            <td>@p.ItensPedido.Count</td>
+                            <td>
+                                @if (p.Propostas.Count == 0)
+                                {
+                                    <span class="text-body-tertiary">-</span>
+                                }
+                                else
+                                {
+                                    @foreach (var prop in p.Propostas)
+                                    {
+                                        <a asp-controller="ItensProposta" asp-action="Index" asp-route-propostaId="@prop.Id" class="d-block">Ver proposta #@prop.Id</a>
+                                    }
+                                }
+                            </td>
+                            <td class="text-end">
+                                <a class="btn btn-sm btn-subtle-primary" asp-action="ExportarExcel" asp-route-id="@p.Id">
+                                    <span class="fas fa-file-excel me-1"></span> Excel
+                                </a>
+                                <button type="button" class="btn btn-sm btn-subtle-success" data-bs-toggle="collapse" data-bs-target="#import-@p.Id">
+                                    <span class="fas fa-upload me-1"></span> Importar Resposta
+                                </button>
+                                <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
+                                        data-url="@Url.Action("Delete", new { id = p.Id })" data-id="@p.Id">Apagar</button>
+                                <div class="collapse mt-2" id="import-@p.Id">
+                                    <form asp-action="ImportarResposta" asp-route-id="@p.Id" method="post" enctype="multipart/form-data" class="d-flex gap-2">
+                                        <input type="file" name="ficheiro" accept=".xlsx" class="form-control form-control-sm" required />
+                                        <button type="submit" class="btn btn-sm btn-success">Confirmar</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

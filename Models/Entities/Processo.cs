@@ -36,4 +36,5 @@ public class Processo
 
     public ICollection<ProcessoCriterio> Criterios { get; set; } = new List<ProcessoCriterio>();
     public ICollection<Proposta> Propostas { get; set; } = new List<Proposta>();
+    public ICollection<PedidoProposta> Pedidos { get; set; } = new List<PedidoProposta>();
 }

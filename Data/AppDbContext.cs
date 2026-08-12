@@ -15,6 +15,8 @@ public class AppDbContext : DbContext
     public DbSet<ItemMaterial> ItensMaterial => Set<ItemMaterial>();
     public DbSet<ItemProposta> ItensProposta => Set<ItemProposta>();
     public DbSet<PropostaAnexo> PropostasAnexo => Set<PropostaAnexo>();
+    public DbSet<PedidoProposta> Pedidos => Set<PedidoProposta>();
+    public DbSet<ItemPedido> ItensPedido => Set<ItemPedido>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -33,6 +35,41 @@ public class AppDbContext : DbContext
                 .WithMany(pr => pr.Propostas)
                 .HasForeignKey(p => p.ProcessoId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Restrict (not Cascade/SetNull): SQL Server rejects SetNull here too, since
+            // Proposta is already reachable from Processo via a Cascade path (ProcessoId),
+            // and a second actionable path through PedidoProposta creates the same
+            // multiple-cascade-paths conflict seen with Avaliacao->ProcessoCriterio.
+            // PedidosController.Delete unlinks any Propostas before removing the Pedido.
+            e.HasOne(p => p.PedidoProposta)
+                .WithMany(pp => pp.Propostas)
+                .HasForeignKey(p => p.PedidoPropostaId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PedidoProposta>(e =>
+        {
+            e.Property(p => p.Status).HasConversion<string>().HasMaxLength(20);
+
+            e.HasOne(p => p.Processo)
+                .WithMany(pr => pr.Pedidos)
+                .HasForeignKey(p => p.ProcessoId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ItemPedido>(e =>
+        {
+            e.Property(p => p.QuantidadeSolicitada).HasPrecision(18, 3);
+
+            e.HasOne(ip => ip.PedidoProposta)
+                .WithMany(p => p.ItensPedido)
+                .HasForeignKey(ip => ip.PedidoPropostaId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(ip => ip.ItemMaterial)
+                .WithMany()
+                .HasForeignKey(ip => ip.ItemMaterialId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<ProcessoCriterio>(e =>
