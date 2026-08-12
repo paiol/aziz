@@ -85,6 +85,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<ItemProposta>(e =>
         {
             e.Property(p => p.Quantidade).HasPrecision(18, 3);
+            e.Property(p => p.QuantidadeSolicitada).HasPrecision(18, 3);
             e.Property(p => p.PrecoUnitario).HasPrecision(18, 2);
 
             e.HasOne(ip => ip.Proposta)

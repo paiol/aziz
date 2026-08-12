@@ -17,6 +17,7 @@
                     <th>Nome</th>
                     <th>Categoria</th>
                     <th>Unidade</th>
+                    <th>Domínio</th>
                     <th></th>
                 </tr>
             </thead>
@@ -37,6 +38,7 @@
                         </td>
                         <td>@item.Categoria</td>
                         <td>@item.Unidade</td>
+                        <td>@(string.IsNullOrWhiteSpace(item.Dominio) ? "Qualquer" : item.Dominio)</td>
                         <td class="text-end">
                             <a class="btn btn-sm btn-subtle-secondary" asp-action="Edit" asp-route-id="@item.Id">Editar</a>
                             <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"

@@ -26,6 +26,11 @@
                     <input asp-for="Unidade" class="form-control" />
                 </div>
                 <div class="col-md-6">
+                    <label asp-for="Dominio" class="form-label"></label>
+                    <input asp-for="Dominio" class="form-control" placeholder="Ex: Equipamentos e Materiais (igual ao Tipo de Processo)" />
+                    <div class="form-text">Deixa em branco para o item aparecer em qualquer tipo de processo.</div>
+                </div>
+                <div class="col-md-6">
                     <label asp-for="ItemPaiId" class="form-label">Item Pai (opcional)</label>
                     <select asp-for="ItemPaiId" class="form-select">
                         <option value="">— Nenhum (item de topo) —</option>

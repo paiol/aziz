@@ -18,6 +18,9 @@ public class ItemMaterial
     [Display(Name = "Descrição")]
     public string? Descricao { get; set; }
 
+    [Display(Name = "Domínio")]
+    public string? Dominio { get; set; }
+
     [Display(Name = "Item Pai")]
     public int? ItemPaiId { get; set; }
     public ItemMaterial? ItemPai { get; set; }

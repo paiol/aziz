@@ -19,6 +19,9 @@ public class ItemProposta
     [Display(Name = "Incluído")]
     public bool Incluido { get; set; } = true;
 
+    [Display(Name = "Quantidade Solicitada")]
+    public decimal? QuantidadeSolicitada { get; set; }
+
     [Display(Name = "Quantidade")]
     public decimal Quantidade { get; set; }
 

@@ -10,13 +10,35 @@
 </div>
 
 <div class="card mb-3">
+    <div class="card-header">
+        <h5 class="mb-1">Pedido ao Fornecedor</h5>
+        <p class="text-body-tertiary mb-0">Descarrega o Excel com os itens pedidos, envia ao fornecedor, e importa o ficheiro preenchido quando ele responder.</p>
+    </div>
+    <div class="card-body d-flex flex-wrap gap-3 align-items-end">
+        <a class="btn btn-subtle-primary" asp-action="ExportarExcel" asp-route-propostaId="@proposta.Id">
+            <span class="fas fa-file-excel me-1"></span> Descarregar Pedido (Excel)
+        </a>
+        <form asp-action="ImportarExcel" asp-route-propostaId="@proposta.Id" method="post" enctype="multipart/form-data" class="d-flex gap-2 align-items-end">
+            <div>
+                <label class="form-label mb-1">Importar proposta preenchida</label>
+                <input type="file" name="ficheiro" accept=".xlsx" class="form-control form-control-sm" required />
+            </div>
+            <button type="submit" class="btn btn-subtle-success btn-sm">
+                <span class="fas fa-upload me-1"></span> Importar
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="card mb-3">
     <div class="card-body">
         <table class="table table-hover mb-0">
             <thead>
                 <tr>
                     <th>Item</th>
                     <th>Incluído</th>
-                    <th>Quantidade</th>
+                    <th>Qtd. Solicitada</th>
+                    <th>Qtd. Fornecida</th>
                     <th>Preço Unitário</th>
                     <th>Subtotal</th>
                     <th></th>
@@ -25,10 +47,12 @@
             <tbody>
                 @foreach (var item in Model.Itens)
                 {
+                    var difere = item.QuantidadeSolicitada.HasValue && item.QuantidadeSolicitada.Value != item.Quantidade;
                     <tr>
                         <td>@item.ItemMaterial.NomeItem</td>
                         <td>@(item.Incluido ? "Sim" : "Não")</td>
-                        <td>@item.Quantidade</td>
+                        <td>@(item.QuantidadeSolicitada?.ToString() ?? "-")</td>
+                        <td class="@(difere ? "cell-melhor" : "")">@item.Quantidade</td>
                         <td>@item.PrecoUnitario.ToString("C")</td>
                         <td>@item.Subtotal.ToString("C")</td>
                         <td class="text-end">
@@ -40,14 +64,14 @@
                 }
                 @if (Model.Itens.Count == 0)
                 {
-                    <tr><td colspan="6" class="text-body-tertiary">Ainda não há itens nesta proposta.</td></tr>
+                    <tr><td colspan="7" class="text-body-tertiary">Ainda não há itens nesta proposta.</td></tr>
                 }
             </tbody>
             @if (Model.Itens.Count > 0)
             {
                 <tfoot>
                     <tr class="fw-bold border-top border-2">
-                        <td colspan="2">Total Geral</td>
+                        <td colspan="3">Total Geral</td>
                         <td>@Model.QuantidadeGeral</td>
                         <td></td>
                         <td>@Model.ValorGeral.ToString("C")</td>
@@ -56,6 +80,7 @@
                 </tfoot>
             }
         </table>
+        <p class="text-body-tertiary small mt-2 mb-0">Quantidade fornecida destacada quando difere da quantidade solicitada.</p>
     </div>
 </div>
 
