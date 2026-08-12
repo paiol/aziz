@@ -16,9 +16,15 @@
                 <div class="col-md-6">
                     <label asp-for="ItemMaterialId" class="form-label">Item</label>
                     <select asp-for="ItemMaterialId" class="form-select">
-                        @foreach (var i in itens)
+                        @foreach (var grupo in itens.GroupBy(i => string.IsNullOrEmpty(i.Dominio) ? "Sem domínio" : i.Dominio))
                         {
-                            <option value="@i.Id">@i.NomeItem</option>
+                            <optgroup label="@grupo.Key">
+                                @foreach (var i in grupo)
+                                {
+                                    var prefixo = i.ItemPaiId != null ? "— " : "";
+                                    <option value="@i.Id">@prefixo@i.NomeItem</option>
+                                }
+                            </optgroup>
                         }
                     </select>
                 </div>

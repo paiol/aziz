@@ -44,7 +44,8 @@ public class PedidosController : Controller
         if (processo == null) return NotFound();
 
         ViewBag.ProcessoNome = processo.Nome;
-        ViewBag.Itens = CatalogoItensHelper.CarregarIndentado(_db, processo.TipoProcesso);
+        ViewBag.Itens = CatalogoItensHelper.CarregarIndentado(_db);
+        ViewBag.Dominios = CatalogoItensHelper.ObterDominios(_db);
         return View(new NovoPedidoVM { ProcessoId = processoId });
     }
 
@@ -64,7 +65,8 @@ public class PedidosController : Controller
         if (!ModelState.IsValid)
         {
             ViewBag.ProcessoNome = processo.Nome;
-            ViewBag.Itens = CatalogoItensHelper.CarregarIndentado(_db, processo.TipoProcesso);
+            ViewBag.Itens = CatalogoItensHelper.CarregarIndentado(_db);
+            ViewBag.Dominios = CatalogoItensHelper.ObterDominios(_db);
             return View(model);
         }
 

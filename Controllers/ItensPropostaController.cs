@@ -55,7 +55,8 @@ public class ItensPropostaController : Controller
         if (proposta == null) return NotFound();
 
         ViewBag.PropostaFornecedor = proposta.Fornecedor;
-        ViewBag.Itens = CatalogoItensHelper.CarregarIndentado(_db, proposta.Processo.TipoProcesso);
+        ViewBag.Itens = CatalogoItensHelper.CarregarIndentado(_db);
+        ViewBag.Dominios = CatalogoItensHelper.ObterDominios(_db);
         return View(new NovosItensPropostaVM { PropostaId = propostaId });
     }
 
@@ -75,7 +76,8 @@ public class ItensPropostaController : Controller
         if (!ModelState.IsValid)
         {
             ViewBag.PropostaFornecedor = proposta.Fornecedor;
-            ViewBag.Itens = CatalogoItensHelper.CarregarIndentado(_db, proposta.Processo.TipoProcesso);
+            ViewBag.Itens = CatalogoItensHelper.CarregarIndentado(_db);
+            ViewBag.Dominios = CatalogoItensHelper.ObterDominios(_db);
             return View(model);
         }
 
@@ -97,7 +99,7 @@ public class ItensPropostaController : Controller
 
         var proposta = _db.Propostas.Include(p => p.Processo).First(p => p.Id == item.PropostaId);
         ViewBag.PropostaFornecedor = proposta.Fornecedor;
-        ViewBag.Itens = CatalogoItensHelper.CarregarIndentado(_db, proposta.Processo.TipoProcesso);
+        ViewBag.Itens = CatalogoItensHelper.CarregarIndentado(_db);
         return View(item);
     }
 
@@ -110,7 +112,7 @@ public class ItensPropostaController : Controller
         {
             var proposta = _db.Propostas.Include(p => p.Processo).First(p => p.Id == item.PropostaId);
             ViewBag.PropostaFornecedor = proposta.Fornecedor;
-            ViewBag.Itens = CatalogoItensHelper.CarregarIndentado(_db, proposta.Processo.TipoProcesso);
+            ViewBag.Itens = CatalogoItensHelper.CarregarIndentado(_db);
             return View(item);
         }
 

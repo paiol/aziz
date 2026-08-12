@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "Novo Pedido de Proposta";
     var itens = (List<ComparacaoPropostas.Models.Entities.ItemMaterial>)ViewBag.Itens;
+    var dominios = (List<string>)ViewBag.Dominios;
 }
 
 <h2>Novo Pedido de Proposta — @ViewBag.ProcessoNome</h2>
@@ -13,9 +14,22 @@
     <input type="hidden" name="ProcessoId" value="@Model.ProcessoId" />
 
     <div class="card mb-3">
-        <div class="card-body">
-            <label class="form-label">Fornecedor</label>
-            <input type="text" name="Fornecedor" class="form-control" required />
+        <div class="card-body row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Fornecedor</label>
+                <input type="text" name="Fornecedor" class="form-control" required />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Filtrar itens por domínio</label>
+                <select id="filtro-dominio" class="form-select">
+                    <option value="">Todos os domínios</option>
+                    @foreach (var d in dominios)
+                    {
+                        <option value="@d">@d</option>
+                    }
+                </select>
+                <div class="form-text">Escolhe um domínio para reduzir a lista de itens abaixo (ex: só "Acessórios energia" ou só "Acessórios torre").</div>
+            </div>
         </div>
     </div>
 
@@ -50,12 +64,12 @@
     <tr>
         <td>
             <input type="hidden" name="Itens.Index" value="__INDEX__" class="js-row-index" />
-            <select name="Itens[__INDEX__].ItemMaterialId" class="form-select form-select-sm" required>
+            <select name="Itens[__INDEX__].ItemMaterialId" class="form-select form-select-sm js-item-select" required>
                 <option value="">— Selecione —</option>
                 @foreach (var i in itens)
                 {
                     var prefixo = i.ItemPaiId != null ? "— " : "";
-                    <option value="@i.Id">@prefixo@i.NomeItem</option>
+                    <option value="@i.Id" data-dominio="@(i.Dominio ?? "")">@prefixo@i.NomeItem</option>
                 }
             </select>
         </td>
@@ -72,6 +86,22 @@
         (function () {
             var rowCount = 0;
 
+            function aplicarFiltroEm(select) {
+                var filtro = document.getElementById('filtro-dominio').value;
+                var selecaoAtual = select.value;
+                select.querySelectorAll('option[data-dominio]').forEach(function (opt) {
+                    var visivel = !filtro || opt.getAttribute('data-dominio') === filtro || opt.getAttribute('data-dominio') === '';
+                    opt.hidden = !visivel;
+                    opt.disabled = !visivel;
+                });
+                var aindaVisivel = select.querySelector('option[value="' + selecaoAtual + '"]:not([hidden])');
+                if (selecaoAtual && !aindaVisivel) select.value = '';
+            }
+
+            function aplicarFiltroEmTodas() {
+                document.querySelectorAll('.js-item-select').forEach(aplicarFiltroEm);
+            }
+
             function adicionarLinha() {
                 var tpl = document.getElementById('item-row-template');
                 var clone = tpl.content.cloneNode(true);
@@ -85,10 +115,13 @@
                     e.target.closest('tr').remove();
                 });
 
+                var select = clone.querySelector('.js-item-select');
                 document.getElementById('itens-tbody').appendChild(clone);
+                aplicarFiltroEm(select);
             }
 
             document.getElementById('btn-add-row').addEventListener('click', adicionarLinha);
+            document.getElementById('filtro-dominio').addEventListener('change', aplicarFiltroEmTodas);
             adicionarLinha();
         })();
     </script>

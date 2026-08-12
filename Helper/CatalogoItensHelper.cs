@@ -28,4 +28,12 @@ public static class CatalogoItensHelper
         }
         return lista;
     }
+
+    public static List<string> ObterDominios(AppDbContext db)
+        => db.ItensMaterial
+            .Where(i => !string.IsNullOrEmpty(i.Dominio))
+            .Select(i => i.Dominio!)
+            .Distinct()
+            .OrderBy(d => d)
+            .ToList();
 }
