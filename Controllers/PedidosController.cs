@@ -47,6 +47,45 @@ public class PedidosController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    public IActionResult Edit(int id)
+    {
+        var pedido = _db.Pedidos.Find(id);
+        if (pedido == null) return NotFound();
+        return View(pedido);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult Edit(int id, PedidoProposta pedido)
+    {
+        if (id != pedido.Id) return NotFound();
+
+        // Status is only ever changed by app logic (Processo creation/cancelamento), never
+        // directly from this form — keep whatever is already stored. CriadoEm is likewise
+        // fixed at registo time.
+        var existente = _db.Pedidos.AsNoTracking().First(p => p.Id == id);
+        pedido.Status = existente.Status;
+        pedido.CriadoEm = existente.CriadoEm;
+        ModelState.Remove(nameof(PedidoProposta.Status));
+        ModelState.Remove(nameof(PedidoProposta.CriadoEm));
+
+        if (!ModelState.IsValid) return View(pedido);
+
+        try
+        {
+            _db.Pedidos.Update(pedido);
+            _db.SaveChanges();
+            TempData["Sucesso"] = "Pedido atualizado com sucesso.";
+            return RedirectToAction(nameof(Index));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao editar pedido {Id}.", id);
+            ModelState.AddModelError("", "Não foi possível guardar as alterações.");
+            return View(pedido);
+        }
+    }
+
     public IActionResult ExportarExcel(int id)
     {
         var pedido = _db.Pedidos

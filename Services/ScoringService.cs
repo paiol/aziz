@@ -79,6 +79,7 @@ public class ScoringService : IScoringService
         var processo = _db.Processos
             .Include(p => p.Propostas).ThenInclude(pr => pr.ItensProposta).ThenInclude(ip => ip.ItemMaterial)
             .Include(p => p.Propostas).ThenInclude(pr => pr.Avaliacoes).ThenInclude(a => a.Criterio)
+            .Include(p => p.PedidoProposta).ThenInclude(pp => pp.ItensPedido)
             .FirstOrDefault(p => p.Id == processoId)
             ?? throw new KeyNotFoundException($"Processo {processoId} não encontrado.");
 
@@ -97,11 +98,14 @@ public class ScoringService : IScoringService
 
         foreach (var item in itensMateriais)
         {
+            var itemPedido = processo.PedidoProposta.ItensPedido.FirstOrDefault(ip => ip.ItemMaterialId == item.Id);
+
             var linha = new LinhaItem
             {
                 ItemMaterialId = item.Id,
                 NomeItem = item.NomeItem,
-                Unidade = item.Unidade
+                Unidade = item.Unidade,
+                QuantidadeSolicitada = itemPedido?.QuantidadeSolicitada
             };
 
             foreach (var proposta in processo.Propostas)

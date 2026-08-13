@@ -1,0 +1,44 @@
+@model ComparacaoPropostas.Models.Entities.PedidoProposta
+@{
+    ViewData["Title"] = "Editar Pedido de Proposta";
+}
+
+<h2>Editar Pedido de Proposta</h2>
+
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+            <input type="hidden" asp-for="Id" />
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="TipoProposta" class="form-label"></label>
+                    <input asp-for="TipoProposta" class="form-control" placeholder="Ex: Compra de Materiais" />
+                    <span asp-validation-for="TipoProposta" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Area" class="form-label"></label>
+                    <select asp-for="Area" class="form-select" asp-items="Html.GetEnumSelectList<ComparacaoPropostas.Models.Entities.Enums.AreaDepartamento>()"></select>
+                    <span asp-validation-for="Area" class="text-danger"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="PessoaCriou" class="form-label"></label>
+                    <input asp-for="PessoaCriou" class="form-control" />
+                    <span asp-validation-for="PessoaCriou" class="text-danger"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="PrazoEntrega" class="form-label"></label>
+                    <input asp-for="PrazoEntrega" class="form-control" type="date" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="OrcamentoEstimado" class="form-label"></label>
+                    <input asp-for="OrcamentoEstimado" class="form-control" type="number" step="0.01" />
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">Guardar</button>
+                <a asp-action="Index" class="btn btn-subtle-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>

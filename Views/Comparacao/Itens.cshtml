@@ -89,6 +89,7 @@ else
                     <thead>
                         <tr>
                             <th class="linha-label" rowspan="2">Item</th>
+                            <th rowspan="2">Qtd. Pedida</th>
                             @foreach (var col in Model.Propostas)
                             {
                                 <th colspan="3" class="text-center">@col.Fornecedor</th>
@@ -108,6 +109,7 @@ else
                         {
                             <tr>
                                 <td class="linha-label">@linha.NomeItem @(string.IsNullOrWhiteSpace(linha.Unidade) ? "" : $"({linha.Unidade})")</td>
+                                <td>@(linha.QuantidadeSolicitada?.ToString("0.###") ?? "-")</td>
                                 @foreach (var col in Model.Propostas)
                                 {
                                     var incluido = linha.IncluidoPorProposta.GetValueOrDefault(col.PropostaId);
@@ -116,9 +118,10 @@ else
                                     var subtotal = linha.SubtotalPorProposta.GetValueOrDefault(col.PropostaId);
                                     var diferenca = linha.DiferencaPorProposta.GetValueOrDefault(col.PropostaId);
                                     var melhor = linha.MelhorPorProposta.GetValueOrDefault(col.PropostaId);
+                                    var qtdDifere = linha.QuantidadeSolicitada.HasValue && quantidade.HasValue && quantidade.Value != linha.QuantidadeSolicitada.Value;
                                     if (incluido && preco.HasValue)
                                     {
-                                        <td>@quantidade?.ToString("0.###")</td>
+                                        <td class="@(qtdDifere ? "cell-melhor" : "")">@quantidade?.ToString("0.###")</td>
                                         <td>@preco.Value.ToString("C")</td>
                                         <td class="@(melhor ? "cell-melhor" : "")">
                                             @subtotal!.Value.ToString("C")
@@ -137,6 +140,7 @@ else
                         }
                     </tbody>
                 </table>
+                <p class="text-body-tertiary small mt-2 mb-0">Quantidade fornecida destacada quando difere da Qtd. Pedida.</p>
             </div>
         </div>
     }
