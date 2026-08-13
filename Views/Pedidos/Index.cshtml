@@ -36,6 +36,7 @@
                     <th>Pessoa Criou</th>
                     <th>Criado em</th>
                     <th>Processo</th>
+                    <th>Excel</th>
                     <th></th>
                 </tr>
             </thead>
@@ -69,6 +70,18 @@
                             else
                             {
                                 <span class="text-body-tertiary">-</span>
+                            }
+                        </td>
+                        <td>
+                            @if (p.ItensPedido.Count > 0)
+                            {
+                                <a class="btn btn-sm btn-subtle-primary" asp-action="ExportarExcel" asp-route-id="@p.Id">
+                                    <span class="fas fa-download me-1"></span> Descarregar (@p.ItensPedido.Count)
+                                </a>
+                            }
+                            else
+                            {
+                                <span class="text-body-tertiary">Sem itens</span>
                             }
                         </td>
                         <td class="text-end">

@@ -3,17 +3,20 @@ using Microsoft.EntityFrameworkCore;
 using ComparacaoPropostas.Data;
 using ComparacaoPropostas.Models.Entities;
 using ComparacaoPropostas.Models.Entities.Enums;
+using ComparacaoPropostas.Services;
 
 namespace ComparacaoPropostas.Controllers;
 
 public class PedidosController : Controller
 {
     private readonly AppDbContext _db;
+    private readonly IPropostaExcelService _excelService;
     private readonly ILogger<PedidosController> _logger;
 
-    public PedidosController(AppDbContext db, ILogger<PedidosController> logger)
+    public PedidosController(AppDbContext db, IPropostaExcelService excelService, ILogger<PedidosController> logger)
     {
         _db = db;
+        _excelService = excelService;
         _logger = logger;
     }
 
@@ -21,6 +24,7 @@ public class PedidosController : Controller
     {
         var pedidos = _db.Pedidos
             .Include(p => p.Processo)
+            .Include(p => p.ItensPedido)
             .OrderByDescending(p => p.CriadoEm)
             .ToList();
 
@@ -41,6 +45,27 @@ public class PedidosController : Controller
 
         TempData["Sucesso"] = "Pedido de proposta registado. Cria agora o Processo correspondente.";
         return RedirectToAction(nameof(Index));
+    }
+
+    public IActionResult ExportarExcel(int id)
+    {
+        var pedido = _db.Pedidos
+            .Include(p => p.Processo)
+            .Include(p => p.ItensPedido).ThenInclude(ip => ip.ItemMaterial)
+            .FirstOrDefault(p => p.Id == id);
+
+        if (pedido == null) return NotFound();
+
+        if (pedido.ItensPedido.Count == 0)
+        {
+            TempData["EmailWarning"] = "Este pedido ainda não tem itens. Adiciona itens a partir do Processo correspondente.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var fornecedor = pedido.Processo?.Fornecedor ?? "-";
+        var conteudo = _excelService.GerarPedidoExcel(pedido.TipoProposta, fornecedor, pedido.ItensPedido);
+        var nomeFicheiro = $"Pedido_{pedido.TipoProposta}.xlsx".Replace(" ", "_");
+        return File(conteudo, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", nomeFicheiro);
     }
 
     [HttpPost]
