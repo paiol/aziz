@@ -17,7 +17,7 @@
                     <th>Nome</th>
                     <th>Tipo Proposta</th>
                     <th>Área</th>
-                    <th>Fornecedor</th>
+                    <th>Qtd. Fornecedores</th>
                     <th>Estado</th>
                     <th>Prazo Final</th>
                     <th>Orçamento Estimado</th>
@@ -33,7 +33,7 @@
                         <td><a asp-action="Details" asp-route-id="@p.Id">@p.Nome</a></td>
                         <td>@p.TipoProposta</td>
                         <td>@p.Area.ToLabel()</td>
-                        <td>@p.Fornecedor</td>
+                        <td>@p.TotalFornecedores</td>
                         <td><span class="@p.Status.ToBadgeClass()">@p.Status.ToLabel()</span></td>
                         <td>@(p.PrazoEntrega?.ToString("dd/MM/yyyy") ?? "-")</td>
                         <td>@(p.OrcamentoEstimado?.ToString("C") ?? "-")</td>

@@ -36,7 +36,7 @@ public class ProcessosController : Controller
                 PrazoEntrega = p.PedidoProposta.PrazoEntrega,
                 TipoProposta = p.PedidoProposta.TipoProposta,
                 Area = p.PedidoProposta.Area,
-                Fornecedor = p.Fornecedor,
+                TotalFornecedores = p.Propostas.Select(pr => pr.Fornecedor).Distinct().Count(),
                 OrcamentoEstimado = p.PedidoProposta.OrcamentoEstimado,
                 TotalPropostas = p.Propostas.Count,
                 MenorValorOfertado = p.Propostas.Any() ? p.Propostas.Min(pr => pr.ValorTotal) : (decimal?)null

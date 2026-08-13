@@ -10,7 +10,7 @@ public class ProcessoIndexVM
     public DateTime? PrazoEntrega { get; set; }
     public string TipoProposta { get; set; } = "";
     public AreaDepartamento Area { get; set; }
-    public string Fornecedor { get; set; } = "";
+    public int TotalFornecedores { get; set; }
     public decimal? OrcamentoEstimado { get; set; }
     public int TotalPropostas { get; set; }
     public decimal? MenorValorOfertado { get; set; }
