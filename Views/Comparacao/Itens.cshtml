@@ -1,3 +1,4 @@
+@using ComparacaoPropostas.Helper
 @model ComparacaoPropostas.ViewModels.Comparacao.ComparacaoItensViewModel
 @{
     ViewData["Title"] = "Comparação de Itens";
@@ -15,18 +16,19 @@
     </div>
 </div>
 
-@if (Model.Linhas.Count == 0)
+@if (Model.Propostas.Count == 0)
 {
-    <div class="alert alert-info">Ainda não existem itens cotados para comparar neste processo.</div>
+    <div class="alert alert-info">Ainda não existem propostas para comparar neste processo.</div>
 }
 else
 {
-    <div class="card">
+    <div class="card mb-3">
+        <div class="card-header"><h5 class="mb-0">Resumo das Propostas</h5></div>
         <div class="card-body comparacao-table-wrapper">
-            <table class="table comparacao-table">
+            <table class="table comparacao-table mb-0">
                 <thead>
                     <tr>
-                        <th class="linha-label">Item</th>
+                        <th class="linha-label">Fornecedor</th>
                         @foreach (var col in Model.Propostas)
                         {
                             <th>@col.Fornecedor</th>
@@ -34,28 +36,108 @@ else
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var linha in Model.Linhas)
-                    {
-                        <tr>
-                            <td class="linha-label">@linha.NomeItem @(string.IsNullOrWhiteSpace(linha.Unidade) ? "" : $"({linha.Unidade})")</td>
-                            @foreach (var col in Model.Propostas)
+                    <tr>
+                        <td class="linha-label">Estado</td>
+                        @foreach (var col in Model.Propostas)
+                        {
+                            <td><span class="@col.Status.ToBadgeClass()">@col.Status.ToLabel()</span></td>
+                        }
+                    </tr>
+                    <tr>
+                        <td class="linha-label">Valor Total</td>
+                        @foreach (var col in Model.Propostas)
+                        {
+                            <td class="@(col.ValorTotalMelhor ? "cell-melhor" : "")">@col.ValorTotal.ToString("C")</td>
+                        }
+                    </tr>
+                    <tr>
+                        <td class="linha-label">Prazo de Entrega</td>
+                        @foreach (var col in Model.Propostas)
+                        {
+                            if (col.PrazoEntregaDias.HasValue)
                             {
-                                var incluido = linha.IncluidoPorProposta.GetValueOrDefault(col.PropostaId);
-                                var preco = linha.PrecoPorProposta.GetValueOrDefault(col.PropostaId);
-                                var melhor = linha.MelhorPorProposta.GetValueOrDefault(col.PropostaId);
-                                if (incluido && preco.HasValue)
-                                {
-                                    <td class="@(melhor ? "cell-melhor" : "")">@preco.Value.ToString("C")</td>
-                                }
-                                else
-                                {
-                                    <td class="cell-indisponivel">Não incluído</td>
-                                }
+                                <td class="@(col.PrazoMelhor ? "cell-melhor" : "")">@col.PrazoEntregaDias dias</td>
                             }
-                        </tr>
-                    }
+                            else
+                            {
+                                <td class="cell-indisponivel">-</td>
+                            }
+                        }
+                    </tr>
+                    <tr>
+                        <td class="linha-label">Pontuação Ponderada</td>
+                        @foreach (var col in Model.Propostas)
+                        {
+                            <td class="@(col.PontuacaoMelhor ? "cell-melhor" : "")">@col.PontuacaoPonderada.ToString("0.00")</td>
+                        }
+                    </tr>
                 </tbody>
             </table>
         </div>
     </div>
+
+    @if (Model.Linhas.Count == 0)
+    {
+        <div class="alert alert-info">Ainda não existem itens cotados para comparar neste processo.</div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-header"><h5 class="mb-0">Itens Cotados</h5></div>
+            <div class="card-body comparacao-table-wrapper">
+                <table class="table comparacao-table">
+                    <thead>
+                        <tr>
+                            <th class="linha-label" rowspan="2">Item</th>
+                            @foreach (var col in Model.Propostas)
+                            {
+                                <th colspan="3" class="text-center">@col.Fornecedor</th>
+                            }
+                        </tr>
+                        <tr>
+                            @foreach (var col in Model.Propostas)
+                            {
+                                <th>Qtd.</th>
+                                <th>Preço Unit.</th>
+                                <th>Subtotal</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var linha in Model.Linhas)
+                        {
+                            <tr>
+                                <td class="linha-label">@linha.NomeItem @(string.IsNullOrWhiteSpace(linha.Unidade) ? "" : $"({linha.Unidade})")</td>
+                                @foreach (var col in Model.Propostas)
+                                {
+                                    var incluido = linha.IncluidoPorProposta.GetValueOrDefault(col.PropostaId);
+                                    var quantidade = linha.QuantidadePorProposta.GetValueOrDefault(col.PropostaId);
+                                    var preco = linha.PrecoPorProposta.GetValueOrDefault(col.PropostaId);
+                                    var subtotal = linha.SubtotalPorProposta.GetValueOrDefault(col.PropostaId);
+                                    var diferenca = linha.DiferencaPorProposta.GetValueOrDefault(col.PropostaId);
+                                    var melhor = linha.MelhorPorProposta.GetValueOrDefault(col.PropostaId);
+                                    if (incluido && preco.HasValue)
+                                    {
+                                        <td>@quantidade?.ToString("0.###")</td>
+                                        <td>@preco.Value.ToString("C")</td>
+                                        <td class="@(melhor ? "cell-melhor" : "")">
+                                            @subtotal!.Value.ToString("C")
+                                            @if (!melhor && diferenca.HasValue && diferenca.Value > 0)
+                                            {
+                                                <div><small class="text-danger">+@diferenca.Value.ToString("C")</small></div>
+                                            }
+                                        </td>
+                                    }
+                                    else
+                                    {
+                                        <td colspan="3" class="cell-indisponivel">Não incluído</td>
+                                    }
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
 }

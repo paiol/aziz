@@ -42,34 +42,7 @@ public class ScoringService : IScoringService
 
         var vm = new ComparacaoViewModel { Processo = processo };
 
-        vm.Propostas = processo.Propostas
-            .OrderBy(p => p.Fornecedor)
-            .Select(p => new PropostaColuna
-            {
-                PropostaId = p.Id,
-                Fornecedor = p.Fornecedor,
-                ValorTotal = p.ValorTotal,
-                PrazoEntregaDias = p.PrazoEntregaDias,
-                PontuacaoPonderada = CalcularPontuacaoPonderada(p),
-                Status = p.Status
-            })
-            .ToList();
-
-        if (vm.Propostas.Count > 0)
-        {
-            var menorValor = vm.Propostas.Min(p => p.ValorTotal);
-            foreach (var col in vm.Propostas) col.ValorTotalMelhor = col.ValorTotal == menorValor;
-
-            var comPrazo = vm.Propostas.Where(p => p.PrazoEntregaDias.HasValue).ToList();
-            if (comPrazo.Count > 0)
-            {
-                var menorPrazo = comPrazo.Min(p => p.PrazoEntregaDias!.Value);
-                foreach (var col in comPrazo) col.PrazoMelhor = col.PrazoEntregaDias == menorPrazo;
-            }
-
-            var maiorPontuacao = vm.Propostas.Max(p => p.PontuacaoPonderada);
-            foreach (var col in vm.Propostas) col.PontuacaoMelhor = col.PontuacaoPonderada == maiorPontuacao;
-        }
+        vm.Propostas = MontarPropostaColunas(processo.Propostas.ToList());
 
         vm.LinhasCriterios = processo.Criterios
             .OrderByDescending(c => c.Peso)
@@ -105,16 +78,14 @@ public class ScoringService : IScoringService
     {
         var processo = _db.Processos
             .Include(p => p.Propostas).ThenInclude(pr => pr.ItensProposta).ThenInclude(ip => ip.ItemMaterial)
+            .Include(p => p.Propostas).ThenInclude(pr => pr.Avaliacoes).ThenInclude(a => a.Criterio)
             .FirstOrDefault(p => p.Id == processoId)
             ?? throw new KeyNotFoundException($"Processo {processoId} não encontrado.");
 
         var vm = new ComparacaoItensViewModel
         {
             Processo = processo,
-            Propostas = processo.Propostas
-                .OrderBy(p => p.Fornecedor)
-                .Select(p => new PropostaColunaSimples { PropostaId = p.Id, Fornecedor = p.Fornecedor })
-                .ToList()
+            Propostas = MontarPropostaColunas(processo.Propostas.ToList())
         };
 
         var itensMateriais = processo.Propostas
@@ -136,21 +107,62 @@ public class ScoringService : IScoringService
             foreach (var proposta in processo.Propostas)
             {
                 var itemProposta = proposta.ItensProposta.FirstOrDefault(ip => ip.ItemMaterialId == item.Id);
-                linha.IncluidoPorProposta[proposta.Id] = itemProposta?.Incluido ?? false;
-                linha.PrecoPorProposta[proposta.Id] = itemProposta is { Incluido: true } ? itemProposta.PrecoUnitario : null;
+                var incluido = itemProposta?.Incluido ?? false;
+
+                linha.IncluidoPorProposta[proposta.Id] = incluido;
+                linha.QuantidadePorProposta[proposta.Id] = incluido ? itemProposta!.Quantidade : null;
+                linha.PrecoPorProposta[proposta.Id] = incluido ? itemProposta!.PrecoUnitario : null;
+                linha.SubtotalPorProposta[proposta.Id] = incluido ? itemProposta!.Subtotal : null;
             }
 
-            var precosPresentes = linha.PrecoPorProposta.Values.Where(v => v.HasValue).Select(v => v!.Value).ToList();
-            if (precosPresentes.Count > 0)
+            var subtotaisPresentes = linha.SubtotalPorProposta.Values.Where(v => v.HasValue).Select(v => v!.Value).ToList();
+            if (subtotaisPresentes.Count > 0)
             {
-                var menorPreco = precosPresentes.Min();
-                foreach (var (propostaId, preco) in linha.PrecoPorProposta)
-                    linha.MelhorPorProposta[propostaId] = preco.HasValue && preco.Value == menorPreco;
+                var menorSubtotal = subtotaisPresentes.Min();
+                foreach (var (propostaId, subtotal) in linha.SubtotalPorProposta)
+                {
+                    linha.MelhorPorProposta[propostaId] = subtotal.HasValue && subtotal.Value == menorSubtotal;
+                    linha.DiferencaPorProposta[propostaId] = subtotal.HasValue ? subtotal.Value - menorSubtotal : null;
+                }
             }
 
             vm.Linhas.Add(linha);
         }
 
         return vm;
+    }
+
+    private List<PropostaColuna> MontarPropostaColunas(List<Proposta> propostas)
+    {
+        var colunas = propostas
+            .OrderBy(p => p.Fornecedor)
+            .Select(p => new PropostaColuna
+            {
+                PropostaId = p.Id,
+                Fornecedor = p.Fornecedor,
+                ValorTotal = p.ValorTotal,
+                PrazoEntregaDias = p.PrazoEntregaDias,
+                PontuacaoPonderada = CalcularPontuacaoPonderada(p),
+                Status = p.Status
+            })
+            .ToList();
+
+        if (colunas.Count > 0)
+        {
+            var menorValor = colunas.Min(p => p.ValorTotal);
+            foreach (var col in colunas) col.ValorTotalMelhor = col.ValorTotal == menorValor;
+
+            var comPrazo = colunas.Where(p => p.PrazoEntregaDias.HasValue).ToList();
+            if (comPrazo.Count > 0)
+            {
+                var menorPrazo = comPrazo.Min(p => p.PrazoEntregaDias!.Value);
+                foreach (var col in comPrazo) col.PrazoMelhor = col.PrazoEntregaDias == menorPrazo;
+            }
+
+            var maiorPontuacao = colunas.Max(p => p.PontuacaoPonderada);
+            foreach (var col in colunas) col.PontuacaoMelhor = col.PontuacaoPonderada == maiorPontuacao;
+        }
+
+        return colunas;
     }
 }
