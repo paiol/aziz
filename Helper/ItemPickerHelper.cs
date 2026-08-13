@@ -52,56 +52,59 @@ public static class ItemPickerHelper
 
     // Bridges a pick from any of the 4 domain catalogs into the shared ItemMaterial table
     // (found-or-created by name) so ItemPedido/ItemProposta/Excel/Comparação keep working
-    // against a single catalog, regardless of which catalog the picker searched.
-    public static int? ResolverChaveItem(AppDbContext db, string chave)
+    // against a single catalog, regardless of which catalog the picker searched. Also returns
+    // which of the 4 "Base de Dados" catalogs (Energia/MBB/FBB/Core) the pick came from, so
+    // the caller can record it on ItemPedido.TipoCatalogo — null when picked from the general
+    // Itens/Materiais catalog instead.
+    public static (int? ItemMaterialId, string? TipoCatalogo) ResolverChaveItem(AppDbContext db, string chave)
     {
         var partes = chave.Split(':', 2);
-        if (partes.Length != 2 || !int.TryParse(partes[1], out var id)) return null;
+        if (partes.Length != 2 || !int.TryParse(partes[1], out var id)) return (null, null);
 
         if (partes[0] == "material")
-            return db.ItensMaterial.Any(m => m.Id == id) ? id : null;
+            return (db.ItensMaterial.Any(m => m.Id == id) ? id : null, null);
 
-        string nome, dominioPadrao;
+        string nome, tipoCatalogo;
         string? categoria, unidade, dominio;
 
         switch (partes[0])
         {
             case "energia":
                 var e = db.ItensEnergia.Find(id);
-                if (e == null) return null;
-                (nome, categoria, unidade, dominio, dominioPadrao) = (e.Nome, e.Categoria, e.Unidade, e.Dominio, "Energia");
+                if (e == null) return (null, null);
+                (nome, categoria, unidade, dominio, tipoCatalogo) = (e.Nome, e.Categoria, e.Unidade, e.Dominio, "Energia");
                 break;
             case "mbb":
                 var m = db.ItensMbb.Find(id);
-                if (m == null) return null;
-                (nome, categoria, unidade, dominio, dominioPadrao) = (m.Nome, m.Categoria, m.Unidade, m.Dominio, "MBB");
+                if (m == null) return (null, null);
+                (nome, categoria, unidade, dominio, tipoCatalogo) = (m.Nome, m.Categoria, m.Unidade, m.Dominio, "MBB");
                 break;
             case "fbb":
                 var f = db.ItensFbb.Find(id);
-                if (f == null) return null;
-                (nome, categoria, unidade, dominio, dominioPadrao) = (f.Nome, f.Categoria, f.Unidade, f.Dominio, "FBB");
+                if (f == null) return (null, null);
+                (nome, categoria, unidade, dominio, tipoCatalogo) = (f.Nome, f.Categoria, f.Unidade, f.Dominio, "FBB");
                 break;
             case "core":
                 var c = db.ItensCore.Find(id);
-                if (c == null) return null;
-                (nome, categoria, unidade, dominio, dominioPadrao) = (c.Nome, c.Categoria, c.Unidade, c.Dominio, "Core");
+                if (c == null) return (null, null);
+                (nome, categoria, unidade, dominio, tipoCatalogo) = (c.Nome, c.Categoria, c.Unidade, c.Dominio, "Core");
                 break;
             default:
-                return null;
+                return (null, null);
         }
 
         var existente = db.ItensMaterial.FirstOrDefault(im => im.NomeItem == nome);
-        if (existente != null) return existente.Id;
+        if (existente != null) return (existente.Id, tipoCatalogo);
 
         var novo = new ItemMaterial
         {
             NomeItem = nome,
             Categoria = categoria,
             Unidade = unidade,
-            Dominio = string.IsNullOrWhiteSpace(dominio) ? dominioPadrao : dominio
+            Dominio = string.IsNullOrWhiteSpace(dominio) ? tipoCatalogo : dominio
         };
         db.ItensMaterial.Add(novo);
         db.SaveChanges();
-        return novo.Id;
+        return (novo.Id, tipoCatalogo);
     }
 }

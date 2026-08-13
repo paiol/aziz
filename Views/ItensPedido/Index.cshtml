@@ -66,6 +66,7 @@ else
                 <thead>
                     <tr>
                         <th>Item</th>
+                        <th>Tipo</th>
                         <th>Quantidade Solicitada</th>
                         <th>Observação</th>
                         <th></th>
@@ -76,6 +77,19 @@ else
                     {
                         <tr>
                             <td>@item.ItemMaterial.NomeItem</td>
+                            <td>
+                                @{
+                                    var cor = item.TipoCatalogo switch
+                                    {
+                                        "Energia" => "warning text-dark",
+                                        "MBB" => "info text-dark",
+                                        "FBB" => "primary",
+                                        "Core" => "dark",
+                                        _ => "secondary"
+                                    };
+                                }
+                                <span class="badge bg-@cor">@(item.TipoCatalogo ?? "Catálogo")</span>
+                            </td>
                             <td>@item.QuantidadeSolicitada</td>
                             <td>@item.Observacao</td>
                             <td class="text-end">

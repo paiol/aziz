@@ -20,4 +20,9 @@ public class ItemPedido
 
     [Display(Name = "Observação")]
     public string? Observacao { get; set; }
+
+    // Which "Base de Dados" catalog the item was picked from (Energia/MBB/FBB/Core) —
+    // null when picked from the general Itens/Materiais catalog instead.
+    [Display(Name = "Tipo")]
+    public string? TipoCatalogo { get; set; }
 }

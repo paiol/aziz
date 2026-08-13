@@ -62,7 +62,7 @@ public class ItensPedidoController : Controller
         var adicionados = 0;
         foreach (var linha in linhasValidas)
         {
-            var itemMaterialId = ItemPickerHelper.ResolverChaveItem(_db, linha.ChaveItem);
+            var (itemMaterialId, tipoCatalogo) = ItemPickerHelper.ResolverChaveItem(_db, linha.ChaveItem);
             if (itemMaterialId == null) continue;
 
             _db.ItensPedido.Add(new ItemPedido
@@ -70,7 +70,8 @@ public class ItensPedidoController : Controller
                 PedidoPropostaId = model.PedidoId,
                 ItemMaterialId = itemMaterialId.Value,
                 QuantidadeSolicitada = linha.QuantidadeSolicitada,
-                Observacao = linha.Observacao
+                Observacao = linha.Observacao,
+                TipoCatalogo = tipoCatalogo
             });
             adicionados++;
         }
