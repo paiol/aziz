@@ -1,3 +1,4 @@
+@using ComparacaoPropostas.Helper
 @model List<ComparacaoPropostas.ViewModels.Processos.ProcessoIndexVM>
 @{
     ViewData["Title"] = "Processos";
@@ -31,10 +32,10 @@
                     <tr>
                         <td><a asp-action="Details" asp-route-id="@p.Id">@p.Nome</a></td>
                         <td>@p.TipoProposta</td>
-                        <td>@p.Area</td>
+                        <td>@p.Area.ToLabel()</td>
                         <td>@p.Fornecedor</td>
                         <td><span class="@p.Status.ToBadgeClass()">@p.Status.ToLabel()</span></td>
-                        <td>@(p.PrazoFinal?.ToString("dd/MM/yyyy") ?? "-")</td>
+                        <td>@(p.PrazoEntrega?.ToString("dd/MM/yyyy") ?? "-")</td>
                         <td>@(p.OrcamentoEstimado?.ToString("C") ?? "-")</td>
                         <td>@p.TotalPropostas</td>
                         <td>@(p.MenorValorOfertado?.ToString("C") ?? "-")</td>

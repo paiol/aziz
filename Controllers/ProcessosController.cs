@@ -33,11 +33,11 @@ public class ProcessosController : Controller
                 Id = p.Id,
                 Nome = p.Nome,
                 Status = p.Status,
-                PrazoFinal = p.PrazoFinal,
+                PrazoEntrega = p.PedidoProposta.PrazoEntrega,
                 TipoProposta = p.PedidoProposta.TipoProposta,
                 Area = p.PedidoProposta.Area,
                 Fornecedor = p.Fornecedor,
-                OrcamentoEstimado = p.OrcamentoEstimado,
+                OrcamentoEstimado = p.PedidoProposta.OrcamentoEstimado,
                 TotalPropostas = p.Propostas.Count,
                 MenorValorOfertado = p.Propostas.Any() ? p.Propostas.Min(pr => pr.ValorTotal) : (decimal?)null
             })
@@ -106,7 +106,7 @@ public class ProcessosController : Controller
             _db.Processos.Add(processo);
 
             var pedido = _db.Pedidos.Find(processo.PedidoPropostaId);
-            if (pedido != null) pedido.Status = StatusPedido.Respondido;
+            if (pedido != null) pedido.Status = StatusPedido.Finalizado;
 
             _db.SaveChanges();
             TempData["Sucesso"] = "Processo criado com sucesso.";
@@ -193,7 +193,7 @@ public class ProcessosController : Controller
         processo.Status = novoStatus;
         _db.SaveChanges();
 
-        if (novoStatus == StatusProcesso.Decidido && statusAnterior != StatusProcesso.Decidido)
+        if (novoStatus == StatusProcesso.Concluido && statusAnterior != StatusProcesso.Concluido)
         {
             try
             {

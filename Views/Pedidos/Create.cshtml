@@ -17,14 +17,21 @@
                 </div>
                 <div class="col-md-6">
                     <label asp-for="Area" class="form-label"></label>
-                    <input asp-for="Area" class="form-control" placeholder="Ex: Energia, MBB, FBB, Core" />
+                    <select asp-for="Area" class="form-select" asp-items="Html.GetEnumSelectList<ComparacaoPropostas.Models.Entities.Enums.AreaDepartamento>()"></select>
                     <span asp-validation-for="Area" class="text-danger"></span>
-                    <div class="form-text">Usada para sugerir os itens do catálogo relevantes quando criares o pedido de itens.</div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <label asp-for="PessoaCriou" class="form-label"></label>
                     <input asp-for="PessoaCriou" class="form-control" />
                     <span asp-validation-for="PessoaCriou" class="text-danger"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="PrazoEntrega" class="form-label"></label>
+                    <input asp-for="PrazoEntrega" class="form-control" type="date" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="OrcamentoEstimado" class="form-label"></label>
+                    <input asp-for="OrcamentoEstimado" class="form-control" type="number" step="0.01" />
                 </div>
             </div>
             <div class="mt-4">

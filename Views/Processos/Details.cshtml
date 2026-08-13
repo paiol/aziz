@@ -1,3 +1,5 @@
+@using ComparacaoPropostas.Helper
+@using ComparacaoPropostas.Models.Entities.Enums
 @model ComparacaoPropostas.ViewModels.Processos.ProcessoDetailVM
 @{
     ViewData["Title"] = Model.Processo.Nome;
@@ -8,7 +10,7 @@
     <div>
         <h2 class="mb-1">@p.Nome</h2>
         <span class="@p.Status.ToBadgeClass()">@p.Status.ToLabel()</span>
-        <span class="text-body-tertiary ms-2">@p.PedidoProposta.TipoProposta — @p.PedidoProposta.Area</span>
+        <span class="text-body-tertiary ms-2">@p.PedidoProposta.TipoProposta — @p.PedidoProposta.Area.ToLabel()</span>
     </div>
     <div>
         <a class="btn btn-subtle-secondary" asp-action="Edit" asp-route-id="@p.Id">Editar Processo</a>
@@ -25,10 +27,10 @@
             <div class="card-body">
                 <p>@(string.IsNullOrWhiteSpace(p.Descricao) ? "Sem descrição." : p.Descricao)</p>
                 <dl class="row mb-0">
-                    <dt class="col-sm-4">Prazo Final</dt>
-                    <dd class="col-sm-8">@(p.PrazoFinal?.ToString("dd/MM/yyyy") ?? "-")</dd>
+                    <dt class="col-sm-4">Prazo de Entrega</dt>
+                    <dd class="col-sm-8">@(p.PedidoProposta.PrazoEntrega?.ToString("dd/MM/yyyy") ?? "-")</dd>
                     <dt class="col-sm-4">Orçamento Estimado</dt>
-                    <dd class="col-sm-8">@(p.OrcamentoEstimado?.ToString("C") ?? "-")</dd>
+                    <dd class="col-sm-8">@(p.PedidoProposta.OrcamentoEstimado?.ToString("C") ?? "-")</dd>
                     <dt class="col-sm-4">Criado por</dt>
                     <dd class="col-sm-8">@(p.CriadoPor ?? "-")</dd>
                     <dt class="col-sm-4">E-mails a Notificar</dt>
@@ -80,7 +82,19 @@
                                     <td>@pr.Fornecedor</td>
                                     <td>@pr.ValorTotal.ToString("C")</td>
                                     <td><span class="@pr.Status.ToBadgeClass()">@pr.Status.ToLabel()</span></td>
-                                    <td><strong>@pr.PontuacaoPonderada.ToString("0.00")</strong></td>
+                                    <td>
+                                        <strong>@pr.PontuacaoPonderada.ToString("0.00")</strong>
+                                        @if (p.Status == StatusProcesso.Concluido)
+                                        {
+                                            <div class="text-warning" title="@pr.PontuacaoPonderada.ToString("0.00") / 10">
+                                                @{ var estrelas = Math.Clamp((int)Math.Round(pr.PontuacaoPonderada / 2m, MidpointRounding.AwayFromZero), 0, 5); }
+                                                @for (var i = 1; i <= 5; i++)
+                                                {
+                                                    <span class="@(i <= estrelas ? "fas" : "far") fa-star"></span>
+                                                }
+                                            </div>
+                                        }
+                                    </td>
                                     <td class="text-end">
                                         <a class="btn btn-sm btn-subtle-primary" asp-controller="Avaliacoes" asp-action="Editar" asp-route-propostaId="@pr.Id">Avaliar</a>
                                         <a class="btn btn-sm btn-subtle-secondary" asp-controller="Propostas" asp-action="Edit" asp-route-id="@pr.Id">Editar</a>
@@ -129,7 +143,7 @@
                     </select>
                     <button type="submit" class="btn btn-primary w-100">Atualizar Estado</button>
                 </form>
-                <div class="form-text mt-2">Ao marcar como "Decidido" é enviado um e-mail com a classificação final aos endereços configurados.</div>
+                <div class="form-text mt-2">Ao marcar como "Concluído" é enviado um e-mail com a classificação final aos endereços configurados.</div>
             </div>
         </div>
     </div>

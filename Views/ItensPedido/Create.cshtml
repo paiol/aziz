@@ -1,10 +1,11 @@
 @model ComparacaoPropostas.ViewModels.ItensPedido.NovoItensPedidoVM
 @{
     ViewData["Title"] = "Adicionar Itens a Pedir";
+    var categorias = (List<string>)ViewBag.Categorias;
 }
 
 <h2>Adicionar Itens a Pedir — @ViewBag.PedidoTipo</h2>
-<p class="text-body-tertiary">Escreve para procurar um item nos catálogos (Item Energia, MBB, FBB, Core e Itens/Materiais). Depois de gravar, podes descarregar o Excel para enviar ao fornecedor.</p>
+<p class="text-body-tertiary">Escolhe a Categoria para carregar os Materiais da Base de Dados (Item Energia, MBB, FBB e Core) dessa categoria. Depois de gravar, podes descarregar o Excel para enviar ao fornecedor.</p>
 
 <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
@@ -16,8 +17,9 @@
             <table class="table mb-0">
                 <thead>
                     <tr>
-                        <th style="min-width:320px">Item</th>
-                        <th style="width:160px">Quantidade Solicitada</th>
+                        <th style="min-width:200px">Categoria</th>
+                        <th style="min-width:260px">Material</th>
+                        <th style="width:140px">Quantidade Solicitada</th>
                         <th>Observação</th>
                         <th style="width:50px"></th>
                     </tr>
@@ -42,11 +44,18 @@
     <tr>
         <td>
             <input type="hidden" name="Itens.Index" value="__INDEX__" class="js-row-index" />
-            <input type="hidden" name="Itens[__INDEX__].ChaveItem" class="js-chave-item" required />
-            <div class="position-relative">
-                <input type="text" class="form-control form-control-sm js-item-search" placeholder="Escreva para procurar (ex: disjuntor, antena...)" autocomplete="off" required />
-                <div class="list-group position-absolute w-100 shadow-sm js-item-resultados" style="z-index:1000; max-height:260px; overflow-y:auto; display:none;"></div>
-            </div>
+            <select class="form-select form-select-sm js-categoria">
+                <option value="">— Categoria —</option>
+                @foreach (var c in categorias)
+                {
+                    <option value="@c">@c</option>
+                }
+            </select>
+        </td>
+        <td>
+            <select name="Itens[__INDEX__].ChaveItem" class="form-select form-select-sm js-material" required disabled>
+                <option value="">— Escolhe a categoria primeiro —</option>
+            </select>
         </td>
         <td><input type="number" step="0.001" value="1" name="Itens[__INDEX__].QuantidadeSolicitada" class="form-control form-control-sm" required /></td>
         <td><input type="text" name="Itens[__INDEX__].Observacao" class="form-control form-control-sm" /></td>
@@ -60,70 +69,50 @@
     <script>
         (function () {
             var rowCount = 0;
-            var areaSugerida = @Html.Raw(System.Text.Json.JsonSerializer.Serialize((string)(ViewBag.AreaSugerida ?? "")));
-            var buscarUrl = '@Url.Action("BuscarItens")';
-            var debounceTimer = null;
+            var obterMateriaisUrl = '@Url.Action("ObterMateriais")';
 
-            function origemBadge(origem) {
-                var cores = { 'Catálogo': 'secondary', 'Energia': 'warning text-dark', 'MBB': 'info text-dark', 'FBB': 'primary', 'Core': 'dark' };
-                var cor = cores[origem] || 'secondary';
-                return '<span class="badge bg-' + cor + ' ms-2">' + origem + '</span>';
-            }
+            var origemLabel = { 'Energia': 'Energia', 'MBB': 'MBB', 'FBB': 'FBB', 'Core': 'Core' };
 
-            function renderResultados(container, resultados, onEscolher) {
-                container.innerHTML = '';
-                if (resultados.length === 0) {
-                    container.style.display = 'none';
+            function carregarMateriais(categoriaSelect, materialSelect) {
+                var categoria = categoriaSelect.value;
+                materialSelect.innerHTML = '';
+                materialSelect.disabled = true;
+
+                if (!categoria) {
+                    materialSelect.appendChild(new Option('— Escolhe a categoria primeiro —', ''));
                     return;
                 }
-                resultados.forEach(function (r) {
-                    var el = document.createElement('button');
-                    el.type = 'button';
-                    el.className = 'list-group-item list-group-item-action py-2';
-                    var detalhe = [r.categoria, r.unidade, r.dominio].filter(Boolean).join(' · ');
-                    el.innerHTML = '<div class="d-flex justify-content-between align-items-center">' +
-                        '<div><div>' + r.nome + '</div>' +
-                        (detalhe ? '<small class="text-body-tertiary">' + detalhe + '</small>' : '') +
-                        '</div>' + origemBadge(r.origem) + '</div>';
-                    el.addEventListener('click', function () { onEscolher(r); });
-                    container.appendChild(el);
-                });
-                container.style.display = 'block';
-            }
 
-            function buscar(termo, dominio, callback) {
-                var url = buscarUrl + '?termo=' + encodeURIComponent(termo || '') + '&dominio=' + encodeURIComponent(dominio || '');
-                fetch(url).then(function (resp) { return resp.json(); }).then(callback).catch(function () { callback([]); });
+                materialSelect.appendChild(new Option('A carregar...', ''));
+
+                fetch(obterMateriaisUrl + '?categoria=' + encodeURIComponent(categoria))
+                    .then(function (resp) { return resp.json(); })
+                    .then(function (lista) {
+                        materialSelect.innerHTML = '';
+                        if (lista.length === 0) {
+                            materialSelect.appendChild(new Option('Sem materiais nesta categoria', ''));
+                            return;
+                        }
+                        materialSelect.appendChild(new Option('— Selecione —', ''));
+                        lista.forEach(function (r) {
+                            var origem = origemLabel[r.origem] || r.origem;
+                            var texto = r.nome + (r.unidade ? ' · ' + r.unidade : '') + ' (' + origem + ')';
+                            materialSelect.appendChild(new Option(texto, r.chave));
+                        });
+                        materialSelect.disabled = false;
+                    })
+                    .catch(function () {
+                        materialSelect.innerHTML = '';
+                        materialSelect.appendChild(new Option('Erro ao carregar materiais', ''));
+                    });
             }
 
             function ligarLinha(tr) {
-                var input = tr.querySelector('.js-item-search');
-                var chaveInput = tr.querySelector('.js-chave-item');
-                var resultados = tr.querySelector('.js-item-resultados');
+                var categoriaSelect = tr.querySelector('.js-categoria');
+                var materialSelect = tr.querySelector('.js-material');
 
-                function escolher(r) {
-                    chaveInput.value = r.chave;
-                    input.value = r.nome;
-                    resultados.style.display = 'none';
-                }
-
-                input.addEventListener('input', function () {
-                    chaveInput.value = '';
-                    clearTimeout(debounceTimer);
-                    var termo = input.value.trim();
-                    debounceTimer = setTimeout(function () {
-                        buscar(termo, areaSugerida, function (lista) { renderResultados(resultados, lista, escolher); });
-                    }, 250);
-                });
-
-                input.addEventListener('focus', function () {
-                    if (!input.value.trim() && areaSugerida) {
-                        buscar('', areaSugerida, function (lista) { renderResultados(resultados, lista, escolher); });
-                    }
-                });
-
-                document.addEventListener('click', function (e) {
-                    if (!tr.contains(e.target)) resultados.style.display = 'none';
+                categoriaSelect.addEventListener('change', function () {
+                    carregarMateriais(categoriaSelect, materialSelect);
                 });
             }
 
@@ -143,7 +132,7 @@
                 var tr = clone.querySelector('tr');
                 document.getElementById('itens-tbody').appendChild(clone);
                 ligarLinha(tr);
-                tr.querySelector('.js-item-search').focus();
+                tr.querySelector('.js-categoria').focus();
             }
 
             document.getElementById('btn-add-row').addEventListener('click', adicionarLinha);

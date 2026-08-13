@@ -10,16 +10,23 @@ public class PedidoProposta
     [Required, Display(Name = "Tipo de Proposta")]
     public string TipoProposta { get; set; } = "";
 
-    [Required, Display(Name = "Área")]
-    public string Area { get; set; } = "";
+    [Display(Name = "Área")]
+    public AreaDepartamento Area { get; set; }
 
     [Display(Name = "Estado")]
-    public StatusPedido Status { get; set; } = StatusPedido.Pendente;
+    public StatusPedido Status { get; set; } = StatusPedido.EmCurso;
 
     public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
 
     [Required, Display(Name = "Pessoa Criou")]
     public string PessoaCriou { get; set; } = "";
+
+    [Display(Name = "Prazo de Entrega")]
+    [DataType(DataType.Date)]
+    public DateTime? PrazoEntrega { get; set; }
+
+    [Display(Name = "Orçamento Estimado")]
+    public decimal? OrcamentoEstimado { get; set; }
 
     // Set once a Processo picks this Pedido as its 1-1 origin; null while still Pendente.
     public Processo? Processo { get; set; }

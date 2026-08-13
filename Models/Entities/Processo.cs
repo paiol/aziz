@@ -21,14 +21,7 @@ public class Processo
     public string? Descricao { get; set; }
 
     [Display(Name = "Estado")]
-    public StatusProcesso Status { get; set; } = StatusProcesso.Aberto;
-
-    [Display(Name = "Prazo Final")]
-    [DataType(DataType.Date)]
-    public DateTime? PrazoFinal { get; set; }
-
-    [Display(Name = "Orçamento Estimado")]
-    public decimal? OrcamentoEstimado { get; set; }
+    public StatusProcesso Status { get; set; } = StatusProcesso.Criado;
 
     [Required, Display(Name = "Fornecedor")]
     public string Fornecedor { get; set; } = "";

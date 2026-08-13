@@ -9,17 +9,16 @@ public static class SeedData
     {
         if (db.Processos.Any()) return;
 
-        const string area = "Equipamentos e Materiais";
-
         var item = new ItemMaterial { NomeItem = "Quadro Elétrico de Distribuição", Categoria = "Equipamentos", Unidade = "un" };
         db.ItensMaterial.Add(item);
 
         var pedido = new PedidoProposta
         {
             TipoProposta = "Compra de Equipamentos",
-            Area = area,
-            Status = StatusPedido.Respondido,
-            PessoaCriou = "Sistema"
+            Area = AreaDepartamento.DepPrcs,
+            Status = StatusPedido.Finalizado,
+            PessoaCriou = "Sistema",
+            OrcamentoEstimado = 18000000m
         };
         db.Pedidos.Add(pedido);
 
@@ -28,9 +27,8 @@ public static class SeedData
             PedidoProposta = pedido,
             Nome = "Quadros Elétricos - Exemplo",
             Descricao = "Processo de demonstração criado automaticamente.",
-            Status = StatusProcesso.EmAvaliacao,
+            Status = StatusProcesso.Recebido,
             Fornecedor = "Fornecedores Diversos",
-            OrcamentoEstimado = 18000000m,
             CriadoPor = "Sistema"
         };
         db.Processos.Add(processo);

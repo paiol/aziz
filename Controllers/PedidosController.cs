@@ -39,7 +39,7 @@ public class PedidosController : Controller
     {
         if (!ModelState.IsValid) return View(pedido);
 
-        pedido.Status = StatusPedido.Pendente;
+        pedido.Status = StatusPedido.EmCurso;
         _db.Pedidos.Add(pedido);
         _db.SaveChanges();
 

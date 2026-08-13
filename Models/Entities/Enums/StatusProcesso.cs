@@ -4,9 +4,9 @@ namespace ComparacaoPropostas.Models.Entities.Enums;
 
 public enum StatusProcesso
 {
-    Aberto,
-    [Display(Name = "Em Avaliação")]
-    EmAvaliacao,
-    Decidido,
+    Criado,
+    Recebido,
+    [Display(Name = "Concluído")]
+    Concluido,
     Cancelado
 }

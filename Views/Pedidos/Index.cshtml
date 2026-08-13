@@ -1,3 +1,4 @@
+@using ComparacaoPropostas.Helper
 @model List<ComparacaoPropostas.Models.Entities.PedidoProposta>
 @{
     ViewData["Title"] = "Pedidos de Proposta";
@@ -19,7 +20,7 @@
             <option value="">Todas as áreas</option>
             @foreach (var a in Model.Select(p => p.Area).Distinct().OrderBy(a => a))
             {
-                <option value="@a">@a</option>
+                <option value="@a.ToLabel()">@a.ToLabel()</option>
             }
         </select>
     </div>
@@ -35,6 +36,8 @@
                     <th>Estado</th>
                     <th>Pessoa Criou</th>
                     <th>Criado em</th>
+                    <th>Prazo de Entrega</th>
+                    <th>Orçamento Estimado</th>
                     <th>Processo</th>
                     <th>Excel</th>
                     <th></th>
@@ -45,23 +48,12 @@
                 {
                     <tr>
                         <td>@p.TipoProposta</td>
-                        <td>@p.Area</td>
-                        <td>
-                            @if (p.Status == ComparacaoPropostas.Models.Entities.Enums.StatusPedido.Respondido)
-                            {
-                                <span class="badge bg-success">Respondido</span>
-                            }
-                            else if (p.Status == ComparacaoPropostas.Models.Entities.Enums.StatusPedido.Cancelado)
-                            {
-                                <span class="badge bg-secondary">Cancelado</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-warning text-dark">Pendente</span>
-                            }
-                        </td>
+                        <td>@p.Area.ToLabel()</td>
+                        <td><span class="@p.Status.ToBadgeClass()">@p.Status.ToLabel()</span></td>
                         <td>@p.PessoaCriou</td>
                         <td>@p.CriadoEm.ToString("dd/MM/yyyy")</td>
+                        <td>@(p.PrazoEntrega?.ToString("dd/MM/yyyy") ?? "-")</td>
+                        <td>@(p.OrcamentoEstimado?.ToString("C") ?? "-")</td>
                         <td>
                             @if (p.Processo != null)
                             {

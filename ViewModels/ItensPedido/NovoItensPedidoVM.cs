@@ -8,7 +8,7 @@ public class NovoItensPedidoVM
 
 public class NovaLinhaItemPedido
 {
-    // Composite key from the search picker, e.g. "material:5", "energia:12", "mbb:7".
+    // Composite key from the Material dropdown, e.g. "energia:12", "mbb:7".
     public string ChaveItem { get; set; } = "";
     public decimal QuantidadeSolicitada { get; set; }
     public string? Observacao { get; set; }

@@ -4,7 +4,8 @@ namespace ComparacaoPropostas.Models.Entities.Enums;
 
 public enum StatusPedido
 {
-    Pendente,
-    Respondido,
+    [Display(Name = "Em Curso")]
+    EmCurso,
+    Finalizado,
     Cancelado
 }

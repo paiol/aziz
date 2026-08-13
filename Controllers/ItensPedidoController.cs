@@ -37,7 +37,7 @@ public class ItensPedidoController : Controller
         if (pedido == null) return NotFound();
 
         ViewBag.PedidoTipo = pedido.TipoProposta;
-        ViewBag.AreaSugerida = pedido.Area;
+        ViewBag.Categorias = ItemPickerHelper.ObterCategorias(_db);
         return View(new NovoItensPedidoVM { PedidoId = pedidoId });
     }
 
@@ -55,7 +55,7 @@ public class ItensPedidoController : Controller
         if (!ModelState.IsValid)
         {
             ViewBag.PedidoTipo = pedido.TipoProposta;
-            ViewBag.AreaSugerida = pedido.Area;
+            ViewBag.Categorias = ItemPickerHelper.ObterCategorias(_db);
             return View(model);
         }
 
@@ -84,6 +84,10 @@ public class ItensPedidoController : Controller
     [HttpGet]
     public IActionResult BuscarItens(string? termo, string? dominio)
         => Json(ItemPickerHelper.Buscar(_db, termo, dominio));
+
+    [HttpGet]
+    public IActionResult ObterMateriais(string categoria)
+        => Json(ItemPickerHelper.ObterMateriaisPorCategoria(_db, categoria));
 
     [HttpPost]
     [ValidateAntiForgeryToken]

@@ -1,3 +1,4 @@
+@using ComparacaoPropostas.Helper
 @model ComparacaoPropostas.Models.Entities.Processo
 @{
     ViewData["Title"] = "Editar Processo";
@@ -13,7 +14,7 @@
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
             <div class="alert alert-light border mb-3">
-                Pedido de Proposta de origem: <strong>@Model.PedidoProposta.TipoProposta — @Model.PedidoProposta.Area</strong> (não editável)
+                Pedido de Proposta de origem: <strong>@Model.PedidoProposta.TipoProposta — @Model.PedidoProposta.Area.ToLabel()</strong> (não editável)
             </div>
 
             <div class="row g-3">
@@ -36,14 +37,6 @@
                 <div class="col-md-4">
                     <label asp-for="Status" class="form-label"></label>
                     <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<ComparacaoPropostas.Models.Entities.Enums.StatusProcesso>()"></select>
-                </div>
-                <div class="col-md-4">
-                    <label asp-for="PrazoFinal" class="form-label"></label>
-                    <input asp-for="PrazoFinal" class="form-control" type="date" />
-                </div>
-                <div class="col-md-4">
-                    <label asp-for="OrcamentoEstimado" class="form-label"></label>
-                    <input asp-for="OrcamentoEstimado" class="form-control" type="number" step="0.01" />
                 </div>
 
                 <div class="col-md-6">

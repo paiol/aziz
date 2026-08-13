@@ -43,6 +43,48 @@ public static class ItemPickerHelper
         return resultados.OrderBy(r => r.Nome).Take(30).ToList();
     }
 
+    // Distinct list of Categoria values across the 4 "Base de Dados" catalogs only (Energia/
+    // MBB/FBB/Core) — deliberately excludes the general Itens/Materiais catalog, used to
+    // populate the Categoria dropdown in the item-request picker.
+    public static List<string> ObterCategorias(AppDbContext db)
+    {
+        var categorias = new List<string?>();
+        categorias.AddRange(db.ItensEnergia.Select(i => i.Categoria));
+        categorias.AddRange(db.ItensMbb.Select(i => i.Categoria));
+        categorias.AddRange(db.ItensFbb.Select(i => i.Categoria));
+        categorias.AddRange(db.ItensCore.Select(i => i.Categoria));
+
+        return categorias
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Select(c => c!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(c => c)
+            .ToList();
+    }
+
+    // Materials from the 4 "Base de Dados" catalogs matching a chosen Categoria — feeds the
+    // Material dropdown once a Categoria is picked.
+    public static List<ItemBuscaResultado> ObterMateriaisPorCategoria(AppDbContext db, string categoria)
+    {
+        if (string.IsNullOrWhiteSpace(categoria)) return new List<ItemBuscaResultado>();
+
+        var resultados = new List<ItemBuscaResultado>();
+
+        resultados.AddRange(db.ItensEnergia.Where(i => i.Categoria == categoria)
+            .Select(i => new ItemBuscaResultado { Chave = $"energia:{i.Id}", Nome = i.Nome, Categoria = i.Categoria, Unidade = i.Unidade, Dominio = i.Dominio, Origem = "Energia" }));
+
+        resultados.AddRange(db.ItensMbb.Where(i => i.Categoria == categoria)
+            .Select(i => new ItemBuscaResultado { Chave = $"mbb:{i.Id}", Nome = i.Nome, Categoria = i.Categoria, Unidade = i.Unidade, Dominio = i.Dominio, Origem = "MBB" }));
+
+        resultados.AddRange(db.ItensFbb.Where(i => i.Categoria == categoria)
+            .Select(i => new ItemBuscaResultado { Chave = $"fbb:{i.Id}", Nome = i.Nome, Categoria = i.Categoria, Unidade = i.Unidade, Dominio = i.Dominio, Origem = "FBB" }));
+
+        resultados.AddRange(db.ItensCore.Where(i => i.Categoria == categoria)
+            .Select(i => new ItemBuscaResultado { Chave = $"core:{i.Id}", Nome = i.Nome, Categoria = i.Categoria, Unidade = i.Unidade, Dominio = i.Dominio, Origem = "Core" }));
+
+        return resultados.OrderBy(r => r.Nome).ToList();
+    }
+
     private static bool CorrespondeAoFiltro(string nomeItem, string? dominioItem, string termo, string dominio)
     {
         if (termo.Length >= 2) return nomeItem.Contains(termo, StringComparison.OrdinalIgnoreCase);

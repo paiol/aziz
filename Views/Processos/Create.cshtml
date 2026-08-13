@@ -1,3 +1,4 @@
+@using ComparacaoPropostas.Helper
 @model ComparacaoPropostas.Models.Entities.Processo
 @{
     ViewData["Title"] = "Novo Processo";
@@ -27,7 +28,7 @@ else
                             <option value="">— Selecione —</option>
                             @foreach (var p in pedidos)
                             {
-                                <option value="@p.Id">@p.TipoProposta — @p.Area (@p.PessoaCriou)</option>
+                                <option value="@p.Id">@p.TipoProposta — @p.Area.ToLabel() (@p.PessoaCriou)</option>
                             }
                         </select>
                         <span asp-validation-for="PedidoPropostaId" class="text-danger"></span>
@@ -50,14 +51,6 @@ else
                     </div>
 
                     <div class="col-md-4">
-                        <label asp-for="PrazoFinal" class="form-label"></label>
-                        <input asp-for="PrazoFinal" class="form-control" type="date" />
-                    </div>
-                    <div class="col-md-4">
-                        <label asp-for="OrcamentoEstimado" class="form-label"></label>
-                        <input asp-for="OrcamentoEstimado" class="form-control" type="number" step="0.01" />
-                    </div>
-                    <div class="col-md-4">
                         <label asp-for="CriadoPor" class="form-label"></label>
                         <input asp-for="CriadoPor" class="form-control" />
                     </div>
@@ -65,7 +58,7 @@ else
                     <div class="col-12">
                         <label asp-for="EmailsNotificacao" class="form-label"></label>
                         <input asp-for="EmailsNotificacao" class="form-control" placeholder="email1@exemplo.com, email2@exemplo.com" />
-                        <div class="form-text">Separe vários e-mails por vírgula. Recebem a classificação final quando o processo é marcado como Decidido.</div>
+                        <div class="form-text">Separe vários e-mails por vírgula. Recebem a classificação final quando o processo é marcado como Concluído.</div>
                     </div>
                 </div>
 

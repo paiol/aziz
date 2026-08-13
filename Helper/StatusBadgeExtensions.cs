@@ -6,18 +6,18 @@ public static class StatusBadgeExtensions
 {
     public static string ToBadgeClass(this StatusProcesso status) => status switch
     {
-        StatusProcesso.Aberto => "badge bg-primary",
-        StatusProcesso.EmAvaliacao => "badge bg-warning text-dark",
-        StatusProcesso.Decidido => "badge bg-success",
+        StatusProcesso.Criado => "badge bg-primary",
+        StatusProcesso.Recebido => "badge bg-warning text-dark",
+        StatusProcesso.Concluido => "badge bg-success",
         StatusProcesso.Cancelado => "badge bg-secondary",
         _ => "badge bg-secondary"
     };
 
     public static string ToLabel(this StatusProcesso status) => status switch
     {
-        StatusProcesso.Aberto => "Aberto",
-        StatusProcesso.EmAvaliacao => "Em Avaliação",
-        StatusProcesso.Decidido => "Decidido",
+        StatusProcesso.Criado => "Criado",
+        StatusProcesso.Recebido => "Recebido",
+        StatusProcesso.Concluido => "Concluído",
         StatusProcesso.Cancelado => "Cancelado",
         _ => status.ToString()
     };
@@ -38,5 +38,30 @@ public static class StatusBadgeExtensions
         StatusProposta.Aceite => "Aceite",
         StatusProposta.Rejeitada => "Rejeitada",
         _ => status.ToString()
+    };
+
+    public static string ToBadgeClass(this StatusPedido status) => status switch
+    {
+        StatusPedido.EmCurso => "badge bg-warning text-dark",
+        StatusPedido.Finalizado => "badge bg-success",
+        StatusPedido.Cancelado => "badge bg-secondary",
+        _ => "badge bg-secondary"
+    };
+
+    public static string ToLabel(this StatusPedido status) => status switch
+    {
+        StatusPedido.EmCurso => "Em Curso",
+        StatusPedido.Finalizado => "Finalizado",
+        StatusPedido.Cancelado => "Cancelado",
+        _ => status.ToString()
+    };
+
+    public static string ToLabel(this AreaDepartamento area) => area switch
+    {
+        AreaDepartamento.DepInf => "DEP-INF",
+        AreaDepartamento.DepPrcs => "DEP-PRCS",
+        AreaDepartamento.DepPrm => "DEP-PRM",
+        AreaDepartamento.DepSaf => "DEP-SAF",
+        _ => area.ToString()
     };
 }
