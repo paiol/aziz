@@ -60,9 +60,9 @@ public class AppDbContext : DbContext
         {
             e.Property(p => p.QuantidadeSolicitada).HasPrecision(18, 3);
 
-            e.HasOne(ip => ip.Processo)
-                .WithMany(p => p.ItensPedido)
-                .HasForeignKey(ip => ip.ProcessoId)
+            e.HasOne(ip => ip.PedidoProposta)
+                .WithMany(pp => pp.ItensPedido)
+                .HasForeignKey(ip => ip.PedidoPropostaId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             e.HasOne(ip => ip.ItemMaterial)

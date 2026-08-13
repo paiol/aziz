@@ -49,9 +49,8 @@ public class ProcessosController : Controller
     public IActionResult Details(int id)
     {
         var processo = _db.Processos
-            .Include(p => p.PedidoProposta)
+            .Include(p => p.PedidoProposta).ThenInclude(pp => pp.ItensPedido)
             .Include(p => p.Criterios)
-            .Include(p => p.ItensPedido)
             .Include(p => p.Propostas).ThenInclude(pr => pr.Avaliacoes)
             .FirstOrDefault(p => p.Id == id);
 
@@ -61,7 +60,7 @@ public class ProcessosController : Controller
         {
             Processo = processo,
             SomaPesos = processo.Criterios.Sum(c => c.Peso),
-            TotalItensPedido = processo.ItensPedido.Count,
+            TotalItensPedido = processo.PedidoProposta.ItensPedido.Count,
             Propostas = processo.Propostas
                 .Select(p => new PropostaResumo
                 {

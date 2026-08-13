@@ -7,9 +7,9 @@ public class ItemPedido
 {
     public int Id { get; set; }
 
-    public int ProcessoId { get; set; }
+    public int PedidoPropostaId { get; set; }
     [ValidateNever]
-    public Processo Processo { get; set; } = null!;
+    public PedidoProposta PedidoProposta { get; set; } = null!;
 
     public int ItemMaterialId { get; set; }
     [ValidateNever]

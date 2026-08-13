@@ -24,14 +24,13 @@ public class ItensProcessoController : Controller
     public IActionResult Index(int processoId)
     {
         var processo = _db.Processos
-            .Include(p => p.PedidoProposta)
-            .Include(p => p.ItensPedido).ThenInclude(ip => ip.ItemMaterial)
+            .Include(p => p.PedidoProposta).ThenInclude(pp => pp.ItensPedido).ThenInclude(ip => ip.ItemMaterial)
             .FirstOrDefault(p => p.Id == processoId);
 
         if (processo == null) return NotFound();
 
         ViewBag.Processo = processo;
-        return View(processo.ItensPedido.OrderBy(ip => ip.ItemMaterial.NomeItem).ToList());
+        return View(processo.PedidoProposta.ItensPedido.OrderBy(ip => ip.ItemMaterial.NomeItem).ToList());
     }
 
     public IActionResult Create(int processoId)
@@ -70,7 +69,7 @@ public class ItensProcessoController : Controller
 
             _db.ItensPedido.Add(new ItemPedido
             {
-                ProcessoId = model.ProcessoId,
+                PedidoPropostaId = processo.PedidoPropostaId,
                 ItemMaterialId = itemMaterialId.Value,
                 QuantidadeSolicitada = linha.QuantidadeSolicitada,
                 Observacao = linha.Observacao
@@ -187,10 +186,10 @@ public class ItensProcessoController : Controller
     [ValidateAntiForgeryToken]
     public IActionResult Delete(int id)
     {
-        var item = _db.ItensPedido.Find(id);
+        var item = _db.ItensPedido.Include(i => i.PedidoProposta).ThenInclude(pp => pp.Processo).FirstOrDefault(i => i.Id == id);
         if (item == null) return NotFound();
 
-        var processoId = item.ProcessoId;
+        var processoId = item.PedidoProposta.Processo?.Id;
         _db.ItensPedido.Remove(item);
         _db.SaveChanges();
         TempData["Sucesso"] = "Item removido.";
@@ -200,18 +199,19 @@ public class ItensProcessoController : Controller
     public IActionResult ExportarExcel(int processoId)
     {
         var processo = _db.Processos
-            .Include(p => p.ItensPedido).ThenInclude(ip => ip.ItemMaterial)
+            .Include(p => p.PedidoProposta).ThenInclude(pp => pp.ItensPedido).ThenInclude(ip => ip.ItemMaterial)
             .FirstOrDefault(p => p.Id == processoId);
 
         if (processo == null) return NotFound();
 
-        if (processo.ItensPedido.Count == 0)
+        var itensPedido = processo.PedidoProposta.ItensPedido;
+        if (itensPedido.Count == 0)
         {
             TempData["EmailWarning"] = "Adicione pelo menos um item antes de descarregar o Excel.";
             return RedirectToAction(nameof(Index), new { processoId });
         }
 
-        var conteudo = _excelService.GerarPedidoExcel(processo.Nome, processo.Fornecedor, processo.ItensPedido);
+        var conteudo = _excelService.GerarPedidoExcel(processo.Nome, processo.Fornecedor, itensPedido);
         var nomeFicheiro = $"Pedido_{processo.Fornecedor}_{processo.Nome}.xlsx".Replace(" ", "_");
         return File(conteudo, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", nomeFicheiro);
     }
@@ -221,7 +221,7 @@ public class ItensProcessoController : Controller
     public IActionResult ImportarResposta(int processoId, IFormFile ficheiro)
     {
         var processo = _db.Processos
-            .Include(p => p.ItensPedido).ThenInclude(ip => ip.ItemMaterial)
+            .Include(p => p.PedidoProposta).ThenInclude(pp => pp.ItensPedido).ThenInclude(ip => ip.ItemMaterial)
             .FirstOrDefault(p => p.Id == processoId);
 
         if (processo == null) return NotFound();
@@ -245,9 +245,9 @@ public class ItensProcessoController : Controller
             };
             _db.Propostas.Add(proposta);
 
-            // GroupBy+First (not ToDictionary): defensive against the Processo somehow
+            // GroupBy+First (not ToDictionary): defensive against the Pedido somehow
             // ending up with two ItensPedido for the same ItemMaterial.
-            var itensPorNome = processo.ItensPedido
+            var itensPorNome = processo.PedidoProposta.ItensPedido
                 .GroupBy(ip => ip.ItemMaterial.NomeItem.Trim(), StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 

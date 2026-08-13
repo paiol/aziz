@@ -12,9 +12,22 @@
     <a asp-controller="Processos" asp-action="Create">Novo Processo</a> escolhendo este pedido.
 </p>
 
+<div class="card mb-3">
+    <div class="card-body">
+        <label class="form-label mb-1">Filtrar por área</label>
+        <select id="filtro-area" class="form-select" style="max-width:360px">
+            <option value="">Todas as áreas</option>
+            @foreach (var a in Model.Select(p => p.Area).Distinct().OrderBy(a => a))
+            {
+                <option value="@a">@a</option>
+            }
+        </select>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-body">
-        <table class="table table-hover data-table">
+        <table class="table table-hover data-table" id="tabela-pedidos">
             <thead>
                 <tr>
                     <th>Tipo de Proposta</th>
@@ -71,3 +84,15 @@
         </table>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        $(function () {
+            var tabela = $('#tabela-pedidos').DataTable();
+            $('#filtro-area').on('change', function () {
+                var valor = this.value ? '^' + $.fn.dataTable.util.escapeRegex(this.value) + '$' : '';
+                tabela.column(1).search(valor, true, false).draw();
+            });
+        });
+    </script>
+}

@@ -23,4 +23,8 @@ public class PedidoProposta
 
     // Set once a Processo picks this Pedido as its 1-1 origin; null while still Pendente.
     public Processo? Processo { get; set; }
+
+    // The items being requested from the supplier — belong to the Pedido (the request
+    // itself), not to the Processo, so they exist independently of a Processo being created.
+    public ICollection<ItemPedido> ItensPedido { get; set; } = new List<ItemPedido>();
 }
