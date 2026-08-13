@@ -85,6 +85,7 @@
                             }
                         </td>
                         <td class="text-end">
+                            <a class="btn btn-sm btn-subtle-secondary" asp-controller="ItensPedido" asp-action="Index" asp-route-pedidoId="@p.Id">Gerir Itens</a>
                             @if (p.Processo == null)
                             {
                                 <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"

@@ -1,36 +1,56 @@
 @model List<ComparacaoPropostas.Models.Entities.ItemPedido>
 @{
-    var processo = (ComparacaoPropostas.Models.Entities.Processo)ViewBag.Processo;
+    var pedido = (ComparacaoPropostas.Models.Entities.PedidoProposta)ViewBag.Pedido;
     ViewData["Title"] = "Itens a Pedir";
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h2 class="mb-1">Itens a Pedir</h2>
-        <p class="text-body-tertiary mb-0">@processo.Nome — Fornecedor: @processo.Fornecedor</p>
+        <p class="text-body-tertiary mb-0">
+            @pedido.TipoProposta — @pedido.Area
+            @if (pedido.Processo != null)
+            {
+                <text> · Fornecedor: @pedido.Processo.Fornecedor</text>
+            }
+        </p>
     </div>
     <div>
-        <a class="btn btn-primary" asp-action="Create" asp-route-processoId="@processo.Id">
+        <a class="btn btn-primary" asp-action="Create" asp-route-pedidoId="@pedido.Id">
             <span class="fas fa-plus me-1"></span> Adicionar Itens
         </a>
-        <a class="btn btn-subtle-secondary" asp-controller="Processos" asp-action="Details" asp-route-id="@processo.Id">Voltar ao Processo</a>
+        @if (pedido.Processo != null)
+        {
+            <a class="btn btn-subtle-secondary" asp-controller="Processos" asp-action="Details" asp-route-id="@pedido.Processo.Id">Voltar ao Processo</a>
+        }
+        else
+        {
+            <a class="btn btn-subtle-secondary" asp-controller="Pedidos" asp-action="Index">Voltar aos Pedidos</a>
+        }
     </div>
 </div>
 
 <div class="card mb-3">
     <div class="card-body d-flex flex-wrap gap-3 align-items-end">
-        <a class="btn btn-subtle-primary" asp-action="ExportarExcel" asp-route-processoId="@processo.Id">
+        <a class="btn btn-subtle-primary" asp-controller="Pedidos" asp-action="ExportarExcel" asp-route-id="@pedido.Id">
             <span class="fas fa-file-excel me-1"></span> Descarregar Pedido (Excel)
         </a>
-        <form asp-action="ImportarResposta" asp-route-processoId="@processo.Id" method="post" enctype="multipart/form-data" class="d-flex gap-2 align-items-end">
-            <div>
-                <label class="form-label mb-1">Importar resposta preenchida</label>
-                <input type="file" name="ficheiro" accept=".xlsx" class="form-control form-control-sm" required />
-            </div>
-            <button type="submit" class="btn btn-subtle-success btn-sm">
-                <span class="fas fa-upload me-1"></span> Importar
-            </button>
-        </form>
+        @if (pedido.Processo != null)
+        {
+            <form asp-controller="ItensProcesso" asp-action="ImportarResposta" asp-route-processoId="@pedido.Processo.Id" method="post" enctype="multipart/form-data" class="d-flex gap-2 align-items-end">
+                <div>
+                    <label class="form-label mb-1">Importar resposta preenchida</label>
+                    <input type="file" name="ficheiro" accept=".xlsx" class="form-control form-control-sm" required />
+                </div>
+                <button type="submit" class="btn btn-subtle-success btn-sm">
+                    <span class="fas fa-upload me-1"></span> Importar
+                </button>
+            </form>
+        }
+        else
+        {
+            <span class="text-body-tertiary">A importação da resposta do fornecedor fica disponível depois de criares o Processo para este pedido.</span>
+        }
     </div>
 </div>
 

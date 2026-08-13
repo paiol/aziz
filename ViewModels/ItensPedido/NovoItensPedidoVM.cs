@@ -1,8 +1,8 @@
-namespace ComparacaoPropostas.ViewModels.ItensProcesso;
+namespace ComparacaoPropostas.ViewModels.ItensPedido;
 
-public class NovosItensProcessoVM
+public class NovoItensPedidoVM
 {
-    public int ProcessoId { get; set; }
+    public int PedidoId { get; set; }
     public List<NovaLinhaItemPedido> Itens { get; set; } = new();
 }
 
