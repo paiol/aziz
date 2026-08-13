@@ -1,3 +1,4 @@
+@using ComparacaoPropostas.Helper
 @model List<ComparacaoPropostas.Models.Entities.ItemPedido>
 @{
     var pedido = (ComparacaoPropostas.Models.Entities.PedidoProposta)ViewBag.Pedido;
@@ -8,7 +9,7 @@
     <div>
         <h2 class="mb-1">Itens a Pedir</h2>
         <p class="text-body-tertiary mb-0">
-            @pedido.TipoProposta — @pedido.Area
+            @pedido.TipoProposta — @pedido.Area.ToLabel()
             @if (pedido.Processo != null)
             {
                 <text> · Fornecedor: @pedido.Processo.Fornecedor</text>

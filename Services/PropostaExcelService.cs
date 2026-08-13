@@ -11,6 +11,7 @@ public class PropostaExcelService : IPropostaExcelService
     private const string ColQtdSolicitada = "Quantidade Solicitada";
     private const string ColQtdFornecida = "Quantidade Fornecida";
     private const string ColPreco = "Preço Unitário";
+    private const string ColPrecoTotal = "Preço Total";
     private const string ColObservacao = "Observação";
 
     public byte[] GerarPedidoExcel(string processoNome, string fornecedor, IEnumerable<ItemPedido> itens)
@@ -18,8 +19,10 @@ public class PropostaExcelService : IPropostaExcelService
         using var workbook = new XLWorkbook();
         var sheet = workbook.Worksheets.Add("Pedido de Proposta");
 
+        var headers = new[] { ColItem, ColUnidade, ColQtdSolicitada, ColQtdFornecida, ColPreco, ColPrecoTotal, ColObservacao };
+
         sheet.Cell(1, 1).Value = $"Pedido de Proposta — {processoNome}";
-        sheet.Range(1, 1, 1, 6).Merge();
+        sheet.Range(1, 1, 1, headers.Length).Merge();
         sheet.Cell(1, 1).Style.Font.Bold = true;
         sheet.Cell(1, 1).Style.Font.FontSize = 14;
 
@@ -28,7 +31,6 @@ public class PropostaExcelService : IPropostaExcelService
         sheet.Cell(2, 1).Style.Font.Bold = true;
 
         var headerRow = 4;
-        var headers = new[] { ColItem, ColUnidade, ColQtdSolicitada, ColQtdFornecida, ColPreco, ColObservacao };
         for (var c = 0; c < headers.Length; c++)
         {
             var cell = sheet.Cell(headerRow, c + 1);
@@ -39,15 +41,33 @@ public class PropostaExcelService : IPropostaExcelService
         }
 
         var row = headerRow + 1;
-        foreach (var item in itens.OrderBy(i => i.ItemMaterial.NomeItem))
+        var grupos = itens
+            .GroupBy(i => string.IsNullOrWhiteSpace(i.ItemMaterial.Categoria) ? "Sem categoria" : i.ItemMaterial.Categoria!)
+            .OrderBy(g => g.Key);
+
+        foreach (var grupo in grupos)
         {
-            sheet.Cell(row, 1).Value = item.ItemMaterial.NomeItem;
-            sheet.Cell(row, 2).Value = item.ItemMaterial.Unidade;
-            sheet.Cell(row, 3).Value = item.QuantidadeSolicitada;
-            sheet.Cell(row, 3).Style.Fill.BackgroundColor = XLColor.FromArgb(0xE9, 0xEC, 0xEF);
-            sheet.Cell(row, 3).Style.Protection.Locked = true;
-            // Columns 4-6 (Quantidade Fornecida, Preço Unitário, Observação) left blank for the supplier to fill in.
+            var categoriaCell = sheet.Cell(row, 1);
+            categoriaCell.Value = grupo.Key;
+            sheet.Range(row, 1, row, headers.Length).Merge();
+            categoriaCell.Style.Font.Bold = true;
+            categoriaCell.Style.Fill.BackgroundColor = XLColor.FromArgb(0xE9, 0xEC, 0xEF);
             row++;
+
+            foreach (var item in grupo.OrderBy(i => i.ItemMaterial.NomeItem))
+            {
+                sheet.Cell(row, 1).Value = item.ItemMaterial.NomeItem;
+                sheet.Cell(row, 2).Value = item.ItemMaterial.Unidade;
+                sheet.Cell(row, 3).Value = item.QuantidadeSolicitada;
+                sheet.Cell(row, 3).Style.Fill.BackgroundColor = XLColor.FromArgb(0xE9, 0xEC, 0xEF);
+                sheet.Cell(row, 3).Style.Protection.Locked = true;
+                // Columns 4-5 (Quantidade Fornecida, Preço Unitário) left blank for the supplier to fill in.
+                // Column 6 (Preço Total) calculates itself from those two once the supplier fills them in.
+                sheet.Cell(row, 6).FormulaA1 = $"=IF(OR(D{row}=\"\",E{row}=\"\"),\"\",D{row}*E{row})";
+                sheet.Cell(row, 6).Style.NumberFormat.Format = "#,##0.00";
+                // Column 7 (Observação) left blank for the supplier.
+                row++;
+            }
         }
 
         sheet.Columns().AdjustToContents();
@@ -74,6 +94,11 @@ public class PropostaExcelService : IPropostaExcelService
         {
             var nomeItem = colunas.TryGetValue(ColItem, out var colItem) ? dataRow.Cell(colItem).GetString().Trim() : "";
             if (string.IsNullOrWhiteSpace(nomeItem)) continue;
+
+            // Skip the merged "Categoria" section rows GerarPedidoExcel writes between groups —
+            // real item rows always carry a Unidade, those section rows never do.
+            if (colunas.TryGetValue(ColUnidade, out var colUnidadeCheck) && string.IsNullOrWhiteSpace(dataRow.Cell(colUnidadeCheck).GetString()))
+                continue;
 
             linhas.Add(new LinhaExcelImportada
             {
