@@ -1,0 +1,66 @@
+@model List<ComparacaoPropostas.Models.Entities.Fornecedor>
+@{
+    ViewData["Title"] = "Fornecedores";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-1">Fornecedores</h2>
+        <p class="text-body-tertiary mb-0">Cadastro de fornecedores a associar aos processos de aquisição.</p>
+    </div>
+    <a class="btn btn-primary" asp-action="Create">
+        <span class="fas fa-building-circle-check me-1"></span> Novo Fornecedor
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        @if (Model.Count == 0)
+        {
+            <div class="alert alert-info mb-0">
+                Ainda não existem fornecedores registados. Adiciona o primeiro fornecedor para o poderes associar a processos.
+            </div>
+        }
+        else
+        {
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Contribuinte / NIF</th>
+                        <th>Contacto</th>
+                        <th>E-mail</th>
+                        <th>Estado</th>
+                        <th>Data de Registo</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var f in Model)
+                    {
+                        <tr>
+                            <td><strong>@f.Nome</strong></td>
+                            <td>@(string.IsNullOrWhiteSpace(f.Contribuinte) ? "-" : f.Contribuinte)</td>
+                            <td>@(string.IsNullOrWhiteSpace(f.Contacto) ? "-" : f.Contacto)</td>
+                            <td>@(string.IsNullOrWhiteSpace(f.Email) ? "-" : f.Email)</td>
+                            <td>
+                                @if (f.Ativo)
+                                {
+                                    <span class="badge bg-success">Ativo</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Inativo</span>
+                                }
+                            </td>
+                            <td>@f.CriadoEm.ToString("dd/MM/yyyy")</td>
+                            <td class="text-end">
+                                <a class="btn btn-sm btn-subtle-secondary" asp-action="Edit" asp-route-id="@f.Id">Editar</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

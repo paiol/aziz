@@ -13,6 +13,9 @@ public class Processo
     [ValidateNever]
     public PedidoProposta PedidoProposta { get; set; } = null!;
 
+    [Display(Name = "Nº do Processo")]
+    public string NumeroProcesso { get; set; } = "";
+
     [Required, Display(Name = "Nome do Processo")]
     public string Nome { get; set; } = "";
 

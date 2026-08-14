@@ -57,19 +57,36 @@ public class EmailService : IEmailService
         }
     }
 
-    private string BuildCorpoDecisao(Processo processo)
+    internal string BuildCorpoDecisao(Processo processo)
     {
-        var vencedor = processo.PropostaVencedora 
+        var vencedor = processo.PropostaVencedora
                        ?? processo.Propostas.FirstOrDefault(p => p.Id == processo.PropostaVencedoraId);
+
+        var ranking = processo.Propostas
+            .Select(p => new
+            {
+                Proposta = p,
+                Pontuacao = _scoringService.CalcularPontuacaoPonderada(p, processo.Criterios)
+            })
+            .OrderByDescending(r => r.Pontuacao)
+            .ThenBy(r => r.Proposta.ValorTotalCVE)
+            .ToList();
+
+        var numeroExibido = string.IsNullOrWhiteSpace(processo.NumeroProcesso) ? processo.Id.ToString() : processo.NumeroProcesso;
 
         var sb = new StringBuilder();
         sb.Append("<div style='font-family: Arial, sans-serif; color: #212529; max-width: 680px; margin: 0 auto; line-height: 1.5;'>");
         sb.Append($"<h2 style='color: #0d6efd; margin-bottom: 4px;'>Resultado do Processo de Aquisição</h2>");
-        sb.Append($"<p style='font-size: 1.1em; margin-top: 0;'><strong>Processo #{processo.Id}:</strong> {processo.Nome}</p>");
+        sb.Append($"<p style='font-size: 1.1em; margin-top: 0;'><strong>Processo Nº {numeroExibido}:</strong> {processo.Nome}</p>");
 
         if (!string.IsNullOrWhiteSpace(processo.Descricao))
         {
             sb.Append($"<p><strong>Descrição / Objeto:</strong> {processo.Descricao}</p>");
+        }
+
+        if (processo.PedidoProposta != null)
+        {
+            sb.Append($"<p><strong>Pedido de Aquisição Associado:</strong> {processo.PedidoProposta.TipoProposta} — {processo.PedidoProposta.Area.ToLabel()}</p>");
         }
 
         sb.Append("<hr style='border: 0; border-top: 1px solid #dee2e6; margin: 16px 0;' />");
@@ -106,6 +123,40 @@ public class EmailService : IEmailService
         }
 
         sb.Append("</table>");
+
+        // Ranking completo — todos os fornecedores consultados
+        if (ranking.Count > 0)
+        {
+            sb.Append("<h3 style='color: #0d6efd;'>Fornecedores Consultados e Ranking Final</h3>");
+            sb.Append("<table style='width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.95em;'>");
+            sb.Append("<tr style='background: #f8f9fa;'>");
+            sb.Append("<th style='padding: 6px; text-align: left; border-bottom: 2px solid #dee2e6;'>#</th>");
+            sb.Append("<th style='padding: 6px; text-align: left; border-bottom: 2px solid #dee2e6;'>Fornecedor</th>");
+            sb.Append("<th style='padding: 6px; text-align: left; border-bottom: 2px solid #dee2e6;'>Valor</th>");
+            sb.Append("<th style='padding: 6px; text-align: left; border-bottom: 2px solid #dee2e6;'>Prazo</th>");
+            sb.Append("<th style='padding: 6px; text-align: left; border-bottom: 2px solid #dee2e6;'>Garantia</th>");
+            sb.Append("<th style='padding: 6px; text-align: left; border-bottom: 2px solid #dee2e6;'>Pontuação</th>");
+            sb.Append("</tr>");
+
+            for (var i = 0; i < ranking.Count; i++)
+            {
+                var item = ranking[i];
+                var isVencedor = vencedor != null && item.Proposta.Id == vencedor.Id;
+                var estilo = isVencedor ? "background: #d1e7dd; font-weight: bold;" : "";
+                var valorFormatado = MoedaHelper.FormatarValor(item.Proposta.ValorTotal, item.Proposta.Moeda);
+
+                sb.Append($"<tr style='{estilo}'>");
+                sb.Append($"<td style='padding: 6px; border-bottom: 1px solid #eee;'>{i + 1}º{(isVencedor ? " 🏆" : "")}</td>");
+                sb.Append($"<td style='padding: 6px; border-bottom: 1px solid #eee;'>{item.Proposta.Fornecedor}</td>");
+                sb.Append($"<td style='padding: 6px; border-bottom: 1px solid #eee;'>{valorFormatado}</td>");
+                sb.Append($"<td style='padding: 6px; border-bottom: 1px solid #eee;'>{(item.Proposta.PrazoEntregaDias.HasValue ? $"{item.Proposta.PrazoEntregaDias.Value} dias" : "-")}</td>");
+                sb.Append($"<td style='padding: 6px; border-bottom: 1px solid #eee;'>{(string.IsNullOrWhiteSpace(item.Proposta.Garantia) ? "-" : item.Proposta.Garantia)}</td>");
+                sb.Append($"<td style='padding: 6px; border-bottom: 1px solid #eee;'>{item.Pontuacao:0.00} / 5.00</td>");
+                sb.Append("</tr>");
+            }
+
+            sb.Append("</table>");
+        }
 
         // Resumo de Critérios
         if (processo.Criterios.Count > 0)

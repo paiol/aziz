@@ -11,6 +11,7 @@ public class AppDbContext : DbContext
     public DbSet<Criterio> Criterios => Set<Criterio>();
     public DbSet<Proposta> Propostas => Set<Proposta>();
     public DbSet<Avaliador> Avaliadores => Set<Avaliador>();
+    public DbSet<Fornecedor> Fornecedores => Set<Fornecedor>();
     public DbSet<Avaliacao> Avaliacoes => Set<Avaliacao>();
     public DbSet<ItemMaterial> ItensMaterial => Set<ItemMaterial>();
     public DbSet<ItemProposta> ItensProposta => Set<ItemProposta>();
@@ -29,6 +30,7 @@ public class AppDbContext : DbContext
     {
         modelBuilder.Entity<Processo>(e =>
         {
+            e.Property(p => p.NumeroProcesso).HasMaxLength(30).HasDefaultValue("");
             e.Property(p => p.Status).HasConversion<string>().HasMaxLength(20);
             e.Property(p => p.TaxaCambioPadrao).HasPrecision(18, 4);
             e.Property(p => p.ValorAdjudicado).HasPrecision(18, 2);
@@ -100,6 +102,15 @@ public class AppDbContext : DbContext
             e.Property(a => a.Nome).HasMaxLength(200);
             e.Property(a => a.Perfil).HasMaxLength(100);
             e.Property(a => a.Email).HasMaxLength(200);
+        });
+
+        modelBuilder.Entity<Fornecedor>(e =>
+        {
+            e.Property(f => f.Nome).HasMaxLength(200);
+            e.Property(f => f.Contribuinte).HasMaxLength(50);
+            e.Property(f => f.Contacto).HasMaxLength(50);
+            e.Property(f => f.Email).HasMaxLength(200);
+            e.HasIndex(f => f.Nome).IsUnique();
         });
 
         modelBuilder.Entity<Avaliacao>(e =>

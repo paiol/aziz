@@ -33,6 +33,7 @@ public class ProcessosController : Controller
             .Select(p => new ProcessoIndexVM
             {
                 Id = p.Id,
+                NumeroProcesso = p.NumeroProcesso,
                 Nome = p.Nome,
                 Status = p.Status,
                 PrazoEntrega = p.PedidoProposta.PrazoEntrega,
@@ -105,9 +106,26 @@ public class ProcessosController : Controller
             .ToList();
     }
 
+    private void CarregarFornecedoresDisponiveis()
+    {
+        ViewBag.FornecedoresDisponiveis = _db.Fornecedores
+            .Where(f => f.Ativo)
+            .OrderBy(f => f.Nome)
+            .ToList();
+    }
+
+    private string GerarNumeroProcesso()
+    {
+        var ano = DateTime.UtcNow.Year;
+        var prefixo = $"{ano}-";
+        var proximaSequencia = _db.Processos.Count(p => p.NumeroProcesso.StartsWith(prefixo)) + 1;
+        return $"{prefixo}{proximaSequencia:0000}";
+    }
+
     public IActionResult Create()
     {
         CarregarPedidosDisponiveis();
+        CarregarFornecedoresDisponiveis();
         return View(new ProcessoCreateVM
         {
             TaxaCambioPadrao = MoedaHelper.TaxaEurCvePadrao,
@@ -134,6 +152,7 @@ public class ProcessosController : Controller
         if (!ModelState.IsValid)
         {
             CarregarPedidosDisponiveis(model.PedidoPropostaId);
+            CarregarFornecedoresDisponiveis();
             return View(model);
         }
 
@@ -148,12 +167,14 @@ public class ProcessosController : Controller
             {
                 ModelState.AddModelError("PedidoPropostaId", "Pedido de proposta não encontrado.");
                 CarregarPedidosDisponiveis();
+                CarregarFornecedoresDisponiveis();
                 return View(model);
             }
 
             var processo = new Processo
             {
                 PedidoPropostaId = model.PedidoPropostaId,
+                NumeroProcesso = GerarNumeroProcesso(),
                 Nome = model.Nome.Trim(),
                 Descricao = model.Descricao?.Trim(),
                 CriadoPor = model.CriadoPor?.Trim(),
@@ -195,6 +216,7 @@ public class ProcessosController : Controller
             _logger.LogError(ex, "Erro ao criar processo com fornecedores estruturados.");
             ModelState.AddModelError("", "Não foi possível criar o processo.");
             CarregarPedidosDisponiveis(model.PedidoPropostaId);
+            CarregarFornecedoresDisponiveis();
             return View(model);
         }
     }
@@ -425,6 +447,7 @@ public class ProcessosController : Controller
     public async Task<IActionResult> ComunicarResultado(int id)
     {
         var processo = _db.Processos
+            .Include(p => p.PedidoProposta)
             .Include(p => p.Criterios)
             .Include(p => p.PropostaVencedora)
             .Include(p => p.Propostas).ThenInclude(pr => pr.Avaliacoes)

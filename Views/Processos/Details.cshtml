@@ -8,7 +8,13 @@
 
 <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
     <div>
-        <h2 class="mb-1">@p.Nome</h2>
+        <h2 class="mb-1">
+            @if (!string.IsNullOrWhiteSpace(p.NumeroProcesso))
+            {
+                <span class="text-body-tertiary">@p.NumeroProcesso —</span>
+            }
+            @p.Nome
+        </h2>
         <span class="@p.Status.ToBadgeClass()">@p.Status.ToLabel()</span>
         <span class="text-body-tertiary ms-2">@p.PedidoProposta.TipoProposta — @p.PedidoProposta.Area.ToLabel()</span>
     </div>

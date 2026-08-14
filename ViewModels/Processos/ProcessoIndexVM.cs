@@ -5,6 +5,7 @@ namespace ComparacaoPropostas.ViewModels.Processos;
 public class ProcessoIndexVM
 {
     public int Id { get; set; }
+    public string NumeroProcesso { get; set; } = "";
     public string Nome { get; set; } = "";
     public StatusProcesso Status { get; set; }
     public DateTime? PrazoEntrega { get; set; }

@@ -106,4 +106,60 @@ public class DomainAndBusinessLogicTests
         Assert.Contains(proposta.ItensProposta, i => i.ItemMaterialId == 101 && i.Quantidade == 5 && i.Incluido);
         Assert.Contains(proposta.ItensProposta, i => i.ItemMaterialId == 102 && i.Quantidade == 10 && i.Incluido);
     }
+
+    [Fact]
+    public void EmailService_BuildCorpoDecisao_IncluiTodosOsFornecedoresERanking()
+    {
+        var scoring = new ScoringService(null!);
+        var emailService = new EmailService(
+            Microsoft.Extensions.Options.Options.Create(new SmtpSettings()),
+            scoring,
+            new Microsoft.Extensions.Logging.Abstractions.NullLogger<EmailService>());
+
+        var criterio = new Criterio { Id = 1, Nome = "Preço", Peso = 100m };
+        var criterios = new List<Criterio> { criterio };
+
+        var propostaA = new Proposta
+        {
+            Id = 1,
+            Fornecedor = "Fornecedor A",
+            Moeda = "CVE",
+            ValorTotal = 165000m,
+            PrazoEntregaDias = 15,
+            Garantia = "2 anos",
+            Avaliacoes = new List<Avaliacao> { new Avaliacao { CriterioId = 1, AvaliadorId = 1, Nota = 5 } }
+        };
+        var propostaB = new Proposta
+        {
+            Id = 2,
+            Fornecedor = "Fornecedor B",
+            Moeda = "CVE",
+            ValorTotal = 156000m,
+            PrazoEntregaDias = 20,
+            Garantia = "3 anos",
+            Avaliacoes = new List<Avaliacao> { new Avaliacao { CriterioId = 1, AvaliadorId = 1, Nota = 3 } }
+        };
+
+        var processo = new Processo
+        {
+            Id = 42,
+            NumeroProcesso = "2026-0001",
+            Nome = "Aquisição de Torres e Acessórios",
+            PedidoProposta = new PedidoProposta { TipoProposta = "Compra", Area = AreaDepartamento.DepPrm },
+            Criterios = criterios,
+            Propostas = new List<Proposta> { propostaA, propostaB },
+            PropostaVencedora = propostaA,
+            PropostaVencedoraId = propostaA.Id
+        };
+
+        var html = emailService.BuildCorpoDecisao(processo);
+
+        Assert.Contains("2026-0001", html);
+        Assert.Contains("Pedido de Aquisição Associado", html);
+        Assert.Contains("Fornecedor A", html);
+        Assert.Contains("Fornecedor B", html);
+        Assert.Contains("Ranking Final", html);
+        Assert.Contains("1º", html);
+        Assert.Contains("2º", html);
+    }
 }

@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Novo Processo";
     var pedidos = (List<ComparacaoPropostas.Models.Entities.PedidoProposta>)ViewBag.PedidosDisponiveis;
+    var fornecedores = (List<ComparacaoPropostas.Models.Entities.Fornecedor>)ViewBag.FornecedoresDisponiveis;
 }
 
 <h2>Novo Processo de Aquisição</h2>
@@ -80,21 +81,37 @@ else
                     </button>
                 </div>
 
-                <div id="container-fornecedores" class="row g-2 mb-3">
-                    @for (var i = 0; i < (Model.Fornecedores.Count > 0 ? Model.Fornecedores.Count : 2); i++)
-                    {
-                        var valor = i < Model.Fornecedores.Count ? Model.Fornecedores[i] : "";
-                        <div class="col-md-6 linha-fornecedor">
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-building"></i></span>
-                                <input name="Fornecedores[@i]" value="@valor" class="form-control" placeholder="Nome do Fornecedor (ex.: Unitel, Huawei, etc.)" required />
-                                <button type="button" class="btn btn-outline-danger btn-remover-fornecedor" title="Remover fornecedor">
-                                    <i class="fas fa-times"></i>
-                                </button>
+                @if (fornecedores == null || fornecedores.Count == 0)
+                {
+                    <div class="alert alert-warning">
+                        Não existem fornecedores registados no catálogo.
+                        <a asp-controller="Fornecedores" asp-action="Create">Regista um Fornecedor</a> primeiro.
+                    </div>
+                }
+                else
+                {
+                    <div id="container-fornecedores" class="row g-2 mb-3">
+                        @for (var i = 0; i < (Model.Fornecedores.Count > 0 ? Model.Fornecedores.Count : 2); i++)
+                        {
+                            var valor = i < Model.Fornecedores.Count ? Model.Fornecedores[i] : "";
+                            <div class="col-md-6 linha-fornecedor">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-building"></i></span>
+                                    <select name="Fornecedores[@i]" class="form-select" required>
+                                        <option value="">— Selecione o Fornecedor —</option>
+                                        @foreach (var f in fornecedores)
+                                        {
+                                            <option value="@f.Nome" selected="@(f.Nome == valor)">@f.Nome</option>
+                                        }
+                                    </select>
+                                    <button type="button" class="btn btn-outline-danger btn-remover-fornecedor" title="Remover fornecedor">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    }
-                </div>
+                        }
+                    </div>
+                }
 
                 <div class="mt-4">
                     <button type="submit" class="btn btn-primary">
@@ -111,6 +128,15 @@ else
     <script>
         $(function () {
             var container = $('#container-fornecedores');
+            var opcoesFornecedores = @Html.Raw(Json.Serialize((fornecedores ?? new List<ComparacaoPropostas.Models.Entities.Fornecedor>()).Select(f => f.Nome)));
+
+            function buildOptions() {
+                var html = '<option value="">— Selecione o Fornecedor —</option>';
+                opcoesFornecedores.forEach(function (nome) {
+                    html += '<option value="' + nome + '">' + nome + '</option>';
+                });
+                return html;
+            }
 
             $('#btn-add-fornecedor').on('click', function () {
                 var index = container.find('.linha-fornecedor').length;
@@ -118,7 +144,7 @@ else
                     <div class="col-md-6 linha-fornecedor">
                         <div class="input-group">
                             <span class="input-group-text"><i class="fas fa-building"></i></span>
-                            <input name="Fornecedores[${index}]" class="form-control" placeholder="Nome do Fornecedor" required />
+                            <select name="Fornecedores[${index}]" class="form-select" required>${buildOptions()}</select>
                             <button type="button" class="btn btn-outline-danger btn-remover-fornecedor" title="Remover fornecedor">
                                 <i class="fas fa-times"></i>
                             </button>
@@ -136,7 +162,7 @@ else
                 $(this).closest('.linha-fornecedor').remove();
                 // Reindexar inputs
                 container.find('.linha-fornecedor').each(function (idx) {
-                    $(this).find('input').attr('name', 'Fornecedores[' + idx + ']');
+                    $(this).find('select').attr('name', 'Fornecedores[' + idx + ']');
                 });
             });
         });
