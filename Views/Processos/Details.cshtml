@@ -6,31 +6,118 @@
     var p = Model.Processo;
 }
 
-<div class="d-flex justify-content-between align-items-start mb-3">
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
     <div>
         <h2 class="mb-1">@p.Nome</h2>
         <span class="@p.Status.ToBadgeClass()">@p.Status.ToLabel()</span>
         <span class="text-body-tertiary ms-2">@p.PedidoProposta.TipoProposta — @p.PedidoProposta.Area.ToLabel()</span>
     </div>
-    <div>
-        <a class="btn btn-subtle-secondary" asp-action="Edit" asp-route-id="@p.Id">Editar Processo</a>
+    <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-subtle-secondary" asp-action="Edit" asp-route-id="@p.Id">
+            <span class="fas fa-edit me-1"></span> Editar
+        </a>
         <a class="btn btn-success" asp-controller="Comparacao" asp-action="Index" asp-route-processoId="@p.Id">
             <span class="fas fa-scale-balanced me-1"></span> Ver Comparação
         </a>
+        <a class="btn btn-subtle-primary" asp-controller="Comparacao" asp-action="Itens" asp-route-processoId="@p.Id">
+            <span class="fas fa-table-list me-1"></span> Comparar Itens
+        </a>
+        @if (Model.Propostas.Count > 0)
+        {
+            <a class="btn btn-primary" asp-action="Adjudicar" asp-route-id="@p.Id">
+                <span class="fas fa-trophy me-1"></span> Adjudicar Processo
+            </a>
+        }
     </div>
 </div>
+
+@if (p.Status == StatusProcesso.Concluido && p.PropostaVencedoraId.HasValue)
+{
+    <div class="card border-success mb-3 shadow-sm">
+        <div class="card-header bg-success bg-opacity-10 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 text-success">
+                <i class="fas fa-award me-2"></i> Processo Concluído / Adjudicado
+            </h5>
+            <div>
+                <form asp-action="ComunicarResultado" asp-route-id="@p.Id" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Deseja enviar a comunicação oficial do resultado por email?');">
+                        <i class="fas fa-envelope me-1"></i> Enviar Comunicação por E-mail
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <span class="text-body-tertiary d-block small">Fornecedor Vencedor</span>
+                    <strong class="fs-1 text-dark">@(p.PropostaVencedora?.Fornecedor ?? "Não identificado")</strong>
+                </div>
+                <div class="col-md-4">
+                    <span class="text-body-tertiary d-block small">Valor Adjudicado</span>
+                    <strong class="fs-1 text-dark">
+                        @MoedaHelper.FormatarValor(p.ValorAdjudicado ?? 0, p.ValorAdjudicadoMoeda)
+                        @if (string.Equals(p.ValorAdjudicadoMoeda, MoedaHelper.MoedaEur, StringComparison.OrdinalIgnoreCase))
+                        {
+                            <span class="text-muted fs--1 d-block">
+                                (@MoedaHelper.FormatarValor(p.ValorAdjudicadoCVE ?? 0, MoedaHelper.MoedaCve))
+                            </span>
+                        }
+                    </strong>
+                </div>
+                <div class="col-md-4">
+                    <span class="text-body-tertiary d-block small">Pontuação da Avaliação</span>
+                    <strong class="fs-1 text-primary">
+                        @(p.PontuacaoAdjudicada?.ToString("0.00") ?? "-") <small class="text-muted fs--1">/ 5.00</small>
+                    </strong>
+                </div>
+                <div class="col-md-4">
+                    <span class="text-body-tertiary d-block small">Data de Adjudicação</span>
+                    <span>@(p.DataAdjudicacao?.ToString("dd/MM/yyyy HH:mm") ?? "-")</span>
+                </div>
+                <div class="col-md-4">
+                    <span class="text-body-tertiary d-block small">Responsável pela Decisão</span>
+                    <span>@(p.ResponsavelAdjudicacao ?? "-")</span>
+                </div>
+                <div class="col-md-4">
+                    <span class="text-body-tertiary d-block small">Comunicação por E-mail</span>
+                    @if (p.EmailResultadoEnviadoEm.HasValue)
+                    {
+                        <span class="badge bg-success">
+                            <i class="fas fa-check me-1"></i> Enviado em @p.EmailResultadoEnviadoEm.Value.ToString("dd/MM/yyyy HH:mm")
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Ainda não enviada</span>
+                    }
+                </div>
+                @if (!string.IsNullOrWhiteSpace(p.JustificativaAdjudicacao))
+                {
+                    <div class="col-12 mt-2">
+                        <span class="text-body-tertiary d-block small">Justificação da Decisão:</span>
+                        <div class="p-2 bg-light rounded border text-secondary">
+                            @p.JustificativaAdjudicacao
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
 
 <div class="row g-3">
     <div class="col-lg-8">
         <div class="card mb-3">
-            <div class="card-header"><h5 class="mb-0">Detalhes</h5></div>
+            <div class="card-header"><h5 class="mb-0">Dados do Processo</h5></div>
             <div class="card-body">
                 <p>@(string.IsNullOrWhiteSpace(p.Descricao) ? "Sem descrição." : p.Descricao)</p>
                 <dl class="row mb-0">
-                    <dt class="col-sm-4">Prazo de Entrega</dt>
+                    <dt class="col-sm-4">Prazo de Entrega do Pedido</dt>
                     <dd class="col-sm-8">@(p.PedidoProposta.PrazoEntrega?.ToString("dd/MM/yyyy") ?? "-")</dd>
                     <dt class="col-sm-4">Orçamento Estimado</dt>
-                    <dd class="col-sm-8">@(p.PedidoProposta.OrcamentoEstimado?.ToString("C") ?? "-")</dd>
+                    <dd class="col-sm-8">@(p.PedidoProposta.OrcamentoEstimado.HasValue ? MoedaHelper.FormatarValor(p.PedidoProposta.OrcamentoEstimado.Value, MoedaHelper.MoedaCve) : "-")</dd>
+                    <dt class="col-sm-4">Taxa de Câmbio Padrão</dt>
+                    <dd class="col-sm-8">1 EUR = @p.TaxaCambioPadrao.ToString("N3") CVE</dd>
                     <dt class="col-sm-4">Criado por</dt>
                     <dd class="col-sm-8">@(p.CriadoPor ?? "-")</dd>
                     <dt class="col-sm-4">E-mails a Notificar</dt>
@@ -41,71 +128,98 @@
 
         <div class="card mb-3">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Itens a Pedir (@Model.TotalItensPedido)</h5>
+                <h5 class="mb-0">Itens Solicitados no Pedido (@Model.TotalItensPedido)</h5>
                 <a class="btn btn-sm btn-primary" asp-controller="ItensPedido" asp-action="Index" asp-route-pedidoId="@p.PedidoPropostaId">
                     <span class="fas fa-paper-plane me-1"></span> Gerir Itens / Excel
                 </a>
             </div>
             <div class="card-body">
-                <p class="text-body-tertiary mb-0">Adiciona os itens e quantidades a pedir ao fornecedor, descarrega o Excel, e importa a resposta preenchida para criar a proposta automaticamente.</p>
+                <p class="text-body-tertiary mb-0">Itens e quantidades base provenientes do Pedido de Aquisição associado. Servem de referência para as propostas de todos os fornecedores.</p>
             </div>
         </div>
 
         <div class="card mb-3">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Propostas (@Model.Propostas.Count)</h5>
+                <h5 class="mb-0">Propostas dos Fornecedores (@Model.Propostas.Count)</h5>
                 <a class="btn btn-sm btn-primary" asp-controller="Propostas" asp-action="Create" asp-route-processoId="@p.Id">
-                    <span class="fas fa-plus me-1"></span> Nova Proposta Manual
+                    <span class="fas fa-plus me-1"></span> Adicionar Fornecedor / Proposta
                 </a>
             </div>
             <div class="card-body p-0">
                 @if (Model.Propostas.Count == 0)
                 {
-                    <p class="text-body-tertiary p-3 mb-0">Ainda não há propostas para este processo.</p>
+                    <p class="text-body-tertiary p-3 mb-0">Ainda não há propostas associadas a este processo.</p>
                 }
                 else
                 {
-                    <table class="table table-hover mb-0">
-                        <thead>
-                            <tr>
-                                <th>Fornecedor</th>
-                                <th>Valor Total</th>
-                                <th>Estado</th>
-                                <th>Pontuação Ponderada</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var pr in Model.Propostas)
-                            {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
                                 <tr>
-                                    <td>@pr.Fornecedor</td>
-                                    <td>@pr.ValorTotal.ToString("C")</td>
-                                    <td><span class="@pr.Status.ToBadgeClass()">@pr.Status.ToLabel()</span></td>
-                                    <td>
-                                        <strong>@pr.PontuacaoPonderada.ToString("0.00")</strong>
-                                        @if (p.Status == StatusProcesso.Concluido)
-                                        {
-                                            <div class="text-warning" title="@pr.PontuacaoPonderada.ToString("0.00") / 10">
-                                                @{ var estrelas = Math.Clamp((int)Math.Round(pr.PontuacaoPonderada / 2m, MidpointRounding.AwayFromZero), 0, 5); }
+                                    <th>Posição</th>
+                                    <th>Fornecedor</th>
+                                    <th>Valor Total</th>
+                                    <th>Total (CVE)</th>
+                                    <th>Prazo</th>
+                                    <th>Garantia</th>
+                                    <th>Avaliação</th>
+                                    <th>Estado</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var pr in Model.Propostas)
+                                {
+                                    var isVencedor = p.PropostaVencedoraId == pr.Id;
+                                    <tr class="@(isVencedor ? "table-success bg-opacity-10" : "")">
+                                        <td>
+                                            <span class="badge @(pr.PosicaoRanking == 1 ? "bg-warning text-dark" : "bg-light text-secondary border")">
+                                                @(pr.PosicaoRanking)º
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <strong>@pr.Fornecedor</strong>
+                                            @if (isVencedor)
+                                            {
+                                                <span class="badge bg-success ms-1"><i class="fas fa-check"></i> Vencedor</span>
+                                            }
+                                        </td>
+                                        <td>@MoedaHelper.FormatarValor(pr.ValorTotal, pr.Moeda)</td>
+                                        <td>@MoedaHelper.FormatarValor(pr.ValorTotalCVE, MoedaHelper.MoedaCve)</td>
+                                        <td>@(pr.PrazoEntregaDias.HasValue ? $"{pr.PrazoEntregaDias}d" : "-")</td>
+                                        <td>@(string.IsNullOrWhiteSpace(pr.Garantia) ? "-" : pr.Garantia)</td>
+                                        <td>
+                                            <strong>@pr.PontuacaoPonderada.ToString("0.00")</strong>
+                                            <div class="text-warning small" title="@pr.PontuacaoPonderada.ToString("0.00") / 5.00">
+                                                @{ var estrelas = Math.Clamp((int)Math.Round(pr.PontuacaoPonderada, MidpointRounding.AwayFromZero), 0, 5); }
                                                 @for (var i = 1; i <= 5; i++)
                                                 {
                                                     <span class="@(i <= estrelas ? "fas" : "far") fa-star"></span>
                                                 }
                                             </div>
-                                        }
-                                    </td>
-                                    <td class="text-end">
-                                        <a class="btn btn-sm btn-subtle-primary" asp-controller="Avaliacoes" asp-action="Editar" asp-route-propostaId="@pr.Id">Avaliar</a>
-                                        <a class="btn btn-sm btn-subtle-secondary" asp-controller="Propostas" asp-action="Edit" asp-route-id="@pr.Id">Editar</a>
-                                        <a class="btn btn-sm btn-subtle-secondary" asp-controller="ItensProposta" asp-action="Index" asp-route-propostaId="@pr.Id">Itens</a>
-                                        <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
-                                                data-url="@Url.Action("Delete", "Propostas", new { id = pr.Id })" data-id="@pr.Id">Apagar</button>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+                                            <span class="text-muted fs--2 d-block">(@pr.TotalAvaliadores avaliador(es))</span>
+                                        </td>
+                                        <td><span class="@pr.Status.ToBadgeClass()">@pr.Status.ToLabel()</span></td>
+                                        <td class="text-end">
+                                            <a class="btn btn-sm btn-subtle-primary" asp-controller="Avaliacoes" asp-action="Editar" asp-route-propostaId="@pr.Id" title="Avaliar">
+                                                <i class="fas fa-star"></i> Avaliar
+                                            </a>
+                                            <a class="btn btn-sm btn-subtle-secondary" asp-controller="ItensProposta" asp-action="Index" asp-route-propostaId="@pr.Id" title="Itens e Preços">
+                                                <i class="fas fa-list"></i> Itens
+                                            </a>
+                                            <a class="btn btn-sm btn-subtle-secondary" asp-controller="Propostas" asp-action="Edit" asp-route-id="@pr.Id" title="Editar Proposta">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
+                                                    data-url="@Url.Action("Delete", "Propostas", new { id = pr.Id })" data-id="@pr.Id" title="Apagar">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
                 }
             </div>
         </div>
@@ -126,9 +240,15 @@
                 {
                     @foreach (var c in p.Criterios.OrderByDescending(c => c.Peso))
                     {
-                        <li class="list-group-item d-flex justify-content-between">
-                            <span>@c.Nome</span>
-                            <strong>@c.Peso.ToString("0.##")%</strong>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="fw-bold">@c.Nome</span>
+                                @if (!string.IsNullOrWhiteSpace(c.Categoria))
+                                {
+                                    <small class="text-muted d-block">@c.Categoria</small>
+                                }
+                            </div>
+                            <span class="badge bg-subtle-primary text-primary">@c.Peso.ToString("0.##")%</span>
                         </li>
                     }
                 }
@@ -143,8 +263,8 @@
                     </select>
                     <button type="submit" class="btn btn-primary w-100">Atualizar Estado</button>
                 </form>
-                <div class="form-text mt-2">Ao marcar como "Concluído" é enviado um e-mail com a classificação final aos endereços configurados.</div>
             </div>
         </div>
     </div>
 </div>
+

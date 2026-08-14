@@ -47,7 +47,7 @@ public class ItensProcessoController : Controller
             var proposta = new Proposta
             {
                 ProcessoId = processo.Id,
-                Fornecedor = processo.Fornecedor,
+                Fornecedor = string.IsNullOrWhiteSpace(processo.Fornecedor) ? "Fornecedor" : processo.Fornecedor,
                 Status = StatusProposta.Recebida
             };
             _db.Propostas.Add(proposta);

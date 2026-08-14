@@ -5,10 +5,12 @@ namespace ComparacaoPropostas.Services;
 
 public interface IScoringService
 {
-    decimal CalcularNotaPonderada(Avaliacao avaliacao);
+    decimal ObterNotaMediaCriterio(Proposta proposta, int criterioId);
     decimal CalcularNotaMedia(Proposta proposta);
     decimal CalcularPontuacaoPonderada(Proposta proposta);
+    decimal CalcularPontuacaoPonderada(Proposta proposta, IEnumerable<Criterio> criterios);
     decimal? MenorValorOfertado(Processo processo);
     ComparacaoViewModel BuildComparacao(int processoId);
     ComparacaoItensViewModel BuildComparacaoItens(int processoId);
+    void ClonarItensPedidoParaProposta(Proposta proposta, IEnumerable<ItemPedido> itensPedido);
 }

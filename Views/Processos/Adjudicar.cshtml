@@ -1,0 +1,159 @@
+@using ComparacaoPropostas.Helper
+@model ComparacaoPropostas.ViewModels.Processos.AdjudicacaoVM
+@{
+    ViewData["Title"] = "Adjudicação do Processo";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-1">Adjudicação do Processo</h2>
+        <p class="text-body-tertiary mb-0">@Model.ProcessoNome</p>
+    </div>
+    <a class="btn btn-subtle-secondary" asp-action="Details" asp-route-id="@Model.ProcessoId">Voltar aos Detalhes</a>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0">Ranking das Propostas e Seleção do Vencedor</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Adjudicar" method="post" id="form-adjudicacao">
+                    <input type="hidden" asp-for="ProcessoId" />
+                    <input type="hidden" asp-for="ProcessoNome" />
+                    <input type="hidden" asp-for="PrimeiroLugarRankingId" id="primeiro-lugar-id" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="table-responsive mb-3">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 50px;">Sel.</th>
+                                    <th>Posição</th>
+                                    <th>Fornecedor</th>
+                                    <th>Pontuação</th>
+                                    <th>Valor Total</th>
+                                    <th>Total (CVE)</th>
+                                    <th>Prazo</th>
+                                    <th>Garantia</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var p in Model.PropostasDisponiveis)
+                                {
+                                    var isChecked = p.Id == Model.PropostaVencedoraId;
+                                    <tr class="@(p.IsPrimeiroLugar ? "table-success bg-opacity-10" : "")">
+                                        <td>
+                                            <input type="radio" name="PropostaVencedoraId" value="@p.Id" id="prop_@p.Id" 
+                                                   class="form-check-input radio-proposta" 
+                                                   @(isChecked ? "checked" : "") required />
+                                        </td>
+                                        <td>
+                                            <span class="badge @(p.IsPrimeiroLugar ? "bg-success" : "bg-secondary")">
+                                                @(p.PosicaoRanking)º Lugar
+                                            </span>
+                                            @if (p.IsPrimeiroLugar)
+                                            {
+                                                <span class="badge bg-warning text-dark ms-1" title="Recomendado pelo ranking">Recomendado</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <label for="prop_@p.Id" class="fw-bold mb-0 cursor-pointer">@p.Fornecedor</label>
+                                        </td>
+                                        <td>
+                                            <strong>@p.PontuacaoPonderada.ToString("0.00")</strong>
+                                            <div class="text-warning">
+                                                @{ var estrelas = Math.Clamp((int)Math.Round(p.PontuacaoPonderada, MidpointRounding.AwayFromZero), 0, 5); }
+                                                @for (var i = 1; i <= 5; i++)
+                                                {
+                                                    <span class="@(i <= estrelas ? "fas" : "far") fa-star small"></span>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td>@MoedaHelper.FormatarValor(p.ValorTotal, p.Moeda)</td>
+                                        <td>@MoedaHelper.FormatarValor(p.ValorTotalCVE, MoedaHelper.MoedaCve)</td>
+                                        <td>@(p.PrazoEntregaDias.HasValue ? $"{p.PrazoEntregaDias} dias" : "-")</td>
+                                        <td>@(string.IsNullOrWhiteSpace(p.Garantia) ? "-" : p.Garantia)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <span asp-validation-for="PropostaVencedoraId" class="text-danger"></span>
+
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-6">
+                            <label asp-for="ResponsavelAdjudicacao" class="form-label"></label>
+                            <input asp-for="ResponsavelAdjudicacao" class="form-control" placeholder="ex.: Diretor Geral / Conselho de Administração" required />
+                            <span asp-validation-for="ResponsavelAdjudicacao" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-12" id="box-justificativa" style="display: none;">
+                            <div class="alert alert-warning mb-2">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                <strong>Atenção:</strong> O fornecedor selecionado diverge do 1º classificado no ranking de avaliação. É obrigatório fundamentar a decisão.
+                            </div>
+                            <label asp-for="JustificativaAdjudicacao" class="form-label fw-bold"></label>
+                            <textarea asp-for="JustificativaAdjudicacao" class="form-control" rows="3" id="input-justificativa" placeholder="Descreva as razões técnicas, comerciais ou estratégicas para a escolha deste fornecedor..."></textarea>
+                            <span asp-validation-for="JustificativaAdjudicacao" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 d-flex gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <span class="fas fa-check-circle me-1"></span> Confirmar Adjudicação
+                        </button>
+                        <a asp-action="Details" asp-route-id="@Model.ProcessoId" class="btn btn-subtle-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0">Regras de Adjudicação</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="fas fa-info-circle text-primary me-2"></i>
+                        O ranking é calculado ponderando as notas atribuídas pelos avaliadores nos critérios definidos.
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-award text-success me-2"></i>
+                        A proposta adjudicada passará ao estado <strong>Aceite</strong> e as restantes serão marcadas como <strong>Rejeitada</strong>.
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-envelope text-info me-2"></i>
+                        A comunicação por email aos intervenientes é efetuada num passo separado após a confirmação.
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(function () {
+            var primeiroLugarId = $('#primeiro-lugar-id').val();
+
+            function verificarJustificativa() {
+                var selecionadoId = $('input[name="PropostaVencedoraId"]:checked').val();
+                if (selecionadoId && primeiroLugarId && selecionadoId !== primeiroLugarId) {
+                    $('#box-justificativa').slideDown();
+                    $('#input-justificativa').attr('required', true);
+                } else {
+                    $('#box-justificativa').slideUp();
+                    $('#input-justificativa').removeAttr('required');
+                }
+            }
+
+            $('.radio-proposta').on('change', verificarJustificativa);
+            verificarJustificativa();
+        });
+    </script>
+}

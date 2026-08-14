@@ -14,12 +14,18 @@ public class PropostaColuna
 {
     public int PropostaId { get; set; }
     public string Fornecedor { get; set; } = "";
+    public string Moeda { get; set; } = "CVE";
+    public decimal TaxaCambio { get; set; }
     public decimal ValorTotal { get; set; }
+    public decimal ValorTotalCVE { get; set; }
+    public decimal? ValorTotalEUR { get; set; }
     public bool ValorTotalMelhor { get; set; }
     public int? PrazoEntregaDias { get; set; }
     public bool PrazoMelhor { get; set; }
+    public string? Garantia { get; set; }
     public decimal PontuacaoPonderada { get; set; }
     public bool PontuacaoMelhor { get; set; }
+    public int PosicaoRanking { get; set; }
     public StatusProposta Status { get; set; }
 }
 

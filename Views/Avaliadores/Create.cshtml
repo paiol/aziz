@@ -1,0 +1,49 @@
+@model ComparacaoPropostas.Models.Entities.Avaliador
+@{
+    ViewData["Title"] = "Novo Avaliador";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Novo Avaliador</h2>
+    <a class="btn btn-subtle-secondary" asp-action="Index">Voltar</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Nome" class="form-label"></label>
+                    <input asp-for="Nome" class="form-control" placeholder="ex.: Eng. João Silva" />
+                    <span asp-validation-for="Nome" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="Perfil" class="form-label"></label>
+                    <input asp-for="Perfil" class="form-control" placeholder="ex.: Diretor, Técnico de Infraestrutura, etc." />
+                    <span asp-validation-for="Perfil" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="Email" class="form-label"></label>
+                    <input asp-for="Email" class="form-control" placeholder="avaliador@empresa.cv" />
+                    <span asp-validation-for="Email" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 d-flex align-items-center mt-4">
+                    <div class="form-check">
+                        <input asp-for="Ativo" class="form-check-input" type="checkbox" checked />
+                        <label asp-for="Ativo" class="form-check-label">Avaliador Ativo</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">Guardar Avaliador</button>
+                <a asp-action="Index" class="btn btn-subtle-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>

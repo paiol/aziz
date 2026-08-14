@@ -20,4 +20,11 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="ComparacaoPropostas.Tests\**" />
+    <Content Remove="ComparacaoPropostas.Tests\**" />
+    <EmbeddedResource Remove="ComparacaoPropostas.Tests\**" />
+    <None Remove="ComparacaoPropostas.Tests\**" />
+  </ItemGroup>
+
 </Project>

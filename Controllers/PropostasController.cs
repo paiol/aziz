@@ -1,17 +1,22 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ComparacaoPropostas.Data;
+using ComparacaoPropostas.Helper;
 using ComparacaoPropostas.Models.Entities;
+using ComparacaoPropostas.Services;
 
 namespace ComparacaoPropostas.Controllers;
 
 public class PropostasController : Controller
 {
     private readonly AppDbContext _db;
+    private readonly IScoringService _scoringService;
     private readonly ILogger<PropostasController> _logger;
 
-    public PropostasController(AppDbContext db, ILogger<PropostasController> logger)
+    public PropostasController(AppDbContext db, IScoringService scoringService, ILogger<PropostasController> logger)
     {
         _db = db;
+        _scoringService = scoringService;
         _logger = logger;
     }
 
@@ -21,28 +26,61 @@ public class PropostasController : Controller
         if (processo == null) return NotFound();
 
         ViewBag.ProcessoNome = processo.Nome;
-        return View(new Proposta { ProcessoId = processoId });
+        return View(new Proposta
+        {
+            ProcessoId = processoId,
+            Moeda = MoedaHelper.MoedaCve,
+            TaxaCambio = processo.TaxaCambioPadrao > 0 ? processo.TaxaCambioPadrao : MoedaHelper.TaxaEurCvePadrao
+        });
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Create(Proposta proposta)
     {
+        var processo = _db.Processos
+            .Include(p => p.PedidoProposta).ThenInclude(pp => pp.ItensPedido)
+            .FirstOrDefault(p => p.Id == proposta.ProcessoId);
+
+        if (processo == null) return NotFound();
+
+        if (proposta.TaxaCambio <= 0)
+        {
+            proposta.TaxaCambio = processo.TaxaCambioPadrao > 0 ? processo.TaxaCambioPadrao : MoedaHelper.TaxaEurCvePadrao;
+        }
+
         if (!ModelState.IsValid)
         {
-            ViewBag.ProcessoNome = _db.Processos.Find(proposta.ProcessoId)?.Nome;
+            ViewBag.ProcessoNome = processo.Nome;
             return View(proposta);
         }
 
-        _db.Propostas.Add(proposta);
-        _db.SaveChanges();
-        TempData["Sucesso"] = "Proposta adicionada com sucesso.";
-        return RedirectToAction("Details", "Processos", new { id = proposta.ProcessoId });
+        using var transaction = _db.Database.BeginTransaction();
+        try
+        {
+            _scoringService.ClonarItensPedidoParaProposta(proposta, processo.PedidoProposta.ItensPedido);
+            proposta.ValorTotal = 0m;
+
+            _db.Propostas.Add(proposta);
+            _db.SaveChanges();
+            transaction.Commit();
+
+            TempData["Sucesso"] = $"Proposta adicionada para '{proposta.Fornecedor}' com {proposta.ItensProposta.Count} item(ns) pré-carregados.";
+            return RedirectToAction("Index", "ItensProposta", new { propostaId = proposta.Id });
+        }
+        catch (Exception ex)
+        {
+            transaction.Rollback();
+            _logger.LogError(ex, "Erro ao adicionar proposta ao processo {ProcessoId}.", proposta.ProcessoId);
+            ModelState.AddModelError("", "Não foi possível criar a proposta.");
+            ViewBag.ProcessoNome = processo.Nome;
+            return View(proposta);
+        }
     }
 
     public IActionResult Edit(int id)
     {
-        var proposta = _db.Propostas.Find(id);
+        var proposta = _db.Propostas.Include(p => p.Anexos).FirstOrDefault(p => p.Id == id);
         if (proposta == null) return NotFound();
 
         ViewBag.ProcessoNome = _db.Processos.Find(proposta.ProcessoId)?.Nome;
@@ -54,16 +92,52 @@ public class PropostasController : Controller
     public IActionResult Edit(int id, Proposta proposta)
     {
         if (id != proposta.Id) return NotFound();
+
+        var existente = _db.Propostas
+            .Include(p => p.ItensProposta)
+            .FirstOrDefault(p => p.Id == id);
+
+        if (existente == null) return NotFound();
+
+        if (proposta.TaxaCambio <= 0)
+        {
+            var processo = _db.Processos.Find(proposta.ProcessoId);
+            proposta.TaxaCambio = processo?.TaxaCambioPadrao > 0 ? processo.TaxaCambioPadrao : MoedaHelper.TaxaEurCvePadrao;
+        }
+
         if (!ModelState.IsValid)
         {
             ViewBag.ProcessoNome = _db.Processos.Find(proposta.ProcessoId)?.Nome;
             return View(proposta);
         }
 
-        _db.Propostas.Update(proposta);
-        _db.SaveChanges();
-        TempData["Sucesso"] = "Proposta atualizada com sucesso.";
-        return RedirectToAction("Details", "Processos", new { id = proposta.ProcessoId });
+        try
+        {
+            existente.Fornecedor = proposta.Fornecedor.Trim();
+            existente.Moeda = (proposta.Moeda ?? MoedaHelper.MoedaCve).Trim().ToUpperInvariant();
+            existente.TaxaCambio = proposta.TaxaCambio;
+            existente.PrazoEntregaDias = proposta.PrazoEntregaDias;
+            existente.Garantia = proposta.Garantia?.Trim();
+            existente.ValidadeProposta = proposta.ValidadeProposta;
+            existente.Status = proposta.Status;
+            existente.Observacoes = proposta.Observacoes?.Trim();
+
+            // Recalcular valor total a partir dos itens incluídos
+            existente.ValorTotal = existente.ItensProposta
+                .Where(i => i.Incluido)
+                .Sum(i => i.Quantidade * i.PrecoUnitario);
+
+            _db.SaveChanges();
+            TempData["Sucesso"] = "Proposta atualizada com sucesso.";
+            return RedirectToAction("Details", "Processos", new { id = existente.ProcessoId });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao editar proposta {Id}.", id);
+            ModelState.AddModelError("", "Não foi possível guardar as alterações.");
+            ViewBag.ProcessoNome = _db.Processos.Find(proposta.ProcessoId)?.Nome;
+            return View(proposta);
+        }
     }
 
     [HttpPost]

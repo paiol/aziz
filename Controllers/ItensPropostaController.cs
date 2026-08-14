@@ -16,6 +16,18 @@ public class ItensPropostaController : Controller
         _db = db;
     }
 
+    private void RecalcularTotalProposta(int propostaId)
+    {
+        var proposta = _db.Propostas.Find(propostaId);
+        if (proposta == null) return;
+
+        proposta.ValorTotal = _db.ItensProposta
+            .Where(i => i.PropostaId == propostaId && i.Incluido)
+            .Sum(i => i.Quantidade * i.PrecoUnitario);
+
+        _db.SaveChanges();
+    }
+
     public IActionResult Index(int propostaId)
     {
         var proposta = _db.Propostas
@@ -87,6 +99,8 @@ public class ItensPropostaController : Controller
         }
         _db.SaveChanges();
 
+        RecalcularTotalProposta(model.PropostaId);
+
         TempData["Sucesso"] = $"{linhasValidas.Count} item(ns) adicionado(s) à proposta.";
         return RedirectToAction(nameof(Index), new { propostaId = model.PropostaId });
     }
@@ -117,6 +131,9 @@ public class ItensPropostaController : Controller
 
         _db.ItensProposta.Update(item);
         _db.SaveChanges();
+
+        RecalcularTotalProposta(item.PropostaId);
+
         TempData["Sucesso"] = "Item atualizado.";
         return RedirectToAction(nameof(Index), new { propostaId = item.PropostaId });
     }
@@ -131,6 +148,9 @@ public class ItensPropostaController : Controller
         var propostaId = item.PropostaId;
         _db.ItensProposta.Remove(item);
         _db.SaveChanges();
+
+        RecalcularTotalProposta(propostaId);
+
         TempData["Sucesso"] = "Item removido.";
         return RedirectToAction(nameof(Index), new { propostaId });
     }

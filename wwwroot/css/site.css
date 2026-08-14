@@ -48,13 +48,32 @@
 }
 
 .cell-melhor {
-    background-color: rgba(25, 135, 84, 0.12);
-    color: #146c43;
+    background-color: rgba(25, 135, 84, 0.12) !important;
+    color: #146c43 !important;
     font-weight: 700;
-    border-radius: 0.25rem;
 }
 
 .cell-indisponivel {
     color: var(--phoenix-secondary-color, #9fa6bc);
     font-style: italic;
 }
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.star-rating-widget {
+    display: inline-flex;
+    gap: 4px;
+    font-size: 1.25rem;
+    user-select: none;
+}
+
+.star-rating-widget .star-icon {
+    transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.star-rating-widget .star-icon:hover {
+    transform: scale(1.25);
+}
+

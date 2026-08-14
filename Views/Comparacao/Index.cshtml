@@ -1,17 +1,28 @@
+@using ComparacaoPropostas.Helper
 @model ComparacaoPropostas.ViewModels.Comparacao.ComparacaoViewModel
 @{
     ViewData["Title"] = "Comparação de Propostas";
     var processo = Model.Processo;
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <div>
-        <h2 class="mb-1">Comparação de Propostas</h2>
-        <p class="text-body-tertiary mb-0">@processo.Nome</p>
+        <h2 class="mb-1">Mapa Comparativo de Propostas</h2>
+        <p class="text-body-tertiary mb-0">Processo: <strong>@processo.Nome</strong></p>
     </div>
-    <div>
-        <a class="btn btn-subtle-secondary" asp-controller="Processos" asp-action="Details" asp-route-id="@processo.Id">Voltar ao Processo</a>
-        <a class="btn btn-subtle-primary" asp-action="Itens" asp-route-processoId="@processo.Id">Comparar Itens</a>
+    <div class="d-flex gap-2">
+        <a class="btn btn-subtle-secondary" asp-controller="Processos" asp-action="Details" asp-route-id="@processo.Id">
+            <span class="fas fa-arrow-left me-1"></span> Voltar ao Processo
+        </a>
+        <a class="btn btn-subtle-primary" asp-action="Itens" asp-route-processoId="@processo.Id">
+            <span class="fas fa-table-list me-1"></span> Comparar Linha a Linha (Itens)
+        </a>
+        @if (Model.Propostas.Count > 0)
+        {
+            <a class="btn btn-primary" asp-controller="Processos" asp-action="Adjudicar" asp-route-id="@processo.Id">
+                <span class="fas fa-trophy me-1"></span> Adjudicar
+            </a>
+        }
     </div>
 </div>
 
@@ -21,75 +32,181 @@
 }
 else
 {
-    <div class="card">
-        <div class="card-body comparacao-table-wrapper">
-            <table class="table comparacao-table">
-                <thead>
+    <div class="card shadow-sm">
+        <div class="card-body p-0 comparacao-table-wrapper" style="overflow-x: auto;">
+            <table class="table table-bordered table-hover comparacao-table mb-0 align-middle">
+                <thead class="table-light">
                     <tr>
-                        <th class="linha-label">Fornecedor</th>
+                        <th class="linha-label" style="min-width: 220px; width: 240px; position: sticky; left: 0; background-color: #f8f9fa; z-index: 2;">
+                            Critério / Parâmetro
+                        </th>
                         @foreach (var col in Model.Propostas)
                         {
-                            <th>@col.Fornecedor</th>
+                            var isVencedor = processo.PropostaVencedoraId == col.PropostaId;
+                            <th class="text-center @(isVencedor ? "bg-success bg-opacity-10 text-success fw-bold" : "")" style="min-width: 200px;">
+                                <div class="fs-1">@col.Fornecedor</div>
+                                @if (isVencedor)
+                                {
+                                    <span class="badge bg-success mt-1"><i class="fas fa-check"></i> Adjudicado</span>
+                                }
+                            </th>
                         }
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td class="linha-label">Estado</td>
+                    <!-- Classificação / Ranking -->
+                    <tr class="table-light">
+                        <td class="linha-label fw-bold" style="position: sticky; left: 0; background-color: #f8f9fa; z-index: 1;">
+                            <i class="fas fa-ranking-star text-warning me-1"></i> Classificação (Ranking)
+                        </td>
                         @foreach (var col in Model.Propostas)
                         {
-                            <td><span class="@col.Status.ToBadgeClass()">@col.Status.ToLabel()</span></td>
+                            <td class="text-center">
+                                <span class="badge @(col.PosicaoRanking == 1 ? "bg-success fs-0" : "bg-secondary")">
+                                    @(col.PosicaoRanking)º Lugar
+                                </span>
+                            </td>
                         }
                     </tr>
+
+                    <!-- Estado -->
                     <tr>
-                        <td class="linha-label">Valor Total</td>
+                        <td class="linha-label" style="position: sticky; left: 0; background-color: #ffffff; z-index: 1;">Estado da Proposta</td>
                         @foreach (var col in Model.Propostas)
                         {
-                            <td class="@(col.ValorTotalMelhor ? "cell-melhor" : "")">@col.ValorTotal.ToString("C")</td>
+                            <td class="text-center"><span class="@col.Status.ToBadgeClass()">@col.Status.ToLabel()</span></td>
                         }
                     </tr>
+
+                    <!-- Pontuação Final Ponderada (0 a 5) -->
+                    <tr class="table-primary bg-opacity-10">
+                        <td class="linha-label fw-bold" style="position: sticky; left: 0; background-color: #f0f7ff; z-index: 1;">
+                            <i class="fas fa-star text-warning me-1"></i> Pontuação Global (0 a 5)
+                        </td>
+                        @foreach (var col in Model.Propostas)
+                        {
+                            <td class="text-center @(col.PontuacaoMelhor ? "cell-melhor" : "")">
+                                <span class="fs-1 fw-bold text-primary">@col.PontuacaoPonderada.ToString("0.00")</span>
+                                <div class="text-warning">
+                                    @{ var estrelas = Math.Clamp((int)Math.Round(col.PontuacaoPonderada, MidpointRounding.AwayFromZero), 0, 5); }
+                                    @for (var s = 1; s <= 5; s++)
+                                    {
+                                        <i class="@(s <= estrelas ? "fas" : "far") fa-star small"></i>
+                                    }
+                                </div>
+                            </td>
+                        }
+                    </tr>
+
+                    <!-- Valor Original -->
                     <tr>
-                        <td class="linha-label">Prazo de Entrega</td>
+                        <td class="linha-label" style="position: sticky; left: 0; background-color: #ffffff; z-index: 1;">Valor Ofertado (Moeda Original)</td>
+                        @foreach (var col in Model.Propostas)
+                        {
+                            <td class="text-center">
+                                <strong>@MoedaHelper.FormatarValor(col.ValorTotal, col.Moeda)</strong>
+                            </td>
+                        }
+                    </tr>
+
+                    <!-- Valor Total CVE -->
+                    <tr class="table-info bg-opacity-10">
+                        <td class="linha-label fw-bold" style="position: sticky; left: 0; background-color: #f0faff; z-index: 1;">
+                            <i class="fas fa-coins text-info me-1"></i> Valor Total Normalizado (CVE)
+                        </td>
+                        @foreach (var col in Model.Propostas)
+                        {
+                            <td class="text-center @(col.ValorTotalMelhor ? "cell-melhor fw-bold" : "")">
+                                <span class="fs-1">@MoedaHelper.FormatarValor(col.ValorTotalCVE, MoedaHelper.MoedaCve)</span>
+                                @if (col.ValorTotalMelhor)
+                                {
+                                    <span class="badge bg-success ms-1 small">Menor Preço</span>
+                                }
+                            </td>
+                        }
+                    </tr>
+
+                    <!-- Valor EUR & Câmbio se aplicável -->
+                    <tr>
+                        <td class="linha-label" style="position: sticky; left: 0; background-color: #ffffff; z-index: 1;">Equivalente em EUR / Câmbio</td>
+                        @foreach (var col in Model.Propostas)
+                        {
+                            <td class="text-center text-muted small">
+                                @(col.ValorTotalEUR.HasValue ? MoedaHelper.FormatarValor(col.ValorTotalEUR.Value, MoedaHelper.MoedaEur) : "-")
+                                <div class="fs--2">(Taxa: @col.TaxaCambio.ToString("N3"))</div>
+                            </td>
+                        }
+                    </tr>
+
+                    <!-- Prazo de Entrega -->
+                    <tr>
+                        <td class="linha-label" style="position: sticky; left: 0; background-color: #ffffff; z-index: 1;">Prazo de Entrega</td>
                         @foreach (var col in Model.Propostas)
                         {
                             if (col.PrazoEntregaDias.HasValue)
                             {
-                                <td class="@(col.PrazoMelhor ? "cell-melhor" : "")">@col.PrazoEntregaDias dias</td>
+                                <td class="text-center @(col.PrazoMelhor ? "cell-melhor" : "")">
+                                    <strong>@col.PrazoEntregaDias dias</strong>
+                                    @if (col.PrazoMelhor)
+                                    {
+                                        <span class="badge bg-success ms-1 small">Mais Rápido</span>
+                                    }
+                                </td>
                             }
                             else
                             {
-                                <td class="cell-indisponivel">-</td>
+                                <td class="text-center cell-indisponivel">-</td>
                             }
                         }
+                    </tr>
+
+                    <!-- Garantia -->
+                    <tr>
+                        <td class="linha-label" style="position: sticky; left: 0; background-color: #ffffff; z-index: 1;">Garantia Oferecida</td>
+                        @foreach (var col in Model.Propostas)
+                        {
+                            <td class="text-center">@(string.IsNullOrWhiteSpace(col.Garantia) ? "-" : col.Garantia)</td>
+                        }
+                    </tr>
+
+                    <!-- Critérios de Avaliação -->
+                    <tr class="table-secondary">
+                        <td colspan="@(Model.Propostas.Count + 1)" class="fw-bold py-2 text-uppercase fs--1">
+                            <i class="fas fa-list-check me-1"></i> Desagregação por Critério de Avaliação (Notas Médias: 1 a 5)
+                        </td>
                     </tr>
 
                     @foreach (var linha in Model.LinhasCriterios)
                     {
                         <tr>
-                            <td class="linha-label">@linha.CriterioNome <span class="text-body-tertiary">(@linha.Peso.ToString("0.##")%)</span></td>
+                            <td class="linha-label" style="position: sticky; left: 0; background-color: #ffffff; z-index: 1;">
+                                <strong>@linha.CriterioNome</strong>
+                                <span class="badge bg-subtle-primary text-primary ms-1">@linha.Peso.ToString("0.##")%</span>
+                            </td>
                             @foreach (var col in Model.Propostas)
                             {
                                 var nota = linha.NotasPorProposta.GetValueOrDefault(col.PropostaId);
                                 var melhor = linha.MelhorPorProposta.GetValueOrDefault(col.PropostaId);
                                 if (nota.HasValue)
                                 {
-                                    <td class="@(melhor ? "cell-melhor" : "")">@nota.Value.ToString("0.##")</td>
+                                    <td class="text-center @(melhor ? "cell-melhor" : "")">
+                                        <span class="fw-bold">@nota.Value.ToString("0.##")</span> <small class="text-muted">/ 5</small>
+                                        <div class="text-warning">
+                                            @{ var nInt = Math.Clamp((int)Math.Round(nota.Value, MidpointRounding.AwayFromZero), 0, 5); }
+                                            @for (var s = 1; s <= 5; s++)
+                                            {
+                                                <i class="@(s <= nInt ? "fas" : "far") fa-star" style="font-size: 10px;"></i>
+                                            }
+                                        </div>
+                                    </td>
                                 }
                                 else
                                 {
-                                    <td class="cell-indisponivel">Sem nota</td>
+                                    <td class="text-center cell-indisponivel text-muted small">Sem avaliação</td>
                                 }
                             }
                         </tr>
                     }
-
-                    <tr>
-                        <td class="linha-label">Pontuação Ponderada</td>
-                        @foreach (var col in Model.Propostas)
-                        {
-                            <td class="@(col.PontuacaoMelhor ? "cell-melhor" : "")">@col.PontuacaoPonderada.ToString("0.00")</td>
-                        }
-                    </tr>
                 </tbody>
             </table>
         </div>

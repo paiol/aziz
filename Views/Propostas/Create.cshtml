@@ -1,3 +1,4 @@
+@using ComparacaoPropostas.Helper
 @model ComparacaoPropostas.Models.Entities.Proposta
 @{
     ViewData["Title"] = "Nova Proposta";
@@ -9,27 +10,50 @@
     <div class="card-body">
         <form asp-action="Create" method="post">
             <input type="hidden" asp-for="ProcessoId" />
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="alert alert-subtle-info mb-3">
+                <i class="fas fa-info-circle me-1"></i>
+                Ao criar a proposta, os itens do pedido de aquisição serão clonados automaticamente. Em seguida, poderá definir os preços unitários de cada item.
+            </div>
 
             <div class="row g-3">
                 <div class="col-md-6">
                     <label asp-for="Fornecedor" class="form-label"></label>
-                    <input asp-for="Fornecedor" class="form-control" />
+                    <input asp-for="Fornecedor" class="form-control" placeholder="ex.: Empresa ABC, Lda" required />
                     <span asp-validation-for="Fornecedor" class="text-danger"></span>
                 </div>
+
                 <div class="col-md-3">
-                    <label asp-for="ValorTotal" class="form-label"></label>
-                    <input asp-for="ValorTotal" class="form-control" type="number" step="0.01" />
+                    <label asp-for="Moeda" class="form-label"></label>
+                    <select asp-for="Moeda" class="form-select">
+                        <option value="CVE">CVE (Escudo Caboverdiano)</option>
+                        <option value="EUR">EUR (Euro)</option>
+                    </select>
+                    <span asp-validation-for="Moeda" class="text-danger"></span>
                 </div>
+
                 <div class="col-md-3">
-                    <label asp-for="PrazoEntregaDias" class="form-label"></label>
-                    <input asp-for="PrazoEntregaDias" class="form-control" type="number" />
+                    <label asp-for="TaxaCambio" class="form-label">Taxa Câmbio (EUR/CVE)</label>
+                    <input asp-for="TaxaCambio" class="form-control" type="number" step="0.0001" min="0.0001" />
+                    <span asp-validation-for="TaxaCambio" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="PrazoEntregaDias" class="form-label">Prazo de Entrega (Dias)</label>
+                    <input asp-for="PrazoEntregaDias" class="form-control" type="number" min="0" placeholder="ex.: 15" />
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Garantia" class="form-label"></label>
+                    <input asp-for="Garantia" class="form-control" placeholder="ex.: 2 anos, 12 meses, etc." />
                 </div>
 
                 <div class="col-md-4">
                     <label asp-for="ValidadeProposta" class="form-label"></label>
                     <input asp-for="ValidadeProposta" class="form-control" type="date" />
                 </div>
+
                 <div class="col-md-4">
                     <label asp-for="Status" class="form-label"></label>
                     <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<ComparacaoPropostas.Models.Entities.Enums.StatusProposta>()"></select>
@@ -37,12 +61,14 @@
 
                 <div class="col-12">
                     <label asp-for="Observacoes" class="form-label"></label>
-                    <textarea asp-for="Observacoes" class="form-control" rows="3"></textarea>
+                    <textarea asp-for="Observacoes" class="form-control" rows="3" placeholder="Condições comerciais adicionais, forma de pagamento, etc."></textarea>
                 </div>
             </div>
 
             <div class="mt-4">
-                <button type="submit" class="btn btn-primary">Guardar</button>
+                <button type="submit" class="btn btn-primary">
+                    <span class="fas fa-save me-1"></span> Criar Proposta e Preencher Itens
+                </button>
                 <a asp-controller="Processos" asp-action="Details" asp-route-id="@Model.ProcessoId" class="btn btn-subtle-secondary">Cancelar</a>
             </div>
         </form>

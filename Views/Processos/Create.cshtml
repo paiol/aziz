@@ -1,13 +1,13 @@
 @using ComparacaoPropostas.Helper
-@model ComparacaoPropostas.Models.Entities.Processo
+@model ComparacaoPropostas.ViewModels.Processos.ProcessoCreateVM
 @{
     ViewData["Title"] = "Novo Processo";
     var pedidos = (List<ComparacaoPropostas.Models.Entities.PedidoProposta>)ViewBag.PedidosDisponiveis;
 }
 
-<h2>Novo Processo</h2>
+<h2>Novo Processo de Aquisição</h2>
 
-@if (pedidos.Count == 0)
+@if (pedidos == null || pedidos.Count == 0)
 {
     <div class="alert alert-warning">
         Não há Pedidos de Proposta disponíveis (sem processo já ligado).
@@ -18,55 +18,128 @@ else
 {
     <div class="card">
         <div class="card-body">
-            <form asp-action="Create" method="post">
-                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <form asp-action="Create" method="post" id="form-novo-processo">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label asp-for="PedidoPropostaId" class="form-label">Pedido de Proposta</label>
-                        <select asp-for="PedidoPropostaId" class="form-select">
-                            <option value="">— Selecione —</option>
+                        <label asp-for="PedidoPropostaId" class="form-label"></label>
+                        <select asp-for="PedidoPropostaId" class="form-select" id="select-pedido" required>
+                            <option value="">— Selecione o Pedido —</option>
                             @foreach (var p in pedidos)
                             {
-                                <option value="@p.Id">@p.TipoProposta — @p.Area.ToLabel() (@p.PessoaCriou)</option>
+                                <option value="@p.Id" data-itens="@p.ItensPedido.Count">
+                                    @p.TipoProposta — @p.Area.ToLabel() (@p.PessoaCriou) · @p.ItensPedido.Count item(ns)
+                                </option>
                             }
                         </select>
                         <span asp-validation-for="PedidoPropostaId" class="text-danger"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label asp-for="Fornecedor" class="form-label"></label>
-                        <input asp-for="Fornecedor" class="form-control" />
-                        <span asp-validation-for="Fornecedor" class="text-danger"></span>
+                        <div class="form-text text-muted" id="info-itens-pedido">
+                            Os itens do pedido serão pré-carregados automaticamente para todas as propostas.
+                        </div>
                     </div>
 
-                    <div class="col-md-8">
+                    <div class="col-md-6">
                         <label asp-for="Nome" class="form-label"></label>
-                        <input asp-for="Nome" class="form-control" />
+                        <input asp-for="Nome" class="form-control" placeholder="ex.: Aquisição de Equipamentos de Rede" required />
                         <span asp-validation-for="Nome" class="text-danger"></span>
                     </div>
 
                     <div class="col-12">
                         <label asp-for="Descricao" class="form-label"></label>
-                        <textarea asp-for="Descricao" class="form-control" rows="3"></textarea>
+                        <textarea asp-for="Descricao" class="form-control" rows="2" placeholder="Resumo do objeto do processo de aquisição..."></textarea>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label asp-for="CriadoPor" class="form-label"></label>
-                        <input asp-for="CriadoPor" class="form-control" />
+                        <input asp-for="CriadoPor" class="form-control" placeholder="Nome do criador / responsável" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="TaxaCambioPadrao" class="form-label"></label>
+                        <input asp-for="TaxaCambioPadrao" class="form-control" type="number" step="0.0001" min="0.0001" />
+                        <div class="form-text">Taxa de paridade padrão EUR → CVE para as propostas deste processo.</div>
                     </div>
 
                     <div class="col-12">
                         <label asp-for="EmailsNotificacao" class="form-label"></label>
-                        <input asp-for="EmailsNotificacao" class="form-control" placeholder="email1@exemplo.com, email2@exemplo.com" />
-                        <div class="form-text">Separe vários e-mails por vírgula. Recebem a classificação final quando o processo é marcado como Concluído.</div>
+                        <input asp-for="EmailsNotificacao" class="form-control" placeholder="email1@empresa.cv, email2@empresa.cv" />
+                        <div class="form-text">Separe múltiplos e-mails por vírgula. Utilizados para enviar a comunicação de resultado.</div>
                     </div>
                 </div>
 
+                <hr class="my-4" />
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h5 class="mb-0">Fornecedores a Associar</h5>
+                        <p class="text-body-tertiary small mb-0">Cada fornecedor terá uma proposta estruturada criada automaticamente com os itens do pedido.</p>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-subtle-primary" id="btn-add-fornecedor">
+                        <span class="fas fa-plus me-1"></span> Adicionar Fornecedor
+                    </button>
+                </div>
+
+                <div id="container-fornecedores" class="row g-2 mb-3">
+                    @for (var i = 0; i < (Model.Fornecedores.Count > 0 ? Model.Fornecedores.Count : 2); i++)
+                    {
+                        var valor = i < Model.Fornecedores.Count ? Model.Fornecedores[i] : "";
+                        <div class="col-md-6 linha-fornecedor">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-building"></i></span>
+                                <input name="Fornecedores[@i]" value="@valor" class="form-control" placeholder="Nome do Fornecedor (ex.: Unitel, Huawei, etc.)" required />
+                                <button type="button" class="btn btn-outline-danger btn-remover-fornecedor" title="Remover fornecedor">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+
                 <div class="mt-4">
-                    <button type="submit" class="btn btn-primary">Guardar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <span class="fas fa-save me-1"></span> Criar Processo e Inicializar Propostas
+                    </button>
                     <a asp-action="Index" class="btn btn-subtle-secondary">Cancelar</a>
                 </div>
             </form>
         </div>
     </div>
 }
+
+@section Scripts {
+    <script>
+        $(function () {
+            var container = $('#container-fornecedores');
+
+            $('#btn-add-fornecedor').on('click', function () {
+                var index = container.find('.linha-fornecedor').length;
+                var html = `
+                    <div class="col-md-6 linha-fornecedor">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-building"></i></span>
+                            <input name="Fornecedores[${index}]" class="form-control" placeholder="Nome do Fornecedor" required />
+                            <button type="button" class="btn btn-outline-danger btn-remover-fornecedor" title="Remover fornecedor">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.append(html);
+            });
+
+            container.on('click', '.btn-remover-fornecedor', function () {
+                if (container.find('.linha-fornecedor').length <= 1) {
+                    alert('O processo deve ter pelo menos um fornecedor.');
+                    return;
+                }
+                $(this).closest('.linha-fornecedor').remove();
+                // Reindexar inputs
+                container.find('.linha-fornecedor').each(function (idx) {
+                    $(this).find('input').attr('name', 'Fornecedores[' + idx + ']');
+                });
+            });
+        });
+    </script>
+}
+

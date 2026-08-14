@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ComparacaoPropostas.Data;
+using ComparacaoPropostas.Helper;
 using ComparacaoPropostas.Models.Entities;
 using ComparacaoPropostas.ViewModels.Comparacao;
 
@@ -14,35 +15,57 @@ public class ScoringService : IScoringService
         _db = db;
     }
 
-    public decimal CalcularNotaPonderada(Avaliacao avaliacao)
-        => avaliacao.Nota * (avaliacao.Criterio.Peso / 100m);
+    public decimal ObterNotaMediaCriterio(Proposta proposta, int criterioId)
+    {
+        var avaliacoesCriterio = proposta.Avaliacoes.Where(a => a.CriterioId == criterioId).ToList();
+        if (avaliacoesCriterio.Count == 0) return 0m;
+        return (decimal)avaliacoesCriterio.Average(a => a.Nota);
+    }
 
     public decimal CalcularNotaMedia(Proposta proposta)
     {
         if (proposta.Avaliacoes.Count == 0) return 0m;
-        return proposta.Avaliacoes.Average(a => a.Nota);
+        return (decimal)proposta.Avaliacoes.Average(a => a.Nota);
     }
 
     public decimal CalcularPontuacaoPonderada(Proposta proposta)
     {
+        var criterios = proposta.Processo?.Criterios ?? (ICollection<Criterio>)new List<Criterio>();
+        if (criterios.Count == 0 && proposta.ProcessoId > 0)
+        {
+            criterios = _db.Criterios.Where(c => c.ProcessoId == proposta.ProcessoId).ToList();
+        }
+        return CalcularPontuacaoPonderada(proposta, criterios);
+    }
+
+    public decimal CalcularPontuacaoPonderada(Proposta proposta, IEnumerable<Criterio> criterios)
+    {
         if (proposta.Avaliacoes.Count == 0) return 0m;
-        return proposta.Avaliacoes.Sum(a => CalcularNotaPonderada(a));
+
+        decimal totalPonderado = 0m;
+        foreach (var c in criterios)
+        {
+            var notaMedia = ObterNotaMediaCriterio(proposta, c.Id);
+            totalPonderado += notaMedia * (c.Peso / 100m);
+        }
+
+        return Math.Round(totalPonderado, 2, MidpointRounding.AwayFromZero);
     }
 
     public decimal? MenorValorOfertado(Processo processo)
-        => processo.Propostas.Count == 0 ? null : processo.Propostas.Min(p => p.ValorTotal);
+        => processo.Propostas.Count == 0 ? null : processo.Propostas.Min(p => p.ValorTotalCVE);
 
     public ComparacaoViewModel BuildComparacao(int processoId)
     {
         var processo = _db.Processos
             .Include(p => p.Criterios)
-            .Include(p => p.Propostas).ThenInclude(pr => pr.Avaliacoes)
+            .Include(p => p.Propostas).ThenInclude(pr => pr.Avaliacoes).ThenInclude(a => a.Avaliador)
             .FirstOrDefault(p => p.Id == processoId)
             ?? throw new KeyNotFoundException($"Processo {processoId} não encontrado.");
 
         var vm = new ComparacaoViewModel { Processo = processo };
 
-        vm.Propostas = MontarPropostaColunas(processo.Propostas.ToList());
+        vm.Propostas = MontarPropostaColunas(processo.Propostas.ToList(), processo.Criterios.ToList());
 
         vm.LinhasCriterios = processo.Criterios
             .OrderByDescending(c => c.Peso)
@@ -58,8 +81,15 @@ public class ScoringService : IScoringService
         {
             foreach (var proposta in processo.Propostas)
             {
-                var avaliacao = proposta.Avaliacoes.FirstOrDefault(a => a.CriterioId == linha.CriterioId);
-                linha.NotasPorProposta[proposta.Id] = avaliacao?.Nota;
+                var avaliacoes = proposta.Avaliacoes.Where(a => a.CriterioId == linha.CriterioId).ToList();
+                if (avaliacoes.Count > 0)
+                {
+                    linha.NotasPorProposta[proposta.Id] = (decimal)avaliacoes.Average(a => a.Nota);
+                }
+                else
+                {
+                    linha.NotasPorProposta[proposta.Id] = null;
+                }
             }
 
             var notasPresentes = linha.NotasPorProposta.Values.Where(v => v.HasValue).Select(v => v!.Value).ToList();
@@ -77,8 +107,9 @@ public class ScoringService : IScoringService
     public ComparacaoItensViewModel BuildComparacaoItens(int processoId)
     {
         var processo = _db.Processos
+            .Include(p => p.Criterios)
             .Include(p => p.Propostas).ThenInclude(pr => pr.ItensProposta).ThenInclude(ip => ip.ItemMaterial)
-            .Include(p => p.Propostas).ThenInclude(pr => pr.Avaliacoes).ThenInclude(a => a.Criterio)
+            .Include(p => p.Propostas).ThenInclude(pr => pr.Avaliacoes)
             .Include(p => p.PedidoProposta).ThenInclude(pp => pp.ItensPedido)
             .FirstOrDefault(p => p.Id == processoId)
             ?? throw new KeyNotFoundException($"Processo {processoId} não encontrado.");
@@ -86,7 +117,7 @@ public class ScoringService : IScoringService
         var vm = new ComparacaoItensViewModel
         {
             Processo = processo,
-            Propostas = MontarPropostaColunas(processo.Propostas.ToList())
+            Propostas = MontarPropostaColunas(processo.Propostas.ToList(), processo.Criterios.ToList())
         };
 
         var itensMateriais = processo.Propostas
@@ -136,25 +167,53 @@ public class ScoringService : IScoringService
         return vm;
     }
 
-    private List<PropostaColuna> MontarPropostaColunas(List<Proposta> propostas)
+    public void ClonarItensPedidoParaProposta(Proposta proposta, IEnumerable<ItemPedido> itensPedido)
+    {
+        foreach (var ip in itensPedido)
+        {
+            proposta.ItensProposta.Add(new ItemProposta
+            {
+                ItemMaterialId = ip.ItemMaterialId,
+                QuantidadeSolicitada = ip.QuantidadeSolicitada,
+                Quantidade = ip.QuantidadeSolicitada,
+                PrecoUnitario = 0m,
+                Incluido = true,
+                Observacao = null
+            });
+        }
+    }
+
+    private List<PropostaColuna> MontarPropostaColunas(List<Proposta> propostas, List<Criterio> criterios)
     {
         var colunas = propostas
-            .OrderBy(p => p.Fornecedor)
             .Select(p => new PropostaColuna
             {
                 PropostaId = p.Id,
                 Fornecedor = p.Fornecedor,
+                Moeda = p.Moeda,
+                TaxaCambio = p.TaxaCambio,
                 ValorTotal = p.ValorTotal,
+                ValorTotalCVE = p.ValorTotalCVE,
+                ValorTotalEUR = p.ValorTotalEUR,
                 PrazoEntregaDias = p.PrazoEntregaDias,
-                PontuacaoPonderada = CalcularPontuacaoPonderada(p),
+                Garantia = p.Garantia,
+                PontuacaoPonderada = CalcularPontuacaoPonderada(p, criterios),
                 Status = p.Status
             })
+            .OrderByDescending(p => p.PontuacaoPonderada)
+            .ThenBy(p => p.ValorTotalCVE)
             .ToList();
+
+        // Atribuir posição no ranking
+        for (var i = 0; i < colunas.Count; i++)
+        {
+            colunas[i].PosicaoRanking = i + 1;
+        }
 
         if (colunas.Count > 0)
         {
-            var menorValor = colunas.Min(p => p.ValorTotal);
-            foreach (var col in colunas) col.ValorTotalMelhor = col.ValorTotal == menorValor;
+            var menorValorCve = colunas.Min(p => p.ValorTotalCVE);
+            foreach (var col in colunas) col.ValorTotalMelhor = col.ValorTotalCVE == menorValorCve;
 
             var comPrazo = colunas.Where(p => p.PrazoEntregaDias.HasValue).ToList();
             if (comPrazo.Count > 0)

@@ -5,14 +5,24 @@
     var processo = Model.Processo;
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <div>
-        <h2 class="mb-1">Comparação de Itens</h2>
-        <p class="text-body-tertiary mb-0">@processo.Nome</p>
+        <h2 class="mb-1">Comparação Detalhada por Item</h2>
+        <p class="text-body-tertiary mb-0">Processo: <strong>@processo.Nome</strong></p>
     </div>
-    <div>
-        <a class="btn btn-subtle-primary" asp-action="Index" asp-route-processoId="@processo.Id">Ver Comparação Geral</a>
-        <a class="btn btn-subtle-secondary" asp-controller="Processos" asp-action="Details" asp-route-id="@processo.Id">Voltar ao Processo</a>
+    <div class="d-flex gap-2">
+        <a class="btn btn-subtle-secondary" asp-controller="Processos" asp-action="Details" asp-route-id="@processo.Id">
+            <span class="fas fa-arrow-left me-1"></span> Voltar ao Processo
+        </a>
+        <a class="btn btn-subtle-primary" asp-action="Index" asp-route-processoId="@processo.Id">
+            <span class="fas fa-scale-balanced me-1"></span> Mapa Geral
+        </a>
+        @if (Model.Propostas.Count > 0)
+        {
+            <a class="btn btn-primary" asp-controller="Processos" asp-action="Adjudicar" asp-route-id="@processo.Id">
+                <span class="fas fa-trophy me-1"></span> Adjudicar
+            </a>
+        }
     </div>
 </div>
 
@@ -22,53 +32,61 @@
 }
 else
 {
-    <div class="card mb-3">
-        <div class="card-header"><h5 class="mb-0">Resumo das Propostas</h5></div>
-        <div class="card-body comparacao-table-wrapper">
-            <table class="table comparacao-table mb-0">
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header bg-light"><h5 class="mb-0">Resumo Comparativo das Propostas</h5></div>
+        <div class="card-body p-0 comparacao-table-wrapper" style="overflow-x: auto;">
+            <table class="table table-bordered comparacao-table mb-0 align-middle">
                 <thead>
-                    <tr>
-                        <th class="linha-label">Fornecedor</th>
+                    <tr class="table-light">
+                        <th class="linha-label" style="min-width: 200px; position: sticky; left: 0; background-color: #f8f9fa;">Fornecedor</th>
                         @foreach (var col in Model.Propostas)
                         {
-                            <th>@col.Fornecedor</th>
+                            <th class="text-center" style="min-width: 180px;">@col.Fornecedor</th>
                         }
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td class="linha-label">Estado</td>
+                        <td class="linha-label" style="position: sticky; left: 0; background-color: #fff;">Posição no Ranking</td>
                         @foreach (var col in Model.Propostas)
                         {
-                            <td><span class="@col.Status.ToBadgeClass()">@col.Status.ToLabel()</span></td>
+                            <td class="text-center">
+                                <span class="badge @(col.PosicaoRanking == 1 ? "bg-success" : "bg-secondary")">
+                                    @(col.PosicaoRanking)º Lugar
+                                </span>
+                            </td>
                         }
                     </tr>
                     <tr>
-                        <td class="linha-label">Valor Total</td>
+                        <td class="linha-label" style="position: sticky; left: 0; background-color: #fff;">Estado</td>
                         @foreach (var col in Model.Propostas)
                         {
-                            <td class="@(col.ValorTotalMelhor ? "cell-melhor" : "")">@col.ValorTotal.ToString("C")</td>
+                            <td class="text-center"><span class="@col.Status.ToBadgeClass()">@col.Status.ToLabel()</span></td>
                         }
                     </tr>
                     <tr>
-                        <td class="linha-label">Prazo de Entrega</td>
+                        <td class="linha-label" style="position: sticky; left: 0; background-color: #fff;">Valor Total Ofertado</td>
                         @foreach (var col in Model.Propostas)
                         {
-                            if (col.PrazoEntregaDias.HasValue)
-                            {
-                                <td class="@(col.PrazoMelhor ? "cell-melhor" : "")">@col.PrazoEntregaDias dias</td>
-                            }
-                            else
-                            {
-                                <td class="cell-indisponivel">-</td>
-                            }
+                            <td class="text-center">@MoedaHelper.FormatarValor(col.ValorTotal, col.Moeda)</td>
+                        }
+                    </tr>
+                    <tr class="table-info bg-opacity-10">
+                        <td class="linha-label fw-bold" style="position: sticky; left: 0; background-color: #f0faff;">Total em CVE</td>
+                        @foreach (var col in Model.Propostas)
+                        {
+                            <td class="text-center @(col.ValorTotalMelhor ? "cell-melhor fw-bold" : "")">
+                                @MoedaHelper.FormatarValor(col.ValorTotalCVE, MoedaHelper.MoedaCve)
+                            </td>
                         }
                     </tr>
                     <tr>
-                        <td class="linha-label">Pontuação Ponderada</td>
+                        <td class="linha-label" style="position: sticky; left: 0; background-color: #fff;">Pontuação Ponderada</td>
                         @foreach (var col in Model.Propostas)
                         {
-                            <td class="@(col.PontuacaoMelhor ? "cell-melhor" : "")">@col.PontuacaoPonderada.ToString("0.00")</td>
+                            <td class="text-center @(col.PontuacaoMelhor ? "cell-melhor fw-bold" : "")">
+                                @col.PontuacaoPonderada.ToString("0.00") / 5.00
+                            </td>
                         }
                     </tr>
                 </tbody>
@@ -82,25 +100,27 @@ else
     }
     else
     {
-        <div class="card">
-            <div class="card-header"><h5 class="mb-0">Itens Cotados</h5></div>
-            <div class="card-body comparacao-table-wrapper">
-                <table class="table comparacao-table">
-                    <thead>
+        <div class="card shadow-sm">
+            <div class="card-header bg-light"><h5 class="mb-0">Comparação Item a Item</h5></div>
+            <div class="card-body p-0 comparacao-table-wrapper" style="overflow-x: auto;">
+                <table class="table table-bordered table-hover comparacao-table mb-0 align-middle">
+                    <thead class="table-light">
                         <tr>
-                            <th class="linha-label" rowspan="2">Item</th>
-                            <th rowspan="2">Qtd. Pedida</th>
+                            <th class="linha-label" rowspan="2" style="min-width: 240px; position: sticky; left: 0; background-color: #f8f9fa; z-index: 2;">Item / Descrição</th>
+                            <th rowspan="2" class="text-center" style="min-width: 100px;">Qtd. Pedida</th>
                             @foreach (var col in Model.Propostas)
                             {
-                                <th colspan="3" class="text-center">@col.Fornecedor</th>
+                                <th colspan="3" class="text-center" style="min-width: 240px;">
+                                    @col.Fornecedor (@col.Moeda)
+                                </th>
                             }
                         </tr>
-                        <tr>
+                        <tr class="table-light">
                             @foreach (var col in Model.Propostas)
                             {
-                                <th>Qtd.</th>
-                                <th>Preço Unit.</th>
-                                <th>Subtotal</th>
+                                <th class="text-center small" style="min-width: 70px;">Qtd.</th>
+                                <th class="text-center small" style="min-width: 90px;">P. Unitário</th>
+                                <th class="text-center small" style="min-width: 100px;">Subtotal</th>
                             }
                         </tr>
                     </thead>
@@ -108,8 +128,10 @@ else
                         @foreach (var linha in Model.Linhas)
                         {
                             <tr>
-                                <td class="linha-label">@linha.NomeItem @(string.IsNullOrWhiteSpace(linha.Unidade) ? "" : $"({linha.Unidade})")</td>
-                                <td>@(linha.QuantidadeSolicitada?.ToString("0.###") ?? "-")</td>
+                                <td class="linha-label fw-bold" style="position: sticky; left: 0; background-color: #fff; z-index: 1;">
+                                    @linha.NomeItem @(string.IsNullOrWhiteSpace(linha.Unidade) ? "" : $"({linha.Unidade})")
+                                </td>
+                                <td class="text-center">@(linha.QuantidadeSolicitada?.ToString("0.###") ?? "-")</td>
                                 @foreach (var col in Model.Propostas)
                                 {
                                     var incluido = linha.IncluidoPorProposta.GetValueOrDefault(col.PropostaId);
@@ -121,27 +143,30 @@ else
                                     var qtdDifere = linha.QuantidadeSolicitada.HasValue && quantidade.HasValue && quantidade.Value != linha.QuantidadeSolicitada.Value;
                                     if (incluido && preco.HasValue)
                                     {
-                                        <td class="@(qtdDifere ? "cell-melhor" : "")">@quantidade?.ToString("0.###")</td>
-                                        <td>@preco.Value.ToString("C")</td>
-                                        <td class="@(melhor ? "cell-melhor" : "")">
-                                            @subtotal!.Value.ToString("C")
+                                        <td class="text-center @(qtdDifere ? "table-warning" : "")">@quantidade?.ToString("0.###")</td>
+                                        <td class="text-center">@MoedaHelper.FormatarValor(preco.Value, col.Moeda)</td>
+                                        <td class="text-center @(melhor ? "cell-melhor fw-bold" : "")">
+                                            @MoedaHelper.FormatarValor(subtotal ?? 0, col.Moeda)
                                             @if (!melhor && diferenca.HasValue && diferenca.Value > 0)
                                             {
-                                                <div><small class="text-danger">+@diferenca.Value.ToString("C")</small></div>
+                                                <div><small class="text-danger">+@MoedaHelper.FormatarValor(diferenca.Value, col.Moeda)</small></div>
                                             }
                                         </td>
                                     }
                                     else
                                     {
-                                        <td colspan="3" class="cell-indisponivel">Não incluído</td>
+                                        <td colspan="3" class="text-center cell-indisponivel text-muted small">Não incluído</td>
                                     }
                                 }
                             </tr>
                         }
                     </tbody>
                 </table>
-                <p class="text-body-tertiary small mt-2 mb-0">Quantidade fornecida destacada quando difere da Qtd. Pedida.</p>
+            </div>
+            <div class="card-footer bg-light py-2">
+                <small class="text-muted"><i class="fas fa-info-circle me-1"></i> Linhas destacadas a amarelo indicam quantidades ofertadas divergentes do pedido original.</small>
             </div>
         </div>
     }
 }
+

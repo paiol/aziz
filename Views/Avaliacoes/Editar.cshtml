@@ -3,60 +3,231 @@
     ViewData["Title"] = "Avaliar Proposta";
 }
 
-<h2>Avaliar Proposta — @Model.PropostaFornecedor</h2>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-1">Avaliação Técnica da Proposta</h2>
+        <p class="text-body-tertiary mb-0">Fornecedor: <strong>@Model.PropostaFornecedor</strong></p>
+    </div>
+    <a asp-controller="Processos" asp-action="Details" asp-route-id="@Model.ProcessoId" class="btn btn-subtle-secondary">
+        <span class="fas fa-arrow-left me-1"></span> Voltar ao Processo
+    </a>
+</div>
 
 @if (Model.Itens.Count == 0)
 {
     <div class="alert alert-warning">
-        Este processo ainda não tem critérios definidos.
+        Este processo ainda não tem critérios de avaliação definidos.
         <a asp-controller="Criterios" asp-action="Index" asp-route-processoId="@Model.ProcessoId">Definir critérios</a> primeiro.
     </div>
 }
 else
 {
-    <form asp-action="Editar" method="post">
+    <form asp-action="Editar" method="post" id="form-avaliacao">
         <input type="hidden" asp-for="PropostaId" />
         <input type="hidden" asp-for="PropostaFornecedor" />
         <input type="hidden" asp-for="ProcessoId" />
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-        <div class="card">
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="fas fa-user-check me-2"></i> Identificação do Avaliador</h5>
+            </div>
             <div class="card-body">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Critério</th>
-                            <th style="width:90px">Peso</th>
-                            <th style="width:140px">Nota (0-10)</th>
-                            <th>Comentário</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @for (var i = 0; i < Model.Itens.Count; i++)
-                        {
-                            <tr>
-                                <td>
-                                    <input type="hidden" asp-for="Itens[i].CriterioId" />
-                                    <input type="hidden" asp-for="Itens[i].CriterioNome" />
-                                    <input type="hidden" asp-for="Itens[i].Peso" />
-                                    @Model.Itens[i].CriterioNome
-                                </td>
-                                <td>@Model.Itens[i].Peso.ToString("0.##")%</td>
-                                <td>
-                                    <input type="number" step="0.1" min="0" max="10" class="form-control form-control-sm" asp-for="Itens[i].Nota" />
-                                </td>
-                                <td>
-                                    <input type="text" class="form-control form-control-sm" asp-for="Itens[i].Comentario" />
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-6" id="box-select-avaliador">
+                        <label asp-for="AvaliadorId" class="form-label fw-bold"></label>
+                        <select asp-for="AvaliadorId" class="form-select" id="select-avaliador" 
+                                onchange="if(this.value){ window.location.href='@Url.Action("Editar", "Avaliacoes", new { propostaId = Model.PropostaId })?avaliadorId=' + this.value; }">
+                            <option value="">— Selecione o Avaliador —</option>
+                            @foreach (var av in Model.AvaliadoresDisponiveis)
+                            {
+                                <option value="@av.Id" selected="@(av.Id == Model.AvaliadorId)">
+                                    @av.Nome @(string.IsNullOrWhiteSpace(av.Perfil) ? "" : $"({av.Perfil})")
+                                </option>
+                            }
+                        </select>
+                        <span asp-validation-for="AvaliadorId" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <button type="button" class="btn btn-outline-primary" id="btn-toggle-novo-avaliador">
+                            <i class="fas fa-plus me-1"></i> <span id="lbl-toggle-avaliador">Cadastrar Novo Avaliador</span>
+                        </button>
+                    </div>
+
+                    <!-- Bloco dinâmico de cadastro rápido de novo avaliador -->
+                    <div class="col-12" id="box-novo-avaliador" style="display: none;">
+                        <div class="p-3 bg-light rounded border mt-2">
+                            <h6 class="mb-3 text-primary">Registo Rápido de Novo Avaliador</h6>
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <label asp-for="NomeNovoAvaliador" class="form-label small"></label>
+                                    <input asp-for="NomeNovoAvaliador" class="form-control form-control-sm" placeholder="Nome Completo" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label asp-for="PerfilNovoAvaliador" class="form-label small"></label>
+                                    <input asp-for="PerfilNovoAvaliador" class="form-control form-control-sm" placeholder="ex.: Técnico de Redes, Diretor, etc." />
+                                </div>
+                                <div class="col-md-4">
+                                    <label asp-for="EmailNovoAvaliador" class="form-label small"></label>
+                                    <input asp-for="EmailNovoAvaliador" class="form-control form-control-sm" placeholder="email@empresa.cv" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="mt-3">
-            <button type="submit" class="btn btn-primary">Guardar Avaliação</button>
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-star text-warning me-2"></i> Pontuação dos Critérios (Escala: 1 a 5 Estrelas)</h5>
+                <span class="text-muted small">1 estrela = Fraco / Insuficiente · 5 estrelas = Excelente</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Critério</th>
+                                <th style="width: 100px;">Peso</th>
+                                <th style="width: 220px;">Classificação (1 a 5)</th>
+                                <th>Comentário / Justificação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (var i = 0; i < Model.Itens.Count; i++)
+                            {
+                                <tr>
+                                    <td>
+                                        <input type="hidden" asp-for="Itens[i].CriterioId" />
+                                        <input type="hidden" asp-for="Itens[i].CriterioNome" />
+                                        <input type="hidden" asp-for="Itens[i].Peso" />
+                                        <strong class="text-dark">@Model.Itens[i].CriterioNome</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-subtle-primary text-primary">
+                                            @Model.Itens[i].Peso.ToString("0.##")%
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <input type="hidden" asp-for="Itens[i].Nota" id="nota_input_@i" class="nota-hidden-input" />
+                                            <div class="star-rating-widget" data-index="@i">
+                                                @for (var star = 1; star <= 5; star++)
+                                                {
+                                                    <i class="fa-star star-icon cursor-pointer @(star <= Model.Itens[i].Nota ? "fas text-warning" : "far text-secondary")" 
+                                                       data-val="@star" title="@star estrela(s)"></i>
+                                                }
+                                            </div>
+                                            <span class="fw-bold ms-1 text-primary nota-label" id="nota_lbl_@i">@Model.Itens[i].Nota / 5</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control form-control-sm" asp-for="Itens[i].Comentario" placeholder="Observação técnica facultativa..." />
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+                <span class="fas fa-save me-1"></span> Guardar Avaliação
+            </button>
             <a asp-controller="Processos" asp-action="Details" asp-route-id="@Model.ProcessoId" class="btn btn-subtle-secondary">Cancelar</a>
         </div>
     </form>
+
+    @if (Model.OutrasAvaliacoes.Count > 0)
+    {
+        <div class="card mt-4 shadow-sm border-0">
+            <div class="card-header bg-light">
+                <h6 class="mb-0 text-secondary"><i class="fas fa-history me-1"></i> Avaliações de Outros Avaliadores nesta Proposta (@Model.OutrasAvaliacoes.Count)</h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    @foreach (var outro in Model.OutrasAvaliacoes)
+                    {
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded border">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <strong>@outro.AvaliadorNome</strong>
+                                        <small class="text-muted d-block">@(string.IsNullOrWhiteSpace(outro.Perfil) ? "Avaliador" : outro.Perfil) · @outro.AvaliadoEm.ToString("dd/MM/yyyy HH:mm")</small>
+                                    </div>
+                                    <a class="btn btn-xs btn-outline-secondary" asp-action="Editar" asp-route-propostaId="@Model.PropostaId" asp-route-avaliadorId="@Model.AvaliadoresDisponiveis.FirstOrDefault(a => a.Nome == outro.AvaliadorNome)?.Id">
+                                        Editar
+                                    </a>
+                                </div>
+                                <ul class="list-unstyled mb-0 small">
+                                    @foreach (var kv in outro.NotasPorCriterio)
+                                    {
+                                        <li class="d-flex justify-content-between py-1 border-bottom">
+                                            <span>@kv.Key</span>
+                                            <span class="text-warning">
+                                                @for (var s = 1; s <= 5; s++)
+                                                {
+                                                    <i class="@(s <= kv.Value ? "fas" : "far") fa-star"></i>
+                                                }
+                                                <strong class="text-dark ms-1">@kv.Value</strong>
+                                            </span>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
 }
+
+@section Scripts {
+    <script>
+        $(function () {
+            // Star rating click handler
+            $('.star-rating-widget').each(function () {
+                var widget = $(this);
+                var index = widget.data('index');
+                var hiddenInput = $('#nota_input_' + index);
+                var label = $('#nota_lbl_' + index);
+
+                widget.find('.star-icon').on('click', function () {
+                    var val = parseInt($(this).data('val'), 10);
+                    hiddenInput.val(val);
+                    label.text(val + ' / 5');
+
+                    widget.find('.star-icon').each(function () {
+                        var starVal = parseInt($(this).data('val'), 10);
+                        if (starVal <= val) {
+                            $(this).removeClass('far text-secondary').addClass('fas text-warning');
+                        } else {
+                            $(this).removeClass('fas text-warning').addClass('far text-secondary');
+                        }
+                    });
+                });
+            });
+
+            // Toggle novo avaliador
+            var showNovo = false;
+            $('#btn-toggle-novo-avaliador').on('click', function () {
+                showNovo = !showNovo;
+                if (showNovo) {
+                    $('#box-novo-avaliador').slideDown();
+                    $('#lbl-toggle-avaliador').text('Selecionar Avaliador Existente');
+                    $('#select-avaliador').val('');
+                } else {
+                    $('#box-novo-avaliador').slideUp();
+                    $('#lbl-toggle-avaliador').text('Cadastrar Novo Avaliador');
+                    $('#box-novo-avaliador input').val('');
+                }
+            });
+        });
+    </script>
+}
+

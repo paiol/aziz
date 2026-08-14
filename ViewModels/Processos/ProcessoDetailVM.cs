@@ -1,4 +1,5 @@
 using ComparacaoPropostas.Models.Entities;
+using ComparacaoPropostas.Models.Entities.Enums;
 
 namespace ComparacaoPropostas.ViewModels.Processos;
 
@@ -14,7 +15,15 @@ public class PropostaResumo
 {
     public int Id { get; set; }
     public string Fornecedor { get; set; } = "";
+    public string Moeda { get; set; } = "CVE";
+    public decimal TaxaCambio { get; set; }
     public decimal ValorTotal { get; set; }
+    public decimal ValorTotalCVE { get; set; }
+    public decimal? ValorTotalEUR { get; set; }
+    public int? PrazoEntregaDias { get; set; }
+    public string? Garantia { get; set; }
     public decimal PontuacaoPonderada { get; set; }
-    public Models.Entities.Enums.StatusProposta Status { get; set; }
+    public int PosicaoRanking { get; set; }
+    public int TotalAvaliadores { get; set; }
+    public StatusProposta Status { get; set; }
 }
