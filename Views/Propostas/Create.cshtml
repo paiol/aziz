@@ -31,11 +31,14 @@
                     <div class="form-text">Definida pelo tipo de compra do processo (@((ComparacaoPropostas.Models.Entities.Enums.TipoCompra)ViewBag.TipoCompra == ComparacaoPropostas.Models.Entities.Enums.TipoCompra.Internacional ? "Internacional" : "Nacional")).</div>
                 </div>
 
+                @* Taxa Câmbio — ocultada por agora; segue o valor padrão do processo.
                 <div class="col-md-3">
                     <label asp-for="TaxaCambio" class="form-label">Taxa Câmbio (EUR/CVE)</label>
                     <input asp-for="TaxaCambio" class="form-control" type="number" step="0.0001" min="0.0001" />
                     <span asp-validation-for="TaxaCambio" class="text-danger"></span>
                 </div>
+                *@
+                <input type="hidden" asp-for="TaxaCambio" />
 
                 <div class="col-md-4">
                     <label asp-for="PrazoEntregaDias" class="form-label">Prazo de Entrega (Dias)</label>

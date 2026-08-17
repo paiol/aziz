@@ -22,7 +22,8 @@
                                 @foreach (var i in grupo)
                                 {
                                     var prefixo = i.ItemPaiId != null ? "— " : "";
-                                    <option value="@i.Id">@prefixo@i.NomeItem</option>
+                                    var sufixoUnidade = string.IsNullOrWhiteSpace(i.Unidade) ? "" : $" · {i.Unidade}";
+                                    <option value="@i.Id">@prefixo@i.NomeItem@sufixoUnidade</option>
                                 }
                             </optgroup>
                         }
