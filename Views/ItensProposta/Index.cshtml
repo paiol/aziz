@@ -9,7 +9,6 @@
     <a class="btn btn-primary" asp-action="Create" asp-route-propostaId="@proposta.Id"><span class="fas fa-plus me-1"></span> Adicionar Itens</a>
 </div>
 
-@* Carregar ficheiro Excel — desativado por agora.
 <div class="card mb-3">
     <div class="card-body d-flex flex-wrap gap-3 align-items-end">
         <form asp-action="ImportarExcel" asp-route-propostaId="@proposta.Id" method="post" enctype="multipart/form-data" class="d-flex gap-2 align-items-end">
@@ -23,7 +22,6 @@
         </form>
     </div>
 </div>
-*@
 
 <div class="card mb-3">
     <div class="card-body">
