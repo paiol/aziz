@@ -1,6 +1,7 @@
 using System.Text;
 using MailKit.Net.Smtp;
 using MailKit.Security;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Options;
 using MimeKit;
 using QuestPDF.Fluent;
@@ -16,12 +17,20 @@ public class EmailService : IEmailService
     private readonly SmtpSettings _settings;
     private readonly IScoringService _scoringService;
     private readonly ILogger<EmailService> _logger;
+    private readonly IWebHostEnvironment _env;
 
-    public EmailService(IOptions<SmtpSettings> settings, IScoringService scoringService, ILogger<EmailService> logger)
+    public EmailService(IOptions<SmtpSettings> settings, IScoringService scoringService, ILogger<EmailService> logger, IWebHostEnvironment env)
     {
         _settings = settings.Value;
         _scoringService = scoringService;
         _logger = logger;
+        _env = env;
+    }
+
+    private byte[]? LerLogo()
+    {
+        var caminho = Path.Combine(_env.WebRootPath, "images", "cvtelecom-logo.jpg");
+        return File.Exists(caminho) ? File.ReadAllBytes(caminho) : null;
     }
 
     public async Task EnviarNotificacaoDecisaoAsync(Processo processo)
@@ -75,11 +84,16 @@ public class EmailService : IEmailService
 
     public byte[] GerarDocumentoWord(Processo processo)
     {
+        var logo = LerLogo();
+        var logoHtml = logo != null
+            ? $"<img src='data:image/jpeg;base64,{Convert.ToBase64String(logo)}' style='height:48px;margin-bottom:16px;' alt='CVTelecom' />"
+            : "";
+
         var html = $"""
             <!DOCTYPE html>
             <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
             <head><meta charset='utf-8'><title>Resultado de Adjudicação</title></head>
-            <body>{BuildCorpoDecisao(processo)}</body>
+            <body>{logoHtml}{BuildCorpoDecisao(processo)}</body>
             </html>
             """;
         return Encoding.UTF8.GetBytes(html);
@@ -88,6 +102,7 @@ public class EmailService : IEmailService
     public byte[] GerarDocumentoPdf(Processo processo)
     {
         var (vencedor, ranking, numeroExibido) = MontarDadosRelatorio(processo);
+        var logo = LerLogo();
 
         var documento = QuestPDF.Fluent.Document.Create(container =>
         {
@@ -99,7 +114,9 @@ public class EmailService : IEmailService
 
                 page.Header().Column(col =>
                 {
-                    col.Item().Text("Resultado do Processo de Aquisição").FontSize(18).Bold().FontColor(Colors.Blue.Medium);
+                    if (logo != null)
+                        col.Item().Height(40).AlignLeft().Image(logo).FitHeight();
+                    col.Item().PaddingTop(logo != null ? 8 : 0).Text("Resultado do Processo de Aquisição").FontSize(18).Bold().FontColor(Colors.Blue.Medium);
                     col.Item().Text($"Processo Nº {numeroExibido}: {processo.Nome}").FontSize(12);
                 });
 

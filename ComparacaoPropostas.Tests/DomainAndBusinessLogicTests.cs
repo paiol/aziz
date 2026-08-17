@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.FileProviders;
 using Xunit;
 using ComparacaoPropostas.Helper;
 using ComparacaoPropostas.Models.Entities;
@@ -7,6 +9,16 @@ using ComparacaoPropostas.Models.Entities.Enums;
 using ComparacaoPropostas.Services;
 
 namespace ComparacaoPropostas.Tests;
+
+internal class FakeWebHostEnvironment : IWebHostEnvironment
+{
+    public string ApplicationName { get; set; } = "ComparacaoPropostas.Tests";
+    public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
+    public string ContentRootPath { get; set; } = "";
+    public string EnvironmentName { get; set; } = "Test";
+    public IFileProvider WebRootFileProvider { get; set; } = new NullFileProvider();
+    public string WebRootPath { get; set; } = "";
+}
 
 public class DomainAndBusinessLogicTests
 {
@@ -114,7 +126,8 @@ public class DomainAndBusinessLogicTests
         var emailService = new EmailService(
             Microsoft.Extensions.Options.Options.Create(new SmtpSettings()),
             scoring,
-            new Microsoft.Extensions.Logging.Abstractions.NullLogger<EmailService>());
+            new Microsoft.Extensions.Logging.Abstractions.NullLogger<EmailService>(),
+            new FakeWebHostEnvironment());
 
         var criterio = new Criterio { Id = 1, Nome = "Preço", Peso = 100m };
         var criterios = new List<Criterio> { criterio };
