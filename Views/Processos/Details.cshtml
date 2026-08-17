@@ -184,9 +184,11 @@
         <div class="card mb-3">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Itens Solicitados no Pedido (@Model.TotalItensPedido)</h5>
+                @* Carregar/gerir ficheiro Excel — desativado por agora.
                 <a class="btn btn-sm btn-primary" asp-controller="ItensPedido" asp-action="Index" asp-route-pedidoId="@p.PedidoPropostaId">
                     <span class="fas fa-paper-plane me-1"></span> Gerir Itens / Excel
                 </a>
+                *@
             </div>
             <div class="card-body">
                 <p class="text-body-tertiary mb-0">Itens e quantidades base provenientes do Pedido de Aquisição associado. Servem de referência para as propostas de todos os fornecedores.</p>
