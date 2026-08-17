@@ -22,7 +22,17 @@
                 </div>
                 <div class="col-md-3">
                     <label asp-for="Unidade" class="form-label"></label>
-                    <input asp-for="Unidade" class="form-control" placeholder="un, m, kg..." />
+                    <select asp-for="Unidade" class="form-select">
+                        <option value="">— Selecione —</option>
+                        <option value="uni.">uni.</option>
+                        <option value="m">m</option>
+                        <option value="kg">kg</option>
+                        <option value="T">T</option>
+                        <option value="Kit">Kit</option>
+                        <option value="Pacote">Pacote</option>
+                        <option value="Rolo">Rolo</option>
+                        <option value="Caixa">Caixa</option>
+                    </select>
                 </div>
                 <div class="col-md-6">
                     <label asp-for="Dominio" class="form-label"></label>
