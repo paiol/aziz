@@ -278,19 +278,21 @@
                                         </td>
                                         <td><span class="@pr.Status.ToBadgeClass()">@pr.Status.ToLabel()</span></td>
                                         <td class="text-end">
-                                            <a class="btn btn-sm btn-subtle-primary" asp-controller="Avaliacoes" asp-action="Editar" asp-route-propostaId="@pr.Id" title="Avaliar">
-                                                <i class="fas fa-star"></i> Avaliar
-                                            </a>
-                                            <a class="btn btn-sm btn-subtle-secondary" asp-controller="ItensProposta" asp-action="Index" asp-route-propostaId="@pr.Id" title="Itens e Preços">
-                                                <i class="fas fa-list"></i> Itens
-                                            </a>
-                                            <a class="btn btn-sm btn-subtle-secondary" asp-controller="Propostas" asp-action="Edit" asp-route-id="@pr.Id" title="Editar Proposta">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
-                                                    data-url="@Url.Action("Delete", "Propostas", new { id = pr.Id })" data-id="@pr.Id" title="Apagar">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                            <div class="d-inline-flex flex-column gap-1">
+                                                <a class="btn btn-sm btn-subtle-primary" asp-controller="Avaliacoes" asp-action="Editar" asp-route-propostaId="@pr.Id" title="Avaliar">
+                                                    <i class="fas fa-star me-1"></i> Avaliar
+                                                </a>
+                                                <a class="btn btn-sm btn-subtle-secondary" asp-controller="ItensProposta" asp-action="Index" asp-route-propostaId="@pr.Id" title="Itens e Preços">
+                                                    <i class="fas fa-list me-1"></i> Itens
+                                                </a>
+                                                <a class="btn btn-sm btn-subtle-secondary" asp-controller="Propostas" asp-action="Edit" asp-route-id="@pr.Id" title="Editar Proposta">
+                                                    <i class="fas fa-edit me-1"></i> Editar
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
+                                                        data-url="@Url.Action("Delete", "Propostas", new { id = pr.Id })" data-id="@pr.Id" title="Apagar">
+                                                    <i class="fas fa-trash me-1"></i> Apagar
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 }

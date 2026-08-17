@@ -77,13 +77,21 @@
                             }
                         </td>
                         <td class="text-end">
-                            <a class="btn btn-sm btn-subtle-secondary" asp-action="Edit" asp-route-id="@p.Id">Editar</a>
-                            <a class="btn btn-sm btn-subtle-secondary" asp-controller="ItensPedido" asp-action="Index" asp-route-pedidoId="@p.Id">Gerir Itens</a>
-                            @if (p.Processo == null)
-                            {
-                                <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
-                                        data-url="@Url.Action("Delete", new { id = p.Id })" data-id="@p.Id">Apagar</button>
-                            }
+                            <div class="d-inline-flex flex-column gap-1">
+                                <a class="btn btn-sm btn-subtle-secondary" asp-action="Edit" asp-route-id="@p.Id" title="Editar">
+                                    <i class="fas fa-edit me-1"></i> Editar
+                                </a>
+                                <a class="btn btn-sm btn-subtle-secondary" asp-controller="ItensPedido" asp-action="Index" asp-route-pedidoId="@p.Id" title="Gerir Itens">
+                                    <i class="fas fa-list me-1"></i> Gerir Itens
+                                </a>
+                                @if (p.Processo == null)
+                                {
+                                    <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
+                                            data-url="@Url.Action("Delete", new { id = p.Id })" data-id="@p.Id" title="Apagar">
+                                        <i class="fas fa-trash me-1"></i> Apagar
+                                    </button>
+                                }
+                            </div>
                         </td>
                     </tr>
                 }
