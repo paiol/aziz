@@ -162,4 +162,149 @@ public class DomainAndBusinessLogicTests
         Assert.Contains("1º", html);
         Assert.Contains("2º", html);
     }
+
+    [Theory]
+    [InlineData("24 meses", 24)]
+    [InlineData("2 anos", 24)]
+    [InlineData("12", 12)]
+    [InlineData("1 ano", 12)]
+    [InlineData("", null)]
+    [InlineData(null, null)]
+    [InlineData("garantia total", null)]
+    public void GarantiaHelper_ParseParaMeses_InterpretaTextoLivre(string? texto, int? esperado)
+    {
+        Assert.Equal(esperado, GarantiaHelper.ParseParaMeses(texto));
+    }
+
+    [Fact]
+    public void ScoringService_CalcularNotaPreco_MelhorPrecoRecebeNotaMaxima()
+    {
+        var scoring = new ScoringService(null!);
+        var item = new ItemMaterial { Id = 1, NomeItem = "Cabo UTP" };
+
+        var propostaCara = new Proposta
+        {
+            Id = 1,
+            Fornecedor = "Fornecedor A",
+            ItensProposta = new List<ItemProposta>
+            {
+                new ItemProposta { ItemMaterialId = 1, ItemMaterial = item, Incluido = true, Quantidade = 10, PrecoUnitario = 100m }
+            }
+        };
+        var propostaBarata = new Proposta
+        {
+            Id = 2,
+            Fornecedor = "Fornecedor B",
+            ItensProposta = new List<ItemProposta>
+            {
+                new ItemProposta { ItemMaterialId = 1, ItemMaterial = item, Incluido = true, Quantidade = 10, PrecoUnitario = 50m }
+            }
+        };
+        var todas = new List<Proposta> { propostaCara, propostaBarata };
+
+        var (notaBarata, _) = scoring.CalcularNotaPreco(propostaBarata, todas);
+        var (notaCara, _) = scoring.CalcularNotaPreco(propostaCara, todas);
+
+        Assert.Equal(5.00m, notaBarata);
+        Assert.Equal(2.50m, notaCara);
+    }
+
+    [Fact]
+    public void ScoringService_CalcularNotaPrazo_MenorPrazoRecebeNotaMaxima()
+    {
+        var scoring = new ScoringService(null!);
+        var propostaRapida = new Proposta { Id = 1, Fornecedor = "A", PrazoEntregaDias = 10 };
+        var propostaLenta = new Proposta { Id = 2, Fornecedor = "B", PrazoEntregaDias = 20 };
+        var todas = new List<Proposta> { propostaRapida, propostaLenta };
+
+        var (notaRapida, justRapida) = scoring.CalcularNotaPrazo(propostaRapida, todas);
+        var (notaLenta, _) = scoring.CalcularNotaPrazo(propostaLenta, todas);
+
+        Assert.Equal(5.00m, notaRapida);
+        Assert.Equal(2.50m, notaLenta);
+        Assert.Contains("Menor prazo", justRapida);
+    }
+
+    [Fact]
+    public void ScoringService_CalcularNotaGarantia_MaiorGarantiaRecebeNotaMaxima()
+    {
+        var scoring = new ScoringService(null!);
+        var propostaCurta = new Proposta { Id = 1, Fornecedor = "A", Garantia = "12 meses" };
+        var propostaLonga = new Proposta { Id = 2, Fornecedor = "B", Garantia = "24 meses" };
+        var todas = new List<Proposta> { propostaCurta, propostaLonga };
+
+        var (notaLonga, _) = scoring.CalcularNotaGarantia(propostaLonga, todas);
+        var (notaCurta, _) = scoring.CalcularNotaGarantia(propostaCurta, todas);
+
+        Assert.Equal(5.00m, notaLonga);
+        Assert.Equal(2.50m, notaCurta);
+    }
+
+    [Fact]
+    public void ScoringService_CalcularNotaTecnico_TodosItensEQuantidadesAtendidos_NotaMaxima()
+    {
+        var scoring = new ScoringService(null!);
+        var item = new ItemMaterial { Id = 1, NomeItem = "Switch 24p" };
+
+        var pedido = new PedidoProposta
+        {
+            Id = 1,
+            ItensPedido = new List<ItemPedido>
+            {
+                new ItemPedido { ItemMaterialId = 1, ItemMaterial = item, QuantidadeSolicitada = 10 }
+            }
+        };
+        var processo = new Processo { Id = 1, PedidoProposta = pedido };
+
+        var proposta = new Proposta
+        {
+            Id = 1,
+            Fornecedor = "A",
+            ItensProposta = new List<ItemProposta>
+            {
+                new ItemProposta { ItemMaterialId = 1, ItemMaterial = item, Incluido = true, Quantidade = 10, PrecoUnitario = 5m }
+            }
+        };
+
+        var (nota, justificativa) = scoring.CalcularNotaTecnico(processo, proposta);
+
+        Assert.Equal(5.00m, nota);
+        Assert.Contains("100%", justificativa);
+    }
+
+    [Fact]
+    public void ScoringService_CalcularNotaTecnico_ItemEmFalta_NotaReduzida()
+    {
+        var scoring = new ScoringService(null!);
+        var item1 = new ItemMaterial { Id = 1, NomeItem = "Switch 24p" };
+        var item2 = new ItemMaterial { Id = 2, NomeItem = "Patch Cord" };
+
+        var pedido = new PedidoProposta
+        {
+            Id = 1,
+            ItensPedido = new List<ItemPedido>
+            {
+                new ItemPedido { ItemMaterialId = 1, ItemMaterial = item1, QuantidadeSolicitada = 10 },
+                new ItemPedido { ItemMaterialId = 2, ItemMaterial = item2, QuantidadeSolicitada = 50 }
+            }
+        };
+        var processo = new Processo { Id = 1, PedidoProposta = pedido };
+
+        // Só apresenta o item 1, na quantidade solicitada; item 2 fica em falta.
+        var proposta = new Proposta
+        {
+            Id = 1,
+            Fornecedor = "A",
+            ItensProposta = new List<ItemProposta>
+            {
+                new ItemProposta { ItemMaterialId = 1, ItemMaterial = item1, Incluido = true, Quantidade = 10, PrecoUnitario = 5m }
+            }
+        };
+
+        var (nota, _) = scoring.CalcularNotaTecnico(processo, proposta);
+
+        // Itens apresentados: 1/2 = 50%; Quantidades atendidas: (100%+0%)/2 = 50%.
+        Assert.True(nota < 5.00m);
+        Assert.True(nota > 0m);
+    }
 }

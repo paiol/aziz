@@ -13,14 +13,49 @@
     </a>
 </div>
 
-@if (Model.Itens.Count == 0)
+@if (Model.CriteriosAutomaticos.Count > 0)
+{
+    <div class="card mb-4 shadow-sm border-primary border-opacity-25">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="fas fa-robot text-primary me-2"></i> Avaliação Automática (calculada pelo sistema)</h5>
+            <span class="text-muted small">Calculada a partir dos dados da proposta — não é possível editar manualmente.</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Critério</th>
+                            <th style="width: 100px;">Peso</th>
+                            <th style="width: 140px;">Nota</th>
+                            <th>Justificação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in Model.CriteriosAutomaticos)
+                        {
+                            <tr>
+                                <td><strong class="text-dark">@c.CriterioNome</strong></td>
+                                <td><span class="badge bg-subtle-primary text-primary">@c.Peso.ToString("0.##")%</span></td>
+                                <td><strong class="text-primary">@c.Nota.ToString("0.00")</strong> / 5</td>
+                                <td class="text-muted small">@c.Justificativa</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@if (Model.Itens.Count == 0 && Model.CriteriosAutomaticos.Count == 0)
 {
     <div class="alert alert-warning">
         Este processo ainda não tem critérios de avaliação definidos.
         <a asp-controller="Criterios" asp-action="Index" asp-route-processoId="@Model.ProcessoId">Definir critérios</a> primeiro.
     </div>
 }
-else
+else if (Model.Itens.Count > 0)
 {
     <form asp-action="Editar" method="post" id="form-avaliacao">
         <input type="hidden" asp-for="PropostaId" />

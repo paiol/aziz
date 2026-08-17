@@ -13,4 +13,5 @@ public interface IScoringService
     ComparacaoViewModel BuildComparacao(int processoId);
     ComparacaoItensViewModel BuildComparacaoItens(int processoId);
     void ClonarItensPedidoParaProposta(Proposta proposta, IEnumerable<ItemPedido> itensPedido);
+    void AtualizarAvaliacaoAutomatica(Processo processo);
 }

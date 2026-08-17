@@ -1,3 +1,4 @@
+@using ComparacaoPropostas.Models.Entities.Enums
 @model ComparacaoPropostas.ViewModels.Criterios.NovosCriteriosVM
 @{
     ViewData["Title"] = "Adicionar Critérios";
@@ -19,6 +20,7 @@
                         <th style="min-width:220px">Critério</th>
                         <th style="min-width:160px">Categoria</th>
                         <th style="width:120px">Peso (%)</th>
+                        <th style="min-width:180px">Cálculo</th>
                         <th>Descrição</th>
                         <th style="width:50px"></th>
                     </tr>
@@ -47,6 +49,15 @@
         </td>
         <td><input type="text" name="Itens[__INDEX__].Categoria" class="form-control form-control-sm" placeholder="Técnica / Financeira" /></td>
         <td><input type="number" step="0.01" value="0" name="Itens[__INDEX__].Peso" class="form-control form-control-sm" required /></td>
+        <td>
+            <select name="Itens[__INDEX__].TipoAutomatico" class="form-select form-select-sm">
+                <option value="@TipoCriterioAutomatico.Nenhum">Manual (estrelas)</option>
+                <option value="@TipoCriterioAutomatico.Tecnico">Automático — Técnico</option>
+                <option value="@TipoCriterioAutomatico.Preco">Automático — Preço</option>
+                <option value="@TipoCriterioAutomatico.Prazo">Automático — Prazo</option>
+                <option value="@TipoCriterioAutomatico.Garantia">Automático — Garantia</option>
+            </select>
+        </td>
         <td><input type="text" name="Itens[__INDEX__].Descricao" class="form-control form-control-sm" /></td>
         <td class="text-end">
             <button type="button" class="btn btn-sm btn-subtle-danger js-remove-row"><span class="fas fa-xmark"></span></button>

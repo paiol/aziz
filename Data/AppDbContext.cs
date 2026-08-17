@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ComparacaoPropostas.Models.Entities;
+using ComparacaoPropostas.Models.Entities.Enums;
 
 namespace ComparacaoPropostas.Data;
 
@@ -12,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<Proposta> Propostas => Set<Proposta>();
     public DbSet<Avaliador> Avaliadores => Set<Avaliador>();
     public DbSet<Fornecedor> Fornecedores => Set<Fornecedor>();
+    public DbSet<MemoriaCalculoAvaliacao> MemoriaCalculoAvaliacao => Set<MemoriaCalculoAvaliacao>();
     public DbSet<Avaliacao> Avaliacoes => Set<Avaliacao>();
     public DbSet<ItemMaterial> ItensMaterial => Set<ItemMaterial>();
     public DbSet<ItemProposta> ItensProposta => Set<ItemProposta>();
@@ -90,11 +92,30 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Criterio>(e =>
         {
             e.Property(c => c.Peso).HasPrecision(5, 2);
+            e.Property(c => c.TipoAutomatico).HasConversion<string>().HasMaxLength(20).HasDefaultValue(TipoCriterioAutomatico.Nenhum);
 
             e.HasOne(c => c.Processo)
                 .WithMany(p => p.Criterios)
                 .HasForeignKey(c => c.ProcessoId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<MemoriaCalculoAvaliacao>(e =>
+        {
+            e.Property(m => m.Nota).HasPrecision(5, 2);
+            e.Property(m => m.Justificativa).HasMaxLength(500);
+
+            e.HasOne(m => m.Proposta)
+                .WithMany(p => p.MemoriaCalculo)
+                .HasForeignKey(m => m.PropostaId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(m => m.Criterio)
+                .WithMany()
+                .HasForeignKey(m => m.CriterioId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasIndex(m => new { m.PropostaId, m.CriterioId }).IsUnique();
         });
 
         modelBuilder.Entity<Avaliador>(e =>

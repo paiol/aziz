@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using ComparacaoPropostas.Models.Entities;
+using ComparacaoPropostas.Models.Entities.Enums;
 
 namespace ComparacaoPropostas.ViewModels.Avaliacoes;
 
@@ -24,7 +25,17 @@ public class AvaliacaoFormVM
 
     public List<Avaliador> AvaliadoresDisponiveis { get; set; } = new();
     public List<ItemAvaliacaoVM> Itens { get; set; } = new();
+    public List<CriterioAutomaticoVM> CriteriosAutomaticos { get; set; } = new();
     public List<HistoricoAvaliacaoVM> OutrasAvaliacoes { get; set; } = new();
+}
+
+public class CriterioAutomaticoVM
+{
+    public string CriterioNome { get; set; } = "";
+    public decimal Peso { get; set; }
+    public TipoCriterioAutomatico Tipo { get; set; }
+    public decimal Nota { get; set; }
+    public string Justificativa { get; set; } = "";
 }
 
 public class ItemAvaliacaoVM

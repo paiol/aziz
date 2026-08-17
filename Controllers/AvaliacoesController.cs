@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ComparacaoPropostas.Data;
 using ComparacaoPropostas.Models.Entities;
+using ComparacaoPropostas.Models.Entities.Enums;
 using ComparacaoPropostas.Services;
 using ComparacaoPropostas.ViewModels.Avaliacoes;
 
@@ -22,12 +23,22 @@ public class AvaliacoesController : Controller
 
     public IActionResult Editar(int propostaId, int? avaliadorId = null)
     {
-        var proposta = _db.Propostas
-            .Include(p => p.Avaliacoes).ThenInclude(a => a.Avaliador)
-            .Include(p => p.Processo).ThenInclude(pr => pr.Criterios)
-            .FirstOrDefault(p => p.Id == propostaId);
+        var propostaRef = _db.Propostas.Find(propostaId);
+        if (propostaRef == null) return NotFound();
 
-        if (proposta == null) return NotFound();
+        var processo = _db.Processos
+            .Include(p => p.Criterios)
+            .Include(p => p.PedidoProposta).ThenInclude(pp => pp.ItensPedido)
+            .Include(p => p.Propostas).ThenInclude(pr => pr.Avaliacoes).ThenInclude(a => a.Avaliador)
+            .Include(p => p.Propostas).ThenInclude(pr => pr.ItensProposta)
+            .Include(p => p.Propostas).ThenInclude(pr => pr.MemoriaCalculo)
+            .FirstOrDefault(p => p.Id == propostaRef.ProcessoId);
+
+        if (processo == null) return NotFound();
+
+        _scoringService.AtualizarAvaliacaoAutomatica(processo);
+
+        var proposta = processo.Propostas.First(p => p.Id == propostaId);
 
         var avaliadores = _db.Avaliadores.Where(a => a.Ativo).OrderBy(a => a.Nome).ToList();
 
@@ -41,7 +52,8 @@ public class AvaliacoesController : Controller
             ProcessoId = proposta.ProcessoId,
             AvaliadorId = avaliadorSelecionadoId,
             AvaliadoresDisponiveis = avaliadores,
-            Itens = proposta.Processo.Criterios
+            Itens = processo.Criterios
+                .Where(c => c.TipoAutomatico == TipoCriterioAutomatico.Nenhum)
                 .OrderByDescending(c => c.Peso)
                 .Select(c =>
                 {
@@ -56,6 +68,22 @@ public class AvaliacoesController : Controller
                         Peso = c.Peso,
                         Nota = existente != null ? existente.Nota : 3, // Padrão 3 estrelas
                         Comentario = existente?.Comentario
+                    };
+                })
+                .ToList(),
+            CriteriosAutomaticos = processo.Criterios
+                .Where(c => c.TipoAutomatico != TipoCriterioAutomatico.Nenhum)
+                .OrderByDescending(c => c.Peso)
+                .Select(c =>
+                {
+                    var memoria = proposta.MemoriaCalculo.FirstOrDefault(m => m.CriterioId == c.Id);
+                    return new CriterioAutomaticoVM
+                    {
+                        CriterioNome = c.Nome,
+                        Peso = c.Peso,
+                        Tipo = c.TipoAutomatico,
+                        Nota = memoria?.Nota ?? 0m,
+                        Justificativa = memoria?.Justificativa ?? "Ainda sem dados suficientes para calcular."
                     };
                 })
                 .ToList(),

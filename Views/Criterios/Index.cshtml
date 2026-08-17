@@ -1,3 +1,4 @@
+@using ComparacaoPropostas.Models.Entities.Enums
 @model List<ComparacaoPropostas.Models.Entities.Criterio>
 @{
     var processo = (ComparacaoPropostas.Models.Entities.Processo)ViewBag.Processo;
@@ -37,6 +38,7 @@ else
                         <th>Critério</th>
                         <th>Categoria</th>
                         <th style="width:120px">Peso</th>
+                        <th style="width:180px">Cálculo</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -47,6 +49,16 @@ else
                             <td>@c.Nome</td>
                             <td>@c.Categoria</td>
                             <td>@c.Peso.ToString("0.##")%</td>
+                            <td>
+                                @if (c.TipoAutomatico == TipoCriterioAutomatico.Nenhum)
+                                {
+                                    <span class="badge bg-secondary">Manual (estrelas)</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-primary"><i class="fas fa-robot me-1"></i>Automático — @c.TipoAutomatico</span>
+                                }
+                            </td>
                             <td class="text-end">
                                 <a class="btn btn-sm btn-subtle-secondary" asp-action="Edit" asp-route-id="@c.Id">Editar</a>
                                 <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"

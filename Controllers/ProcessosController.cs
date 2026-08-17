@@ -57,9 +57,12 @@ public class ProcessosController : Controller
             .Include(p => p.PropostaVencedora)
             .Include(p => p.Propostas).ThenInclude(pr => pr.Avaliacoes).ThenInclude(a => a.Avaliador)
             .Include(p => p.Propostas).ThenInclude(pr => pr.ItensProposta)
+            .Include(p => p.Propostas).ThenInclude(pr => pr.MemoriaCalculo)
             .FirstOrDefault(p => p.Id == id);
 
         if (processo == null) return NotFound();
+
+        _scoringService.AtualizarAvaliacaoAutomatica(processo);
 
         var propostasOrdenadas = processo.Propostas
             .Select(p => new PropostaResumo
@@ -295,10 +298,15 @@ public class ProcessosController : Controller
     {
         var processo = _db.Processos
             .Include(p => p.Criterios)
+            .Include(p => p.PedidoProposta).ThenInclude(pp => pp.ItensPedido)
             .Include(p => p.Propostas).ThenInclude(pr => pr.Avaliacoes)
+            .Include(p => p.Propostas).ThenInclude(pr => pr.ItensProposta)
+            .Include(p => p.Propostas).ThenInclude(pr => pr.MemoriaCalculo)
             .FirstOrDefault(p => p.Id == id);
 
         if (processo == null) return NotFound();
+
+        _scoringService.AtualizarAvaliacaoAutomatica(processo);
 
         if (processo.Propostas.Count == 0)
         {
@@ -350,10 +358,15 @@ public class ProcessosController : Controller
     {
         var processo = _db.Processos
             .Include(p => p.Criterios)
+            .Include(p => p.PedidoProposta).ThenInclude(pp => pp.ItensPedido)
             .Include(p => p.Propostas).ThenInclude(pr => pr.Avaliacoes)
+            .Include(p => p.Propostas).ThenInclude(pr => pr.ItensProposta)
+            .Include(p => p.Propostas).ThenInclude(pr => pr.MemoriaCalculo)
             .FirstOrDefault(p => p.Id == model.ProcessoId);
 
         if (processo == null) return NotFound();
+
+        _scoringService.AtualizarAvaliacaoAutomatica(processo);
 
         var propostaVencedora = processo.Propostas.FirstOrDefault(p => p.Id == model.PropostaVencedoraId);
         if (propostaVencedora == null)
@@ -451,6 +464,7 @@ public class ProcessosController : Controller
             .Include(p => p.Criterios)
             .Include(p => p.PropostaVencedora)
             .Include(p => p.Propostas).ThenInclude(pr => pr.Avaliacoes)
+            .Include(p => p.Propostas).ThenInclude(pr => pr.MemoriaCalculo)
             .FirstOrDefault(p => p.Id == id);
 
         if (processo == null) return NotFound();

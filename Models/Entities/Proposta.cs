@@ -54,4 +54,5 @@ public class Proposta
     public ICollection<Avaliacao> Avaliacoes { get; set; } = new List<Avaliacao>();
     public ICollection<ItemProposta> ItensProposta { get; set; } = new List<ItemProposta>();
     public ICollection<PropostaAnexo> Anexos { get; set; } = new List<PropostaAnexo>();
+    public ICollection<MemoriaCalculoAvaliacao> MemoriaCalculo { get; set; } = new List<MemoriaCalculoAvaliacao>();
 }

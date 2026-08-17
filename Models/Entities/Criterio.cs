@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+using ComparacaoPropostas.Models.Entities.Enums;
 
 namespace ComparacaoPropostas.Models.Entities;
 
@@ -22,6 +23,9 @@ public class Criterio
 
     [Display(Name = "Peso (%)")]
     public decimal Peso { get; set; }
+
+    [Display(Name = "Cálculo")]
+    public TipoCriterioAutomatico TipoAutomatico { get; set; } = TipoCriterioAutomatico.Nenhum;
 
     public ICollection<Avaliacao> Avaliacoes { get; set; } = new List<Avaliacao>();
 }
