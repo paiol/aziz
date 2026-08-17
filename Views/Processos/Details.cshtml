@@ -47,11 +47,16 @@
             <div class="text-end">
                 @if (!string.IsNullOrWhiteSpace(Model.MailtoResultado))
                 {
-                    <a href="@Model.MailtoResultado" class="btn btn-sm btn-success">
-                        <i class="fas fa-envelope me-1"></i> Abrir Email de Comunicação
-                    </a>
-                    <div class="text-body-tertiary small mt-1" style="max-width: 320px;">
-                        Abre o teu programa de email já preenchido — não esqueças de carregar em <strong>Enviar</strong> lá dentro.
+                    <div class="d-flex gap-2 justify-content-end flex-wrap">
+                        <a href="@Model.OutlookWebResultado" target="_blank" rel="noopener" class="btn btn-sm btn-success">
+                            <i class="fas fa-envelope me-1"></i> Abrir no Outlook na Web
+                        </a>
+                        <a href="@Model.MailtoResultado" class="btn btn-sm btn-subtle-secondary">
+                            Abrir na aplicação Outlook
+                        </a>
+                    </div>
+                    <div class="text-body-tertiary small mt-1" style="max-width: 340px;">
+                        "Outlook na Web" abre numa aba do navegador com a tua conta cvtelecom já preenchida — não precisas de configurar nada. Não esqueças de carregar em <strong>Enviar</strong> lá dentro.
                     </div>
                 }
                 else

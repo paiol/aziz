@@ -6,4 +6,5 @@ public interface IEmailService
 {
     Task EnviarNotificacaoDecisaoAsync(Processo processo);
     string ConstruirLinkMailto(Processo processo);
+    string ConstruirLinkOutlookWeb(Processo processo);
 }

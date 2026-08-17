@@ -108,6 +108,11 @@ public class ProcessosController : Controller
                 && processo.PropostaVencedoraId.HasValue
                 && !string.IsNullOrWhiteSpace(processo.EmailsNotificacao)
                 ? _emailService.ConstruirLinkMailto(processo)
+                : null,
+            OutlookWebResultado = processo.Status == StatusProcesso.Concluido
+                && processo.PropostaVencedoraId.HasValue
+                && !string.IsNullOrWhiteSpace(processo.EmailsNotificacao)
+                ? _emailService.ConstruirLinkOutlookWeb(processo)
                 : null
         };
 

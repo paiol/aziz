@@ -59,15 +59,29 @@ public class EmailService : IEmailService
 
     public string ConstruirLinkMailto(Processo processo)
     {
+        var (destinatarios, assunto, corpo) = PrepararEmailResultado(processo);
+        var to = string.Join(",", destinatarios.Select(Uri.EscapeDataString));
+        return $"mailto:{to}?subject={Uri.EscapeDataString(assunto)}&body={Uri.EscapeDataString(corpo)}";
+    }
+
+    public string ConstruirLinkOutlookWeb(Processo processo)
+    {
+        var (destinatarios, assunto, corpo) = PrepararEmailResultado(processo);
+        var to = string.Join(",", destinatarios);
+        return $"https://outlook.office.com/mail/deeplink/compose?to={Uri.EscapeDataString(to)}&subject={Uri.EscapeDataString(assunto)}&body={Uri.EscapeDataString(corpo)}";
+    }
+
+    private (List<string> Destinatarios, string Assunto, string Corpo) PrepararEmailResultado(Processo processo)
+    {
         var destinatarios = (processo.EmailsNotificacao ?? "")
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToList();
 
         var numeroExibido = string.IsNullOrWhiteSpace(processo.NumeroProcesso) ? processo.Id.ToString() : processo.NumeroProcesso;
         var assunto = $"Resultado de Adjudicação — Processo #{numeroExibido}: {processo.Nome}";
         var corpo = BuildCorpoDecisaoTexto(processo);
 
-        var to = string.Join(",", destinatarios.Select(Uri.EscapeDataString));
-        return $"mailto:{to}?subject={Uri.EscapeDataString(assunto)}&body={Uri.EscapeDataString(corpo)}";
+        return (destinatarios, assunto, corpo);
     }
 
     internal string BuildCorpoDecisaoTexto(Processo processo)
