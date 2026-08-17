@@ -140,7 +140,13 @@ else
 
                     <!-- Prazo de Entrega -->
                     <tr>
-                        <td class="linha-label" style="position: sticky; left: 0; background-color: #ffffff; z-index: 1;">Prazo de Entrega</td>
+                        <td class="linha-label" style="position: sticky; left: 0; background-color: #ffffff; z-index: 1;">
+                            Prazo de Entrega
+                            @if (Model.Processo.PedidoProposta.PrazoEntrega.HasValue)
+                            {
+                                <span class="d-block small text-body-tertiary fw-normal">Pedido até @Model.Processo.PedidoProposta.PrazoEntrega.Value.ToString("dd/MM/yyyy")</span>
+                            }
+                        </td>
                         @foreach (var col in Model.Propostas)
                         {
                             if (col.PrazoEntregaDias.HasValue)
@@ -150,6 +156,17 @@ else
                                     @if (col.PrazoMelhor)
                                     {
                                         <span class="badge bg-success ms-1 small">Mais Rápido</span>
+                                    }
+                                    @if (col.PrazoDentroDoSolicitado.HasValue)
+                                    {
+                                        if (col.PrazoDentroDoSolicitado.Value)
+                                        {
+                                            <span class="badge bg-subtle-success text-success ms-1 small d-block mt-1">Dentro do prazo pedido</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-subtle-danger text-danger ms-1 small d-block mt-1">@col.PrazoDiasDeAtraso dia(s) além do pedido</span>
+                                        }
                                     }
                                 </td>
                             }

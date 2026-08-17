@@ -22,6 +22,8 @@ public class PropostaResumo
     public decimal ValorTotalCVE { get; set; }
     public decimal? ValorTotalEUR { get; set; }
     public int? PrazoEntregaDias { get; set; }
+    public bool? PrazoDentroDoSolicitado { get; set; }
+    public int? PrazoDiasDeAtraso { get; set; }
     public string? Garantia { get; set; }
     public decimal PontuacaoPonderada { get; set; }
     public int PosicaoRanking { get; set; }

@@ -22,6 +22,8 @@ public class PropostaColuna
     public bool ValorTotalMelhor { get; set; }
     public int? PrazoEntregaDias { get; set; }
     public bool PrazoMelhor { get; set; }
+    public bool? PrazoDentroDoSolicitado { get; set; }
+    public int? PrazoDiasDeAtraso { get; set; }
     public string? Garantia { get; set; }
     public decimal PontuacaoPonderada { get; set; }
     public bool PontuacaoMelhor { get; set; }

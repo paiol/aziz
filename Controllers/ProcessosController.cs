@@ -64,6 +64,9 @@ public class ProcessosController : Controller
 
         _scoringService.AtualizarAvaliacaoAutomatica(processo);
 
+        var prazoSolicitado = processo.PedidoProposta.PrazoEntrega;
+        var diasDisponiveis = prazoSolicitado.HasValue ? (prazoSolicitado.Value.Date - DateTime.Today).Days : (int?)null;
+
         var propostasOrdenadas = processo.Propostas
             .Select(p => new PropostaResumo
             {
@@ -75,6 +78,12 @@ public class ProcessosController : Controller
                 ValorTotalCVE = p.ValorTotalCVE,
                 ValorTotalEUR = p.ValorTotalEUR,
                 PrazoEntregaDias = p.PrazoEntregaDias,
+                PrazoDentroDoSolicitado = p.PrazoEntregaDias.HasValue && diasDisponiveis.HasValue
+                    ? p.PrazoEntregaDias.Value <= diasDisponiveis.Value
+                    : (bool?)null,
+                PrazoDiasDeAtraso = p.PrazoEntregaDias.HasValue && diasDisponiveis.HasValue
+                    ? p.PrazoEntregaDias.Value - diasDisponiveis.Value
+                    : (int?)null,
                 Garantia = p.Garantia,
                 Status = p.Status,
                 PontuacaoPonderada = _scoringService.CalcularPontuacaoPonderada(p, processo.Criterios),
@@ -470,7 +479,8 @@ public class ProcessosController : Controller
         processo.EmailResultadoEnviadoEm = DateTime.UtcNow;
         _db.SaveChanges();
 
-        return Ok();
+        TempData["Sucesso"] = "Comunicação marcada como enviada.";
+        return RedirectToAction(nameof(Details), new { id });
     }
 
     [HttpPost]

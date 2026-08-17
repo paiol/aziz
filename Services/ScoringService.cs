@@ -72,7 +72,7 @@ public class ScoringService : IScoringService
 
         var vm = new ComparacaoViewModel { Processo = processo };
 
-        vm.Propostas = MontarPropostaColunas(processo.Propostas.ToList(), processo.Criterios.ToList());
+        vm.Propostas = MontarPropostaColunas(processo.Propostas.ToList(), processo.Criterios.ToList(), processo.PedidoProposta.PrazoEntrega);
 
         vm.LinhasCriterios = processo.Criterios
             .OrderByDescending(c => c.Peso)
@@ -136,7 +136,7 @@ public class ScoringService : IScoringService
         var vm = new ComparacaoItensViewModel
         {
             Processo = processo,
-            Propostas = MontarPropostaColunas(processo.Propostas.ToList(), processo.Criterios.ToList())
+            Propostas = MontarPropostaColunas(processo.Propostas.ToList(), processo.Criterios.ToList(), processo.PedidoProposta.PrazoEntrega)
         };
 
         var itensMateriais = processo.Propostas
@@ -413,7 +413,7 @@ public class ScoringService : IScoringService
         return (nota, justificativa);
     }
 
-    private List<PropostaColuna> MontarPropostaColunas(List<Proposta> propostas, List<Criterio> criterios)
+    private List<PropostaColuna> MontarPropostaColunas(List<Proposta> propostas, List<Criterio> criterios, DateTime? prazoSolicitado = null)
     {
         var colunas = propostas
             .Select(p => new PropostaColuna
@@ -450,6 +450,16 @@ public class ScoringService : IScoringService
             {
                 var menorPrazo = comPrazo.Min(p => p.PrazoEntregaDias!.Value);
                 foreach (var col in comPrazo) col.PrazoMelhor = col.PrazoEntregaDias == menorPrazo;
+            }
+
+            if (prazoSolicitado.HasValue)
+            {
+                var diasDisponiveis = (prazoSolicitado.Value.Date - DateTime.Today).Days;
+                foreach (var col in comPrazo)
+                {
+                    col.PrazoDentroDoSolicitado = col.PrazoEntregaDias!.Value <= diasDisponiveis;
+                    col.PrazoDiasDeAtraso = col.PrazoEntregaDias.Value - diasDisponiveis;
+                }
             }
 
             var maiorPontuacao = colunas.Max(p => p.PontuacaoPonderada);

@@ -44,12 +44,15 @@
             <h5 class="mb-0 text-success">
                 <i class="fas fa-award me-2"></i> Processo Concluído / Adjudicado
             </h5>
-            <div>
+            <div class="text-end">
                 @if (!string.IsNullOrWhiteSpace(Model.MailtoResultado))
                 {
-                    <a href="@Model.MailtoResultado" class="btn btn-sm btn-success" onclick="marcarComunicado(@p.Id)">
-                        <i class="fas fa-envelope me-1"></i> Enviar Comunicação por E-mail
+                    <a href="@Model.MailtoResultado" class="btn btn-sm btn-success">
+                        <i class="fas fa-envelope me-1"></i> Abrir Email de Comunicação
                     </a>
+                    <div class="text-body-tertiary small mt-1" style="max-width: 320px;">
+                        Abre o teu programa de email já preenchido — não esqueças de carregar em <strong>Enviar</strong> lá dentro.
+                    </div>
                 }
                 else
                 {
@@ -96,12 +99,15 @@
                     @if (p.EmailResultadoEnviadoEm.HasValue)
                     {
                         <span class="badge bg-success">
-                            <i class="fas fa-check me-1"></i> Enviado em @p.EmailResultadoEnviadoEm.Value.ToString("dd/MM/yyyy HH:mm")
+                            <i class="fas fa-check me-1"></i> Confirmado enviado em @p.EmailResultadoEnviadoEm.Value.ToString("dd/MM/yyyy HH:mm")
                         </span>
                     }
                     else
                     {
-                        <span class="badge bg-secondary">Ainda não enviada</span>
+                        <span class="badge bg-secondary d-block mb-1" style="width: fit-content;">Ainda não confirmada</span>
+                        <form asp-action="MarcarComunicado" asp-route-id="@p.Id" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-xs btn-link p-0">Já enviei o email — marcar como confirmado</button>
+                        </form>
                     }
                 </div>
                 @if (!string.IsNullOrWhiteSpace(p.JustificativaAdjudicacao))
@@ -199,7 +205,20 @@
                                         </td>
                                         <td>@MoedaHelper.FormatarValor(pr.ValorTotal, pr.Moeda)</td>
                                         <td>@MoedaHelper.FormatarValor(pr.ValorTotalCVE, MoedaHelper.MoedaCve)</td>
-                                        <td>@(pr.PrazoEntregaDias.HasValue ? $"{pr.PrazoEntregaDias}d" : "-")</td>
+                                        <td>
+                                            @(pr.PrazoEntregaDias.HasValue ? $"{pr.PrazoEntregaDias}d" : "-")
+                                            @if (pr.PrazoDentroDoSolicitado.HasValue)
+                                            {
+                                                if (pr.PrazoDentroDoSolicitado.Value)
+                                                {
+                                                    <span class="badge bg-subtle-success text-success d-block mt-1">No prazo</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-subtle-danger text-danger d-block mt-1">+@pr.PrazoDiasDeAtraso d</span>
+                                                }
+                                            }
+                                        </td>
                                         <td>@(string.IsNullOrWhiteSpace(pr.Garantia) ? "-" : pr.Garantia)</td>
                                         <td>
                                             <strong>@pr.PontuacaoPonderada.ToString("0.00")</strong>
@@ -281,15 +300,4 @@
     </div>
 </div>
 
-@section Scripts {
-    <script>
-        function marcarComunicado(id) {
-            var token = document.querySelector('#globalAntiForgeryForm input[name="__RequestVerificationToken"]').value;
-            fetch('/Processos/MarcarComunicado/' + id, {
-                method: 'POST',
-                headers: { 'RequestVerificationToken': token }
-            });
-        }
-    </script>
-}
 
