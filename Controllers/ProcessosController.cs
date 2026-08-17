@@ -98,25 +98,54 @@ public class ProcessosController : Controller
             propostasOrdenadas[i].PosicaoRanking = i + 1;
         }
 
+        var podeComunicar = processo.Status == StatusProcesso.Concluido
+            && processo.PropostaVencedoraId.HasValue
+            && !string.IsNullOrWhiteSpace(processo.EmailsNotificacao);
+
         var vm = new ProcessoDetailVM
         {
             Processo = processo,
             SomaPesos = processo.Criterios.Sum(c => c.Peso),
             TotalItensPedido = processo.PedidoProposta.ItensPedido.Count,
-            Propostas = propostasOrdenadas,
-            MailtoResultado = processo.Status == StatusProcesso.Concluido
-                && processo.PropostaVencedoraId.HasValue
-                && !string.IsNullOrWhiteSpace(processo.EmailsNotificacao)
-                ? _emailService.ConstruirLinkMailto(processo)
-                : null,
-            OutlookWebResultado = processo.Status == StatusProcesso.Concluido
-                && processo.PropostaVencedoraId.HasValue
-                && !string.IsNullOrWhiteSpace(processo.EmailsNotificacao)
-                ? _emailService.ConstruirLinkOutlookWeb(processo)
-                : null
+            Propostas = propostasOrdenadas
         };
 
+        if (podeComunicar)
+        {
+            vm.MailtoResultado = _emailService.ConstruirLinkMailto(processo);
+            var (destinatarios, assunto, corpo) = _emailService.ObterDadosEmailParaCopiar(processo);
+            vm.EmailDestinatarios = destinatarios;
+            vm.EmailAssunto = assunto;
+            vm.EmailCorpo = corpo;
+        }
+
         return View(vm);
+    }
+
+    public IActionResult DescarregarRelatorio(int id, string formato = "word")
+    {
+        var processo = _db.Processos
+            .Include(p => p.PedidoProposta)
+            .Include(p => p.Criterios)
+            .Include(p => p.PropostaVencedora)
+            .Include(p => p.Propostas).ThenInclude(pr => pr.Avaliacoes)
+            .Include(p => p.Propostas).ThenInclude(pr => pr.MemoriaCalculo)
+            .FirstOrDefault(p => p.Id == id);
+
+        if (processo == null) return NotFound();
+        if (processo.Status != StatusProcesso.Concluido || !processo.PropostaVencedoraId.HasValue)
+            return BadRequest("O processo ainda não foi adjudicado.");
+
+        var numeroExibido = string.IsNullOrWhiteSpace(processo.NumeroProcesso) ? processo.Id.ToString() : processo.NumeroProcesso;
+
+        if (string.Equals(formato, "pdf", StringComparison.OrdinalIgnoreCase))
+        {
+            var pdfBytes = _emailService.GerarDocumentoPdf(processo);
+            return File(pdfBytes, "application/pdf", $"Resultado_Adjudicacao_{numeroExibido}.pdf");
+        }
+
+        var wordBytes = _emailService.GerarDocumentoWord(processo);
+        return File(wordBytes, "application/msword", $"Resultado_Adjudicacao_{numeroExibido}.doc");
     }
 
     private void CarregarPedidosDisponiveis(int? incluirId = null)

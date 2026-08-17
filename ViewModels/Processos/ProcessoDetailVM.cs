@@ -10,7 +10,9 @@ public class ProcessoDetailVM
     public decimal SomaPesos { get; set; }
     public int TotalItensPedido { get; set; }
     public string? MailtoResultado { get; set; }
-    public string? OutlookWebResultado { get; set; }
+    public string? EmailDestinatarios { get; set; }
+    public string? EmailAssunto { get; set; }
+    public string? EmailCorpo { get; set; }
 }
 
 public class PropostaResumo

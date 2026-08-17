@@ -3,6 +3,9 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Options;
 using MimeKit;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 using ComparacaoPropostas.Helper;
 using ComparacaoPropostas.Models.Entities;
 
@@ -64,11 +67,169 @@ public class EmailService : IEmailService
         return $"mailto:{to}?subject={Uri.EscapeDataString(assunto)}&body={Uri.EscapeDataString(corpo)}";
     }
 
-    public string ConstruirLinkOutlookWeb(Processo processo)
+    public (string Destinatarios, string Assunto, string Corpo) ObterDadosEmailParaCopiar(Processo processo)
     {
         var (destinatarios, assunto, corpo) = PrepararEmailResultado(processo);
-        var to = string.Join(",", destinatarios);
-        return $"https://outlook.office.com/mail/deeplink/compose?to={Uri.EscapeDataString(to)}&subject={Uri.EscapeDataString(assunto)}&body={Uri.EscapeDataString(corpo)}";
+        return (string.Join(", ", destinatarios), assunto, corpo);
+    }
+
+    public byte[] GerarDocumentoWord(Processo processo)
+    {
+        var html = $"""
+            <!DOCTYPE html>
+            <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+            <head><meta charset='utf-8'><title>Resultado de Adjudicação</title></head>
+            <body>{BuildCorpoDecisao(processo)}</body>
+            </html>
+            """;
+        return Encoding.UTF8.GetBytes(html);
+    }
+
+    public byte[] GerarDocumentoPdf(Processo processo)
+    {
+        var (vencedor, ranking, numeroExibido) = MontarDadosRelatorio(processo);
+
+        var documento = QuestPDF.Fluent.Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(2, QuestPDF.Infrastructure.Unit.Centimetre);
+                page.DefaultTextStyle(x => x.FontSize(10));
+
+                page.Header().Column(col =>
+                {
+                    col.Item().Text("Resultado do Processo de Aquisição").FontSize(18).Bold().FontColor(Colors.Blue.Medium);
+                    col.Item().Text($"Processo Nº {numeroExibido}: {processo.Nome}").FontSize(12);
+                });
+
+                page.Content().PaddingTop(10).Column(col =>
+                {
+                    col.Spacing(6);
+
+                    if (!string.IsNullOrWhiteSpace(processo.Descricao))
+                        col.Item().Text(t => { t.Span("Descrição / Objeto: ").Bold(); t.Span(processo.Descricao); });
+
+                    if (processo.PedidoProposta != null)
+                        col.Item().Text(t => { t.Span("Pedido de Aquisição Associado: ").Bold(); t.Span($"{processo.PedidoProposta.TipoProposta} — {processo.PedidoProposta.Area.ToLabel()}"); });
+
+                    col.Item().PaddingTop(6).Text("Fornecedor Adjudicado").FontSize(13).Bold().FontColor(Colors.Green.Darken2);
+
+                    col.Item().Table(table =>
+                    {
+                        table.ColumnsDefinition(c => { c.ConstantColumn(160); c.RelativeColumn(); });
+
+                        static IContainer CellStyle(IContainer c) => c.PaddingVertical(3).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2);
+
+                        void Linha(string label, string valor)
+                        {
+                            table.Cell().Element(CellStyle).Text(label).Bold();
+                            table.Cell().Element(CellStyle).Text(valor);
+                        }
+
+                        Linha("Fornecedor Vencedor:", vencedor?.Fornecedor ?? "Não especificado");
+
+                        if (vencedor != null)
+                        {
+                            Linha("Valor Adjudicado:", MoedaHelper.FormatarValor(vencedor.ValorTotal, vencedor.Moeda));
+                            if (string.Equals(vencedor.Moeda, MoedaHelper.MoedaEur, StringComparison.OrdinalIgnoreCase))
+                                Linha("Equivalente em CVE:", $"{MoedaHelper.FormatarValor(vencedor.ValorTotalCVE, MoedaHelper.MoedaCve)} (Taxa: {vencedor.TaxaCambio:N3})");
+                            Linha("Prazo de Entrega:", vencedor.PrazoEntregaDias.HasValue ? $"{vencedor.PrazoEntregaDias.Value} dias" : "-");
+                            Linha("Garantia:", string.IsNullOrWhiteSpace(vencedor.Garantia) ? "-" : vencedor.Garantia);
+                            var pontuacao = processo.PontuacaoAdjudicada ?? _scoringService.CalcularPontuacaoPonderada(vencedor, processo.Criterios);
+                            Linha("Pontuação da Avaliação:", $"{pontuacao:0.00} / 5.00");
+                        }
+
+                        Linha("Data da Decisão:", processo.DataAdjudicacao?.ToString("dd/MM/yyyy HH:mm") ?? DateTime.Now.ToString("dd/MM/yyyy"));
+                        Linha("Responsável pela Decisão:", processo.ResponsavelAdjudicacao ?? "-");
+
+                        if (!string.IsNullOrWhiteSpace(processo.JustificativaAdjudicacao))
+                            Linha("Justificação da Decisão:", processo.JustificativaAdjudicacao);
+                    });
+
+                    if (ranking.Count > 0)
+                    {
+                        col.Item().PaddingTop(10).Text("Fornecedores Consultados e Ranking Final").FontSize(13).Bold().FontColor(Colors.Blue.Medium);
+
+                        col.Item().Table(table =>
+                        {
+                            table.ColumnsDefinition(c =>
+                            {
+                                c.ConstantColumn(24);
+                                c.RelativeColumn(2);
+                                c.RelativeColumn(2);
+                                c.RelativeColumn(1);
+                                c.RelativeColumn(2);
+                                c.RelativeColumn(2);
+                            });
+
+                            static IContainer HeaderStyle(IContainer c) => c.DefaultTextStyle(x => x.Bold())
+                                .PaddingVertical(4).BorderBottom(1).BorderColor(Colors.Grey.Darken1).Background(Colors.Grey.Lighten3);
+
+                            table.Header(header =>
+                            {
+                                header.Cell().Element(HeaderStyle).Text("#");
+                                header.Cell().Element(HeaderStyle).Text("Fornecedor");
+                                header.Cell().Element(HeaderStyle).Text("Valor");
+                                header.Cell().Element(HeaderStyle).Text("Prazo");
+                                header.Cell().Element(HeaderStyle).Text("Garantia");
+                                header.Cell().Element(HeaderStyle).Text("Pontuação");
+                            });
+
+                            for (var i = 0; i < ranking.Count; i++)
+                            {
+                                var item = ranking[i];
+                                var isVencedor = vencedor != null && item.Proposta.Id == vencedor.Id;
+
+                                IContainer RowStyle(IContainer c)
+                                {
+                                    var estilizado = c.PaddingVertical(3).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2);
+                                    return isVencedor ? estilizado.Background(Colors.Green.Lighten4) : estilizado;
+                                }
+
+                                table.Cell().Element(RowStyle).Text($"{i + 1}º{(isVencedor ? " *" : "")}");
+                                table.Cell().Element(RowStyle).Text(item.Proposta.Fornecedor);
+                                table.Cell().Element(RowStyle).Text(MoedaHelper.FormatarValor(item.Proposta.ValorTotal, item.Proposta.Moeda));
+                                table.Cell().Element(RowStyle).Text(item.Proposta.PrazoEntregaDias.HasValue ? $"{item.Proposta.PrazoEntregaDias.Value} dias" : "-");
+                                table.Cell().Element(RowStyle).Text(string.IsNullOrWhiteSpace(item.Proposta.Garantia) ? "-" : item.Proposta.Garantia);
+                                table.Cell().Element(RowStyle).Text($"{item.Pontuacao:0.00} / 5.00");
+                            }
+                        });
+                    }
+
+                    if (processo.Criterios.Count > 0)
+                    {
+                        col.Item().PaddingTop(10).Text("Critérios de Avaliação Utilizados").FontSize(12).Bold();
+                        foreach (var c in processo.Criterios.OrderByDescending(c => c.Peso))
+                            col.Item().Text($"• {c.Nome} — {c.Peso:0.##}%");
+                    }
+                });
+
+                page.Footer().AlignCenter().Text(t =>
+                {
+                    t.Span("Documento gerado pelo Sistema de Comparação de Propostas em ").FontSize(8).FontColor(Colors.Grey.Medium);
+                    t.Span(DateTime.Now.ToString("dd/MM/yyyy HH:mm")).FontSize(8).FontColor(Colors.Grey.Medium);
+                });
+            });
+        });
+
+        return documento.GeneratePdf();
+    }
+
+    private (Proposta? Vencedor, List<(Proposta Proposta, decimal Pontuacao)> Ranking, string NumeroExibido) MontarDadosRelatorio(Processo processo)
+    {
+        var vencedor = processo.PropostaVencedora
+                       ?? processo.Propostas.FirstOrDefault(p => p.Id == processo.PropostaVencedoraId);
+
+        var ranking = processo.Propostas
+            .Select(p => (Proposta: p, Pontuacao: _scoringService.CalcularPontuacaoPonderada(p, processo.Criterios)))
+            .OrderByDescending(r => r.Pontuacao)
+            .ThenBy(r => r.Proposta.ValorTotalCVE)
+            .ToList();
+
+        var numeroExibido = string.IsNullOrWhiteSpace(processo.NumeroProcesso) ? processo.Id.ToString() : processo.NumeroProcesso;
+
+        return (vencedor, ranking, numeroExibido);
     }
 
     private (List<string> Destinatarios, string Assunto, string Corpo) PrepararEmailResultado(Processo processo)

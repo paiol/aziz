@@ -45,21 +45,13 @@
                 <i class="fas fa-award me-2"></i> Processo Concluído / Adjudicado
             </h5>
             <div class="text-end">
-                @if (!string.IsNullOrWhiteSpace(Model.MailtoResultado))
-                {
-                    <div class="d-flex gap-2 justify-content-end flex-wrap">
-                        <a href="@Model.OutlookWebResultado" target="_blank" rel="noopener" class="btn btn-sm btn-success">
-                            <i class="fas fa-envelope me-1"></i> Abrir no Outlook na Web
-                        </a>
-                        <a href="@Model.MailtoResultado" class="btn btn-sm btn-subtle-secondary">
-                            Abrir na aplicação Outlook
-                        </a>
-                    </div>
-                    <div class="text-body-tertiary small mt-1" style="max-width: 340px;">
-                        "Outlook na Web" abre numa aba do navegador com a tua conta cvtelecom já preenchida — não precisas de configurar nada. Não esqueças de carregar em <strong>Enviar</strong> lá dentro.
-                    </div>
-                }
-                else
+                <a asp-action="DescarregarRelatorio" asp-route-id="@p.Id" asp-route-formato="word" class="btn btn-sm btn-primary">
+                    <i class="fas fa-file-word me-1"></i> Word
+                </a>
+                <a asp-action="DescarregarRelatorio" asp-route-id="@p.Id" asp-route-formato="pdf" class="btn btn-sm btn-danger">
+                    <i class="fas fa-file-pdf me-1"></i> PDF
+                </a>
+                @if (string.IsNullOrWhiteSpace(Model.MailtoResultado))
                 {
                     <a asp-action="Edit" asp-route-id="@p.Id" class="btn btn-sm btn-subtle-secondary" title="Adicione e-mails de notificação para poder comunicar o resultado">
                         <i class="fas fa-envelope me-1"></i> Configurar E-mails de Notificação
@@ -67,6 +59,41 @@
                 }
             </div>
         </div>
+        @if (!string.IsNullOrWhiteSpace(Model.EmailDestinatarios))
+        {
+            <div class="card-body border-bottom bg-light">
+                <h6 class="mb-2"><i class="fas fa-copy me-1"></i> Comunicar por e-mail — copia e cola no teu email</h6>
+                <div class="row g-2 align-items-end mb-2">
+                    <div class="col-md-4">
+                        <label class="form-label small mb-1">Destinatários</label>
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control" id="email-destinatarios" value="@Model.EmailDestinatarios" readonly />
+                            <button type="button" class="btn btn-outline-secondary js-copiar" data-target="email-destinatarios">Copiar</button>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label small mb-1">Assunto</label>
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control" id="email-assunto" value="@Model.EmailAssunto" readonly />
+                            <button type="button" class="btn btn-outline-secondary js-copiar" data-target="email-assunto">Copiar</button>
+                        </div>
+                    </div>
+                </div>
+                <label class="form-label small mb-1">Corpo da mensagem</label>
+                <div class="input-group input-group-sm mb-1">
+                    <textarea class="form-control" id="email-corpo" rows="4" readonly>@Model.EmailCorpo</textarea>
+                    <button type="button" class="btn btn-outline-secondary js-copiar" data-target="email-corpo">Copiar</button>
+                </div>
+                <div class="text-body-tertiary small">
+                    Copia cada campo e cola numa mensagem nova no teu email (Outlook, OWA, etc.).
+                    @if (!string.IsNullOrWhiteSpace(Model.MailtoResultado))
+                    {
+                        <text> Se tiveres o Outlook configurado no computador, também podes </text>
+                        <a href="@Model.MailtoResultado">abrir diretamente</a><text>.</text>
+                    }
+                </div>
+            </div>
+        }
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-4">
@@ -304,5 +331,21 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('.js-copiar').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var el = document.getElementById(btn.dataset.target);
+                el.select();
+                navigator.clipboard.writeText(el.value).then(function () {
+                    var original = btn.textContent;
+                    btn.textContent = 'Copiado!';
+                    setTimeout(function () { btn.textContent = original; }, 1500);
+                });
+            });
+        });
+    </script>
+}
 
 
