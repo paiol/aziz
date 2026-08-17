@@ -64,4 +64,11 @@ public static class StatusBadgeExtensions
         AreaDepartamento.DepSaf => "DEP-SAF",
         _ => area.ToString()
     };
+
+    public static string ToLabel(this TipoCompra tipoCompra) => tipoCompra switch
+    {
+        TipoCompra.Nacional => "Nacional",
+        TipoCompra.Internacional => "Internacional",
+        _ => tipoCompra.ToString()
+    };
 }

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ComparacaoPropostas.Data;
 using ComparacaoPropostas.Helper;
 using ComparacaoPropostas.Models.Entities;
+using ComparacaoPropostas.Models.Entities.Enums;
 using ComparacaoPropostas.Services;
 
 namespace ComparacaoPropostas.Controllers;
@@ -26,10 +27,11 @@ public class PropostasController : Controller
         if (processo == null) return NotFound();
 
         ViewBag.ProcessoNome = processo.Nome;
+        ViewBag.TipoCompra = processo.TipoCompra;
         return View(new Proposta
         {
             ProcessoId = processoId,
-            Moeda = MoedaHelper.MoedaCve,
+            Moeda = MoedaHelper.MoedaParaTipoCompra(processo.TipoCompra),
             TaxaCambio = processo.TaxaCambioPadrao > 0 ? processo.TaxaCambioPadrao : MoedaHelper.TaxaEurCvePadrao
         });
     }
@@ -44,6 +46,8 @@ public class PropostasController : Controller
 
         if (processo == null) return NotFound();
 
+        proposta.Moeda = MoedaHelper.MoedaParaTipoCompra(processo.TipoCompra);
+
         if (proposta.TaxaCambio <= 0)
         {
             proposta.TaxaCambio = processo.TaxaCambioPadrao > 0 ? processo.TaxaCambioPadrao : MoedaHelper.TaxaEurCvePadrao;
@@ -52,6 +56,7 @@ public class PropostasController : Controller
         if (!ModelState.IsValid)
         {
             ViewBag.ProcessoNome = processo.Nome;
+            ViewBag.TipoCompra = processo.TipoCompra;
             return View(proposta);
         }
 
@@ -74,6 +79,7 @@ public class PropostasController : Controller
             _logger.LogError(ex, "Erro ao adicionar proposta ao processo {ProcessoId}.", proposta.ProcessoId);
             ModelState.AddModelError("", "Não foi possível criar a proposta.");
             ViewBag.ProcessoNome = processo.Nome;
+            ViewBag.TipoCompra = processo.TipoCompra;
             return View(proposta);
         }
     }
@@ -83,7 +89,9 @@ public class PropostasController : Controller
         var proposta = _db.Propostas.Include(p => p.Anexos).FirstOrDefault(p => p.Id == id);
         if (proposta == null) return NotFound();
 
-        ViewBag.ProcessoNome = _db.Processos.Find(proposta.ProcessoId)?.Nome;
+        var processo = _db.Processos.Find(proposta.ProcessoId);
+        ViewBag.ProcessoNome = processo?.Nome;
+        ViewBag.TipoCompra = processo?.TipoCompra ?? TipoCompra.Nacional;
         return View(proposta);
     }
 
@@ -99,22 +107,24 @@ public class PropostasController : Controller
 
         if (existente == null) return NotFound();
 
+        var processo = _db.Processos.Find(proposta.ProcessoId);
+
         if (proposta.TaxaCambio <= 0)
         {
-            var processo = _db.Processos.Find(proposta.ProcessoId);
             proposta.TaxaCambio = processo?.TaxaCambioPadrao > 0 ? processo.TaxaCambioPadrao : MoedaHelper.TaxaEurCvePadrao;
         }
 
         if (!ModelState.IsValid)
         {
-            ViewBag.ProcessoNome = _db.Processos.Find(proposta.ProcessoId)?.Nome;
+            ViewBag.ProcessoNome = processo?.Nome;
+            ViewBag.TipoCompra = processo?.TipoCompra ?? TipoCompra.Nacional;
             return View(proposta);
         }
 
         try
         {
             existente.Fornecedor = proposta.Fornecedor.Trim();
-            existente.Moeda = (proposta.Moeda ?? MoedaHelper.MoedaCve).Trim().ToUpperInvariant();
+            existente.Moeda = MoedaHelper.MoedaParaTipoCompra(processo?.TipoCompra ?? TipoCompra.Nacional);
             existente.TaxaCambio = proposta.TaxaCambio;
             existente.PrazoEntregaDias = proposta.PrazoEntregaDias;
             existente.Garantia = proposta.Garantia?.Trim();
@@ -135,7 +145,8 @@ public class PropostasController : Controller
         {
             _logger.LogError(ex, "Erro ao editar proposta {Id}.", id);
             ModelState.AddModelError("", "Não foi possível guardar as alterações.");
-            ViewBag.ProcessoNome = _db.Processos.Find(proposta.ProcessoId)?.Nome;
+            ViewBag.ProcessoNome = processo?.Nome;
+            ViewBag.TipoCompra = processo?.TipoCompra ?? TipoCompra.Nacional;
             return View(proposta);
         }
     }

@@ -40,6 +40,12 @@
                 </div>
 
                 <div class="col-md-4">
+                    <label asp-for="TipoCompra" class="form-label"></label>
+                    <select asp-for="TipoCompra" class="form-select" asp-items="Html.GetEnumSelectList<ComparacaoPropostas.Models.Entities.Enums.TipoCompra>()"></select>
+                    <div class="form-text">Nacional → CVE. Internacional → EUR.</div>
+                </div>
+
+                <div class="col-md-4">
                     <label asp-for="CriadoPor" class="form-label"></label>
                     <input asp-for="CriadoPor" class="form-control" />
                 </div>

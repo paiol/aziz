@@ -1,4 +1,5 @@
 using System.Globalization;
+using ComparacaoPropostas.Models.Entities.Enums;
 
 namespace ComparacaoPropostas.Helper;
 
@@ -9,6 +10,9 @@ public static class MoedaHelper
     public const string MoedaEur = "EUR";
 
     public static readonly string[] MoedasSuportadas = { MoedaCve, MoedaEur };
+
+    public static string MoedaParaTipoCompra(TipoCompra tipoCompra)
+        => tipoCompra == TipoCompra.Internacional ? MoedaEur : MoedaCve;
 
     public static decimal ConverterEurParaCve(decimal valorEur, decimal taxa)
     {

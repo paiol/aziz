@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using ComparacaoPropostas.Helper;
+using ComparacaoPropostas.Models.Entities.Enums;
 
 namespace ComparacaoPropostas.ViewModels.Processos;
 
@@ -11,6 +12,9 @@ public class ProcessoCreateVM
 
     [Required(ErrorMessage = "O nome do processo é obrigatório."), Display(Name = "Nome do Processo")]
     public string Nome { get; set; } = "";
+
+    [Display(Name = "Tipo de Compra")]
+    public TipoCompra TipoCompra { get; set; } = TipoCompra.Nacional;
 
     [Display(Name = "Descrição")]
     public string? Descricao { get; set; }

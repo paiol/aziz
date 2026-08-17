@@ -34,11 +34,9 @@
 
                         <div class="col-md-3">
                             <label asp-for="Moeda" class="form-label"></label>
-                            <select asp-for="Moeda" class="form-select">
-                                <option value="CVE" selected="@(Model.Moeda == "CVE")">CVE (Escudos)</option>
-                                <option value="EUR" selected="@(Model.Moeda == "EUR")">EUR (Euros)</option>
-                            </select>
-                            <span asp-validation-for="Moeda" class="text-danger"></span>
+                            <input type="text" class="form-control" value="@Model.Moeda" readonly />
+                            <input type="hidden" asp-for="Moeda" />
+                            <div class="form-text">Definida pelo tipo de compra do processo (@((ComparacaoPropostas.Models.Entities.Enums.TipoCompra)ViewBag.TipoCompra == ComparacaoPropostas.Models.Entities.Enums.TipoCompra.Internacional ? "Internacional" : "Nacional")).</div>
                         </div>
 
                         <div class="col-md-3">

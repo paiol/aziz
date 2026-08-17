@@ -46,6 +46,12 @@ else
                         <span asp-validation-for="Nome" class="text-danger"></span>
                     </div>
 
+                    <div class="col-md-6">
+                        <label asp-for="TipoCompra" class="form-label"></label>
+                        <select asp-for="TipoCompra" class="form-select" asp-items="Html.GetEnumSelectList<ComparacaoPropostas.Models.Entities.Enums.TipoCompra>()"></select>
+                        <div class="form-text">Nacional → propostas em CVE. Internacional → propostas em EUR.</div>
+                    </div>
+
                     <div class="col-12">
                         <label asp-for="Descricao" class="form-label"></label>
                         <textarea asp-for="Descricao" class="form-control" rows="2" placeholder="Resumo do objeto do processo de aquisição..."></textarea>

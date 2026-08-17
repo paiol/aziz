@@ -25,6 +25,9 @@ public class Processo
     [Display(Name = "Estado")]
     public StatusProcesso Status { get; set; } = StatusProcesso.Criado;
 
+    [Display(Name = "Tipo de Compra")]
+    public TipoCompra TipoCompra { get; set; } = TipoCompra.Nacional;
+
     // Campo legado preservado para retrocompatibilidade
     [Display(Name = "Fornecedor (Legado)")]
     public string? Fornecedor { get; set; } = "";

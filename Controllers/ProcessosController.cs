@@ -232,6 +232,7 @@ public class ProcessosController : Controller
                 EmailsNotificacao = model.EmailsNotificacao?.Trim(),
                 TaxaCambioPadrao = model.TaxaCambioPadrao > 0 ? model.TaxaCambioPadrao : MoedaHelper.TaxaEurCvePadrao,
                 Status = StatusProcesso.Criado,
+                TipoCompra = model.TipoCompra,
                 Fornecedor = fornecedoresValidos.FirstOrDefault() ?? ""
             };
 
@@ -245,7 +246,7 @@ public class ProcessosController : Controller
                 {
                     ProcessoId = processo.Id,
                     Fornecedor = fornecedorNome,
-                    Moeda = MoedaHelper.MoedaCve,
+                    Moeda = MoedaHelper.MoedaParaTipoCompra(processo.TipoCompra),
                     TaxaCambio = processo.TaxaCambioPadrao,
                     Status = StatusProposta.Recebida
                 };

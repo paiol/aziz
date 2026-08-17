@@ -167,6 +167,13 @@
             <div class="card-body">
                 <p>@(string.IsNullOrWhiteSpace(p.Descricao) ? "Sem descrição." : p.Descricao)</p>
                 <dl class="row mb-0">
+                    <dt class="col-sm-4">Tipo de Compra</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge @(p.TipoCompra == ComparacaoPropostas.Models.Entities.Enums.TipoCompra.Internacional ? "bg-info text-dark" : "bg-subtle-primary text-primary")">
+                            @p.TipoCompra.ToLabel()
+                        </span>
+                        <span class="text-body-tertiary ms-1">(propostas em @MoedaHelper.MoedaParaTipoCompra(p.TipoCompra))</span>
+                    </dd>
                     <dt class="col-sm-4">Prazo de Entrega do Pedido</dt>
                     <dd class="col-sm-8">@(p.PedidoProposta.PrazoEntrega?.ToString("dd/MM/yyyy") ?? "-")</dd>
                     <dt class="col-sm-4">Orçamento Estimado</dt>

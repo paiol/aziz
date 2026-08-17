@@ -34,6 +34,7 @@ public class AppDbContext : DbContext
         {
             e.Property(p => p.NumeroProcesso).HasMaxLength(30).HasDefaultValue("");
             e.Property(p => p.Status).HasConversion<string>().HasMaxLength(20);
+            e.Property(p => p.TipoCompra).HasConversion<string>().HasMaxLength(20).HasDefaultValue(TipoCompra.Nacional);
             e.Property(p => p.TaxaCambioPadrao).HasPrecision(18, 4);
             e.Property(p => p.ValorAdjudicado).HasPrecision(18, 2);
             e.Property(p => p.ValorAdjudicadoMoeda).HasMaxLength(10);
