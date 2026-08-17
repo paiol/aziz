@@ -77,14 +77,20 @@
     transform: scale(1.25);
 }
 
-/* .btn-subtle-secondary (used for "Voltar" / "Cancelar" links) has no
-   border or background at rest in the Phoenix theme, making it look like
-   plain text instead of a button. Give it a visible outline. */
-.btn-subtle-secondary {
+/* .btn-subtle-* (used for row actions like "Voltar" / "Avaliar" / "Itens" /
+   "Editar" / "Apagar") has no border or background at rest in the Phoenix
+   theme, making some action buttons look like plain text while others show
+   a box, depending on which subtle-* variant they use. Give all variants
+   the same visible outline so every action button in a row looks alike. */
+.btn-subtle-secondary,
+.btn-subtle-primary,
+.btn-subtle-danger {
     border-color: rgba(49, 55, 74, 0.35) !important;
 }
 
-.btn-subtle-secondary:hover {
+.btn-subtle-secondary:hover,
+.btn-subtle-primary:hover,
+.btn-subtle-danger:hover {
     border-color: rgba(49, 55, 74, 0.55) !important;
 }
 
