@@ -107,6 +107,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Fornecedor>(e =>
         {
             e.Property(f => f.Nome).HasMaxLength(200);
+            e.Property(f => f.Tipo).HasMaxLength(50);
             e.Property(f => f.Contribuinte).HasMaxLength(50);
             e.Property(f => f.Contacto).HasMaxLength(50);
             e.Property(f => f.Email).HasMaxLength(200);

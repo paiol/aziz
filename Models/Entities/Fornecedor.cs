@@ -9,6 +9,9 @@ public class Fornecedor
     [Required, Display(Name = "Nome do Fornecedor")]
     public string Nome { get; set; } = "";
 
+    [Display(Name = "Tipo")]
+    public string? Tipo { get; set; }
+
     [Display(Name = "Contribuinte / NIF")]
     public string? Contribuinte { get; set; }
 

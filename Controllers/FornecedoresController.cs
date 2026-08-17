@@ -38,6 +38,7 @@ public class FornecedoresController : Controller
         try
         {
             fornecedor.Nome = fornecedor.Nome.Trim();
+            fornecedor.Tipo = fornecedor.Tipo?.Trim();
             fornecedor.Contribuinte = fornecedor.Contribuinte?.Trim();
             fornecedor.Contacto = fornecedor.Contacto?.Trim();
             fornecedor.Email = fornecedor.Email?.Trim();
@@ -89,6 +90,7 @@ public class FornecedoresController : Controller
             }
 
             existente.Nome = nomeNormalizado;
+            existente.Tipo = fornecedor.Tipo?.Trim();
             existente.Contribuinte = fornecedor.Contribuinte?.Trim();
             existente.Contacto = fornecedor.Contacto?.Trim();
             existente.Email = fornecedor.Email?.Trim();

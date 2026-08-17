@@ -21,6 +21,12 @@
                 </div>
 
                 <div class="col-md-6">
+                    <label asp-for="Tipo" class="form-label"></label>
+                    <input asp-for="Tipo" class="form-control" placeholder="ex.: Material, Serviço" />
+                    <span asp-validation-for="Tipo" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6">
                     <label asp-for="Contribuinte" class="form-label"></label>
                     <input asp-for="Contribuinte" class="form-control" placeholder="Nº de Contribuinte / NIF" />
                     <span asp-validation-for="Contribuinte" class="text-danger"></span>

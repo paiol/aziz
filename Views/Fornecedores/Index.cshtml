@@ -27,6 +27,7 @@
                 <thead>
                     <tr>
                         <th>Nome</th>
+                        <th>Tipo</th>
                         <th>Contribuinte / NIF</th>
                         <th>Contacto</th>
                         <th>E-mail</th>
@@ -40,6 +41,7 @@
                     {
                         <tr>
                             <td><strong>@f.Nome</strong></td>
+                            <td>@(string.IsNullOrWhiteSpace(f.Tipo) ? "-" : f.Tipo)</td>
                             <td>@(string.IsNullOrWhiteSpace(f.Contribuinte) ? "-" : f.Contribuinte)</td>
                             <td>@(string.IsNullOrWhiteSpace(f.Contacto) ? "-" : f.Contacto)</td>
                             <td>@(string.IsNullOrWhiteSpace(f.Email) ? "-" : f.Email)</td>
