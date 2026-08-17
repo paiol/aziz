@@ -62,17 +62,22 @@ else
                         <input asp-for="CriadoPor" class="form-control" placeholder="Nome do criador / responsável" />
                     </div>
 
+                    @* Taxa de Câmbio Padrão — ocultada por agora; segue o valor padrão do sistema.
                     <div class="col-md-6">
                         <label asp-for="TaxaCambioPadrao" class="form-label"></label>
                         <input asp-for="TaxaCambioPadrao" class="form-control" type="number" step="0.0001" min="0.0001" />
                         <div class="form-text">Taxa de paridade padrão EUR → CVE para as propostas deste processo.</div>
                     </div>
+                    *@
+                    <input type="hidden" asp-for="TaxaCambioPadrao" />
 
+                    @* E-mails a Notificar — ocultado por agora.
                     <div class="col-12">
                         <label asp-for="EmailsNotificacao" class="form-label"></label>
                         <input asp-for="EmailsNotificacao" class="form-control" placeholder="email1@empresa.cv, email2@empresa.cv" />
                         <div class="form-text">Separe múltiplos e-mails por vírgula. Utilizados para enviar a comunicação de resultado.</div>
                     </div>
+                    *@
                 </div>
 
                 <hr class="my-4" />
@@ -97,7 +102,7 @@ else
                 else
                 {
                     <div id="container-fornecedores" class="row g-2 mb-3">
-                        @for (var i = 0; i < (Model.Fornecedores.Count > 0 ? Model.Fornecedores.Count : 2); i++)
+                        @for (var i = 0; i < (Model.Fornecedores.Count > 0 ? Model.Fornecedores.Count : 1); i++)
                         {
                             var valor = i < Model.Fornecedores.Count ? Model.Fornecedores[i] : "";
                             <div class="col-md-6 linha-fornecedor">

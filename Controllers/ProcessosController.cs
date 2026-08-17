@@ -180,7 +180,7 @@ public class ProcessosController : Controller
         return View(new ProcessoCreateVM
         {
             TaxaCambioPadrao = MoedaHelper.TaxaEurCvePadrao,
-            Fornecedores = new List<string> { "", "" } // Começa com 2 campos de fornecedores
+            Fornecedores = new List<string> { "" } // Começa com 1 campo de fornecedor (mínimo exigido)
         });
     }
 
