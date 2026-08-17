@@ -51,15 +51,17 @@
                 <a asp-action="DescarregarRelatorio" asp-route-id="@p.Id" asp-route-formato="pdf" class="btn btn-sm btn-danger">
                     <i class="fas fa-file-pdf me-1"></i> PDF
                 </a>
+                @* Envio por e-mail desativado por agora (Exchange 2013 on-prem sem forma fiável de enviar) — usar Word/PDF.
                 @if (string.IsNullOrWhiteSpace(Model.MailtoResultado))
                 {
                     <a asp-action="Edit" asp-route-id="@p.Id" class="btn btn-sm btn-subtle-secondary" title="Adicione e-mails de notificação para poder comunicar o resultado">
                         <i class="fas fa-envelope me-1"></i> Configurar E-mails de Notificação
                     </a>
                 }
+                *@
             </div>
         </div>
-        @if (!string.IsNullOrWhiteSpace(Model.EmailDestinatarios))
+        @* @if (!string.IsNullOrWhiteSpace(Model.EmailDestinatarios))
         {
             <div class="card-body border-bottom bg-light">
                 <h6 class="mb-2"><i class="fas fa-copy me-1"></i> Comunicar por e-mail — copia e cola no teu email</h6>
@@ -93,7 +95,7 @@
                     }
                 </div>
             </div>
-        }
+        } *@
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-4">
@@ -126,6 +128,7 @@
                     <span class="text-body-tertiary d-block small">Responsável pela Decisão</span>
                     <span>@(p.ResponsavelAdjudicacao ?? "-")</span>
                 </div>
+                @* Envio por e-mail desativado por agora — ver Word/PDF em vez disso.
                 <div class="col-md-4">
                     <span class="text-body-tertiary d-block small">Comunicação por E-mail</span>
                     @if (p.EmailResultadoEnviadoEm.HasValue)
@@ -142,6 +145,7 @@
                         </form>
                     }
                 </div>
+                *@
                 @if (!string.IsNullOrWhiteSpace(p.JustificativaAdjudicacao))
                 {
                     <div class="col-12 mt-2">
@@ -333,6 +337,7 @@
 </div>
 
 @section Scripts {
+    @* Copiar destinatários/assunto/corpo — desativado junto com o envio por e-mail.
     <script>
         document.querySelectorAll('.js-copiar').forEach(function (btn) {
             btn.addEventListener('click', function () {
@@ -346,6 +351,7 @@
             });
         });
     </script>
+    *@
 }
 
 
