@@ -9,6 +9,11 @@ obj/
 ## Local secrets / environment overrides
 appsettings.Development.json
 appsettings.*.local.json
+appsettings.Production.json
 
 ## Uploaded files (runtime data, not source)
 wwwroot/uploads/
+
+## Publish output
+publish/
+*.zip
