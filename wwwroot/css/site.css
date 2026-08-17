@@ -77,20 +77,19 @@
     transform: scale(1.25);
 }
 
-/* Row-action buttons inside tables (Avaliar/Itens/Editar/Apagar, etc.) need a
-   visible box since there's no other button nearby to give them contrast.
-   Standalone form buttons like "Voltar" / "Cancelar" next to a primary
-   "Guardar" button look better without a box (ghost/text style) — per
-   user preference, so this stays scoped to table contexts only. */
-table .btn-subtle-secondary,
-table .btn-subtle-primary,
-table .btn-subtle-danger {
+/* .btn-subtle-* (used for "Voltar" / "Cancelar" / "Avaliar" / "Itens" /
+   "Editar" / "Apagar") has no border or background at rest in the Phoenix
+   theme, making it look like plain text instead of a button. Give every
+   variant the same visible outline so all action buttons look alike. */
+.btn-subtle-secondary,
+.btn-subtle-primary,
+.btn-subtle-danger {
     border-color: rgba(49, 55, 74, 0.35) !important;
 }
 
-table .btn-subtle-secondary:hover,
-table .btn-subtle-primary:hover,
-table .btn-subtle-danger:hover {
+.btn-subtle-secondary:hover,
+.btn-subtle-primary:hover,
+.btn-subtle-danger:hover {
     border-color: rgba(49, 55, 74, 0.55) !important;
 }
 
