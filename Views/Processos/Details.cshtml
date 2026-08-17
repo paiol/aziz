@@ -161,7 +161,7 @@
 }
 
 <div class="row g-3">
-    <div class="col-lg-9">
+    <div class="col-lg-8">
         <div class="card mb-3">
             <div class="card-header"><h5 class="mb-0">Dados do Processo</h5></div>
             <div class="card-body">
@@ -202,109 +202,9 @@
             </div>
         </div>
 
-        <div class="card mb-3">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Propostas dos Fornecedores (@Model.Propostas.Count)</h5>
-                <a class="btn btn-sm btn-primary" asp-controller="Propostas" asp-action="Create" asp-route-processoId="@p.Id">
-                    <span class="fas fa-plus me-1"></span> Adicionar Fornecedor / Proposta
-                </a>
-            </div>
-            <div class="card-body p-0">
-                @if (Model.Propostas.Count == 0)
-                {
-                    <p class="text-body-tertiary p-3 mb-0">Ainda não há propostas associadas a este processo.</p>
-                }
-                else
-                {
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Posição</th>
-                                    <th>Fornecedor</th>
-                                    <th>Valor Total</th>
-                                    <th>Total (CVE)</th>
-                                    <th>Prazo</th>
-                                    <th>Garantia</th>
-                                    <th>Avaliação</th>
-                                    <th>Estado</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var pr in Model.Propostas)
-                                {
-                                    var isVencedor = p.PropostaVencedoraId == pr.Id;
-                                    <tr class="@(isVencedor ? "table-success bg-opacity-10" : "")">
-                                        <td>
-                                            <span class="badge @(pr.PosicaoRanking == 1 ? "bg-warning text-dark" : "bg-light text-secondary border")">
-                                                @(pr.PosicaoRanking)º
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <strong>@pr.Fornecedor</strong>
-                                            @if (isVencedor)
-                                            {
-                                                <span class="badge bg-success ms-1"><i class="fas fa-check"></i> Vencedor</span>
-                                            }
-                                        </td>
-                                        <td>@MoedaHelper.FormatarValor(pr.ValorTotal, pr.Moeda)</td>
-                                        <td>@MoedaHelper.FormatarValor(pr.ValorTotalCVE, MoedaHelper.MoedaCve)</td>
-                                        <td>
-                                            @(pr.PrazoEntregaDias.HasValue ? $"{pr.PrazoEntregaDias}d" : "-")
-                                            @if (pr.PrazoDentroDoSolicitado.HasValue)
-                                            {
-                                                if (pr.PrazoDentroDoSolicitado.Value)
-                                                {
-                                                    <span class="badge bg-subtle-success text-success d-block mt-1">No prazo</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge bg-subtle-danger text-danger d-block mt-1">+@pr.PrazoDiasDeAtraso d</span>
-                                                }
-                                            }
-                                        </td>
-                                        <td>@(string.IsNullOrWhiteSpace(pr.Garantia) ? "-" : pr.Garantia)</td>
-                                        <td>
-                                            <strong>@pr.PontuacaoPonderada.ToString("0.00")</strong>
-                                            <div class="text-warning small" title="@pr.PontuacaoPonderada.ToString("0.00") / 5.00">
-                                                @{ var estrelas = Math.Clamp((int)Math.Round(pr.PontuacaoPonderada, MidpointRounding.AwayFromZero), 0, 5); }
-                                                @for (var i = 1; i <= 5; i++)
-                                                {
-                                                    <span class="@(i <= estrelas ? "fas" : "far") fa-star"></span>
-                                                }
-                                            </div>
-                                            <span class="text-muted fs--2 d-block">(@pr.TotalAvaliadores avaliador(es))</span>
-                                        </td>
-                                        <td><span class="@pr.Status.ToBadgeClass()">@pr.Status.ToLabel()</span></td>
-                                        <td class="text-end">
-                                            <div class="d-inline-flex flex-column gap-1">
-                                                <a class="btn btn-sm btn-subtle-primary" asp-controller="Avaliacoes" asp-action="Editar" asp-route-propostaId="@pr.Id" title="Avaliar">
-                                                    <i class="fas fa-star me-1"></i> Avaliar
-                                                </a>
-                                                <a class="btn btn-sm btn-subtle-secondary" asp-controller="ItensProposta" asp-action="Index" asp-route-propostaId="@pr.Id" title="Itens e Preços">
-                                                    <i class="fas fa-list me-1"></i> Itens
-                                                </a>
-                                                <a class="btn btn-sm btn-subtle-secondary" asp-controller="Propostas" asp-action="Edit" asp-route-id="@pr.Id" title="Editar Proposta">
-                                                    <i class="fas fa-edit me-1"></i> Editar
-                                                </a>
-                                                <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
-                                                        data-url="@Url.Action("Delete", "Propostas", new { id = pr.Id })" data-id="@pr.Id" title="Apagar">
-                                                    <i class="fas fa-trash me-1"></i> Apagar
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
-            </div>
-        </div>
     </div>
 
-    <div class="col-lg-3">
+    <div class="col-lg-4">
         <div class="card mb-3">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Critérios (@Model.SomaPesos.ToString("0")%)</h5>
@@ -344,6 +244,107 @@
                 </form>
             </div>
         </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Propostas dos Fornecedores (@Model.Propostas.Count)</h5>
+        <a class="btn btn-sm btn-primary" asp-controller="Propostas" asp-action="Create" asp-route-processoId="@p.Id">
+            <span class="fas fa-plus me-1"></span> Adicionar Fornecedor / Proposta
+        </a>
+    </div>
+    <div class="card-body p-0">
+        @if (Model.Propostas.Count == 0)
+        {
+            <p class="text-body-tertiary p-3 mb-0">Ainda não há propostas associadas a este processo.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Posição</th>
+                            <th>Fornecedor</th>
+                            <th>Valor Total</th>
+                            <th>Total (CVE)</th>
+                            <th>Prazo</th>
+                            <th>Garantia</th>
+                            <th>Avaliação</th>
+                            <th>Estado</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var pr in Model.Propostas)
+                        {
+                            var isVencedor = p.PropostaVencedoraId == pr.Id;
+                            <tr class="@(isVencedor ? "table-success bg-opacity-10" : "")">
+                                <td>
+                                    <span class="badge @(pr.PosicaoRanking == 1 ? "bg-warning text-dark" : "bg-light text-secondary border")">
+                                        @(pr.PosicaoRanking)º
+                                    </span>
+                                </td>
+                                <td>
+                                    <strong>@pr.Fornecedor</strong>
+                                    @if (isVencedor)
+                                    {
+                                        <span class="badge bg-success ms-1"><i class="fas fa-check"></i> Vencedor</span>
+                                    }
+                                </td>
+                                <td>@MoedaHelper.FormatarValor(pr.ValorTotal, pr.Moeda)</td>
+                                <td>@MoedaHelper.FormatarValor(pr.ValorTotalCVE, MoedaHelper.MoedaCve)</td>
+                                <td>
+                                    @(pr.PrazoEntregaDias.HasValue ? $"{pr.PrazoEntregaDias}d" : "-")
+                                    @if (pr.PrazoDentroDoSolicitado.HasValue)
+                                    {
+                                        if (pr.PrazoDentroDoSolicitado.Value)
+                                        {
+                                            <span class="badge bg-subtle-success text-success d-block mt-1">No prazo</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-subtle-danger text-danger d-block mt-1">+@pr.PrazoDiasDeAtraso d</span>
+                                        }
+                                    }
+                                </td>
+                                <td>@(string.IsNullOrWhiteSpace(pr.Garantia) ? "-" : pr.Garantia)</td>
+                                <td>
+                                    <strong>@pr.PontuacaoPonderada.ToString("0.00")</strong>
+                                    <div class="text-warning small" title="@pr.PontuacaoPonderada.ToString("0.00") / 5.00">
+                                        @{ var estrelas = Math.Clamp((int)Math.Round(pr.PontuacaoPonderada, MidpointRounding.AwayFromZero), 0, 5); }
+                                        @for (var i = 1; i <= 5; i++)
+                                        {
+                                            <span class="@(i <= estrelas ? "fas" : "far") fa-star"></span>
+                                        }
+                                    </div>
+                                    <span class="text-muted fs--2 d-block">(@pr.TotalAvaliadores avaliador(es))</span>
+                                </td>
+                                <td><span class="@pr.Status.ToBadgeClass()">@pr.Status.ToLabel()</span></td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex flex-column gap-1">
+                                        <a class="btn btn-sm btn-subtle-primary" asp-controller="Avaliacoes" asp-action="Editar" asp-route-propostaId="@pr.Id" title="Avaliar">
+                                            <i class="fas fa-star me-1"></i> Avaliar
+                                        </a>
+                                        <a class="btn btn-sm btn-subtle-secondary" asp-controller="ItensProposta" asp-action="Index" asp-route-propostaId="@pr.Id" title="Itens e Preços">
+                                            <i class="fas fa-list me-1"></i> Itens
+                                        </a>
+                                        <a class="btn btn-sm btn-subtle-secondary" asp-controller="Propostas" asp-action="Edit" asp-route-id="@pr.Id" title="Editar Proposta">
+                                            <i class="fas fa-edit me-1"></i> Editar
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
+                                                data-url="@Url.Action("Delete", "Propostas", new { id = pr.Id })" data-id="@pr.Id" title="Apagar">
+                                            <i class="fas fa-trash me-1"></i> Apagar
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
     </div>
 </div>
 
