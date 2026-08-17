@@ -33,7 +33,8 @@
                 <thead>
                     <tr>
                         <th style="min-width:260px">Item</th>
-                        <th style="width:120px">Quantidade</th>
+                        <th style="width:130px">Qtd. Solicitada</th>
+                        <th style="width:120px">Qtd. Fornecida</th>
                         <th style="width:160px">Preço Unitário</th>
                         <th style="width:90px">Incluído</th>
                         <th>Observação</th>
@@ -69,6 +70,7 @@
                 }
             </select>
         </td>
+        <td><input type="number" step="0.001" name="Itens[__INDEX__].QuantidadeSolicitada" class="form-control form-control-sm" placeholder="opcional" /></td>
         <td><input type="number" step="0.001" value="1" name="Itens[__INDEX__].Quantidade" class="form-control form-control-sm" required /></td>
         <td><input type="number" step="0.01" value="0" name="Itens[__INDEX__].PrecoUnitario" class="form-control form-control-sm" required /></td>
         <td class="text-center">

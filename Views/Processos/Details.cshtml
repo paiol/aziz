@@ -45,11 +45,18 @@
                 <i class="fas fa-award me-2"></i> Processo Concluído / Adjudicado
             </h5>
             <div>
-                <form asp-action="ComunicarResultado" asp-route-id="@p.Id" method="post" class="d-inline">
-                    <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Deseja enviar a comunicação oficial do resultado por email?');">
+                @if (!string.IsNullOrWhiteSpace(Model.MailtoResultado))
+                {
+                    <a href="@Model.MailtoResultado" class="btn btn-sm btn-success" onclick="marcarComunicado(@p.Id)">
                         <i class="fas fa-envelope me-1"></i> Enviar Comunicação por E-mail
-                    </button>
-                </form>
+                    </a>
+                }
+                else
+                {
+                    <a asp-action="Edit" asp-route-id="@p.Id" class="btn btn-sm btn-subtle-secondary" title="Adicione e-mails de notificação para poder comunicar o resultado">
+                        <i class="fas fa-envelope me-1"></i> Configurar E-mails de Notificação
+                    </a>
+                }
             </div>
         </div>
         <div class="card-body">
@@ -273,4 +280,16 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function marcarComunicado(id) {
+            var token = document.querySelector('#globalAntiForgeryForm input[name="__RequestVerificationToken"]').value;
+            fetch('/Processos/MarcarComunicado/' + id, {
+                method: 'POST',
+                headers: { 'RequestVerificationToken': token }
+            });
+        }
+    </script>
+}
 

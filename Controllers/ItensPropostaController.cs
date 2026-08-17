@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ComparacaoPropostas.Data;
 using ComparacaoPropostas.Helper;
 using ComparacaoPropostas.Models.Entities;
+using ComparacaoPropostas.Services;
 using ComparacaoPropostas.ViewModels.ItensProposta;
 
 namespace ComparacaoPropostas.Controllers;
@@ -10,10 +11,14 @@ namespace ComparacaoPropostas.Controllers;
 public class ItensPropostaController : Controller
 {
     private readonly AppDbContext _db;
+    private readonly IPropostaExcelService _excelService;
+    private readonly ILogger<ItensPropostaController> _logger;
 
-    public ItensPropostaController(AppDbContext db)
+    public ItensPropostaController(AppDbContext db, IPropostaExcelService excelService, ILogger<ItensPropostaController> logger)
     {
         _db = db;
+        _excelService = excelService;
+        _logger = logger;
     }
 
     private void RecalcularTotalProposta(int propostaId)
@@ -103,6 +108,103 @@ public class ItensPropostaController : Controller
 
         TempData["Sucesso"] = $"{linhasValidas.Count} item(ns) adicionado(s) à proposta.";
         return RedirectToAction(nameof(Index), new { propostaId = model.PropostaId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult ImportarExcel(int propostaId, IFormFile ficheiro)
+    {
+        var proposta = _db.Propostas
+            .Include(p => p.ItensProposta)
+            .Include(p => p.Processo).ThenInclude(pr => pr.PedidoProposta).ThenInclude(pp => pp.ItensPedido).ThenInclude(ip => ip.ItemMaterial)
+            .FirstOrDefault(p => p.Id == propostaId);
+
+        if (proposta == null) return NotFound();
+
+        if (ficheiro == null || ficheiro.Length == 0)
+        {
+            TempData["EmailWarning"] = "Selecione o ficheiro Excel preenchido pelo fornecedor.";
+            return RedirectToAction(nameof(Index), new { propostaId });
+        }
+
+        try
+        {
+            using var stream = ficheiro.OpenReadStream();
+            var linhas = _excelService.LerRespostaExcel(stream);
+
+            var itensPorNome = proposta.Processo.PedidoProposta.ItensPedido
+                .GroupBy(ip => ip.ItemMaterial.NomeItem.Trim(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+            var existentesPorItemMaterial = proposta.ItensProposta.ToDictionary(i => i.ItemMaterialId);
+
+            var naoReconhecidos = new List<string>();
+            var atualizados = 0;
+            var criados = 0;
+
+            foreach (var linha in linhas)
+            {
+                int? itemMaterialId;
+                decimal? quantidadeSolicitada = null;
+
+                if (itensPorNome.TryGetValue(linha.NomeItem.Trim(), out var itemPedido))
+                {
+                    itemMaterialId = itemPedido.ItemMaterialId;
+                    quantidadeSolicitada = itemPedido.QuantidadeSolicitada;
+                }
+                else
+                {
+                    var itemCatalogo = _db.ItensMaterial.FirstOrDefault(im => im.NomeItem == linha.NomeItem);
+                    if (itemCatalogo == null)
+                    {
+                        naoReconhecidos.Add(linha.NomeItem);
+                        continue;
+                    }
+                    itemMaterialId = itemCatalogo.Id;
+                }
+
+                var quantidadeFornecida = linha.QuantidadeFornecida ?? 0;
+                var preco = linha.PrecoUnitario ?? 0;
+
+                if (existentesPorItemMaterial.TryGetValue(itemMaterialId.Value, out var existente))
+                {
+                    existente.Quantidade = quantidadeFornecida;
+                    existente.PrecoUnitario = preco;
+                    if (!string.IsNullOrWhiteSpace(linha.Observacao)) existente.Observacao = linha.Observacao;
+                    existente.Incluido = quantidadeFornecida > 0 || preco > 0;
+                    atualizados++;
+                }
+                else
+                {
+                    _db.ItensProposta.Add(new ItemProposta
+                    {
+                        PropostaId = propostaId,
+                        ItemMaterialId = itemMaterialId.Value,
+                        QuantidadeSolicitada = quantidadeSolicitada,
+                        Quantidade = quantidadeFornecida,
+                        PrecoUnitario = preco,
+                        Observacao = linha.Observacao,
+                        Incluido = quantidadeFornecida > 0 || preco > 0
+                    });
+                    criados++;
+                }
+            }
+
+            _db.SaveChanges();
+            RecalcularTotalProposta(propostaId);
+
+            var mensagem = $"Ficheiro importado: {atualizados} item(ns) atualizado(s), {criados} novo(s).";
+            if (naoReconhecidos.Count > 0)
+                mensagem += $" Não reconhecidos (ignorados): {string.Join(", ", naoReconhecidos)}.";
+            TempData["Sucesso"] = mensagem;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao importar Excel para a proposta {PropostaId}.", propostaId);
+            TempData["EmailWarning"] = "Não foi possível ler o ficheiro Excel. Verifique se é o modelo descarregado do sistema.";
+        }
+
+        return RedirectToAction(nameof(Index), new { propostaId });
     }
 
     public IActionResult Edit(int id)

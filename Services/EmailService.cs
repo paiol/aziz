@@ -57,6 +57,79 @@ public class EmailService : IEmailService
         }
     }
 
+    public string ConstruirLinkMailto(Processo processo)
+    {
+        var destinatarios = (processo.EmailsNotificacao ?? "")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        var numeroExibido = string.IsNullOrWhiteSpace(processo.NumeroProcesso) ? processo.Id.ToString() : processo.NumeroProcesso;
+        var assunto = $"Resultado de Adjudicação — Processo #{numeroExibido}: {processo.Nome}";
+        var corpo = BuildCorpoDecisaoTexto(processo);
+
+        var to = string.Join(",", destinatarios.Select(Uri.EscapeDataString));
+        return $"mailto:{to}?subject={Uri.EscapeDataString(assunto)}&body={Uri.EscapeDataString(corpo)}";
+    }
+
+    internal string BuildCorpoDecisaoTexto(Processo processo)
+    {
+        var vencedor = processo.PropostaVencedora
+                       ?? processo.Propostas.FirstOrDefault(p => p.Id == processo.PropostaVencedoraId);
+
+        var ranking = processo.Propostas
+            .Select(p => new
+            {
+                Proposta = p,
+                Pontuacao = _scoringService.CalcularPontuacaoPonderada(p, processo.Criterios)
+            })
+            .OrderByDescending(r => r.Pontuacao)
+            .ThenBy(r => r.Proposta.ValorTotalCVE)
+            .ToList();
+
+        var numeroExibido = string.IsNullOrWhiteSpace(processo.NumeroProcesso) ? processo.Id.ToString() : processo.NumeroProcesso;
+
+        var sb = new StringBuilder();
+        sb.AppendLine($"Processo Nº {numeroExibido}: {processo.Nome}");
+        if (!string.IsNullOrWhiteSpace(processo.Descricao))
+            sb.AppendLine($"Descrição: {processo.Descricao}");
+        sb.AppendLine();
+        sb.AppendLine("--- Fornecedor Adjudicado ---");
+        sb.AppendLine($"Fornecedor: {(vencedor?.Fornecedor ?? "Não especificado")}");
+
+        if (vencedor != null)
+        {
+            sb.AppendLine($"Valor Adjudicado: {MoedaHelper.FormatarValor(vencedor.ValorTotal, vencedor.Moeda)}");
+            if (string.Equals(vencedor.Moeda, MoedaHelper.MoedaEur, StringComparison.OrdinalIgnoreCase))
+                sb.AppendLine($"Equivalente em CVE: {MoedaHelper.FormatarValor(vencedor.ValorTotalCVE, MoedaHelper.MoedaCve)} (Taxa: {vencedor.TaxaCambio:N3})");
+            sb.AppendLine($"Prazo de Entrega: {(vencedor.PrazoEntregaDias.HasValue ? $"{vencedor.PrazoEntregaDias.Value} dias" : "-")}");
+            sb.AppendLine($"Garantia: {(string.IsNullOrWhiteSpace(vencedor.Garantia) ? "-" : vencedor.Garantia)}");
+            var pontuacao = processo.PontuacaoAdjudicada ?? _scoringService.CalcularPontuacaoPonderada(vencedor, processo.Criterios);
+            sb.AppendLine($"Pontuação da Avaliação: {pontuacao:0.00} / 5.00");
+        }
+
+        sb.AppendLine($"Data da Decisão: {(processo.DataAdjudicacao?.ToString("dd/MM/yyyy HH:mm") ?? DateTime.Now.ToString("dd/MM/yyyy"))}");
+        sb.AppendLine($"Responsável pela Decisão: {(processo.ResponsavelAdjudicacao ?? "-")}");
+
+        if (!string.IsNullOrWhiteSpace(processo.JustificativaAdjudicacao))
+            sb.AppendLine($"Justificação da Decisão: {processo.JustificativaAdjudicacao}");
+
+        if (ranking.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine("--- Fornecedores Consultados e Ranking Final ---");
+            for (var i = 0; i < ranking.Count; i++)
+            {
+                var item = ranking[i];
+                var valorFormatado = MoedaHelper.FormatarValor(item.Proposta.ValorTotal, item.Proposta.Moeda);
+                sb.AppendLine($"{i + 1}º {item.Proposta.Fornecedor} — {valorFormatado} — Pontuação {item.Pontuacao:0.00}/5.00");
+            }
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("Email gerado pelo Sistema de Comparação de Propostas.");
+
+        return sb.ToString();
+    }
+
     internal string BuildCorpoDecisao(Processo processo)
     {
         var vencedor = processo.PropostaVencedora

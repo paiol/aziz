@@ -9,6 +9,7 @@ public class ProcessoDetailVM
     public List<PropostaResumo> Propostas { get; set; } = new();
     public decimal SomaPesos { get; set; }
     public int TotalItensPedido { get; set; }
+    public string? MailtoResultado { get; set; }
 }
 
 public class PropostaResumo

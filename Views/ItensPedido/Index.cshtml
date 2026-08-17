@@ -38,15 +38,7 @@
         </a>
         @if (pedido.Processo != null)
         {
-            <form asp-controller="ItensProcesso" asp-action="ImportarResposta" asp-route-processoId="@pedido.Processo.Id" method="post" enctype="multipart/form-data" class="d-flex gap-2 align-items-end">
-                <div>
-                    <label class="form-label mb-1">Importar resposta preenchida</label>
-                    <input type="file" name="ficheiro" accept=".xlsx" class="form-control form-control-sm" required />
-                </div>
-                <button type="submit" class="btn btn-subtle-success btn-sm">
-                    <span class="fas fa-upload me-1"></span> Importar
-                </button>
-            </form>
+            <span class="text-body-tertiary">Para importar a resposta preenchida por um fornecedor, entra na proposta desse fornecedor (em "Itens e Preços") — lá podes carregar o ficheiro ou introduzir os dados manualmente.</span>
         }
         else
         {

@@ -5,4 +5,5 @@ namespace ComparacaoPropostas.Services;
 public interface IEmailService
 {
     Task EnviarNotificacaoDecisaoAsync(Processo processo);
+    string ConstruirLinkMailto(Processo processo);
 }

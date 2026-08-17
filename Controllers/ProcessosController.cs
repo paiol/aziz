@@ -94,7 +94,12 @@ public class ProcessosController : Controller
             Processo = processo,
             SomaPesos = processo.Criterios.Sum(c => c.Peso),
             TotalItensPedido = processo.PedidoProposta.ItensPedido.Count,
-            Propostas = propostasOrdenadas
+            Propostas = propostasOrdenadas,
+            MailtoResultado = processo.Status == StatusProcesso.Concluido
+                && processo.PropostaVencedoraId.HasValue
+                && !string.IsNullOrWhiteSpace(processo.EmailsNotificacao)
+                ? _emailService.ConstruirLinkMailto(processo)
+                : null
         };
 
         return View(vm);
@@ -457,45 +462,15 @@ public class ProcessosController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ComunicarResultado(int id)
+    public IActionResult MarcarComunicado(int id)
     {
-        var processo = _db.Processos
-            .Include(p => p.PedidoProposta)
-            .Include(p => p.Criterios)
-            .Include(p => p.PropostaVencedora)
-            .Include(p => p.Propostas).ThenInclude(pr => pr.Avaliacoes)
-            .Include(p => p.Propostas).ThenInclude(pr => pr.MemoriaCalculo)
-            .FirstOrDefault(p => p.Id == id);
-
+        var processo = _db.Processos.Find(id);
         if (processo == null) return NotFound();
 
-        if (processo.Status != StatusProcesso.Concluido || !processo.PropostaVencedoraId.HasValue)
-        {
-            TempData["EmailWarning"] = "Apenas é possível comunicar o resultado de processos adjudicados e concluídos.";
-            return RedirectToAction(nameof(Details), new { id });
-        }
+        processo.EmailResultadoEnviadoEm = DateTime.UtcNow;
+        _db.SaveChanges();
 
-        if (string.IsNullOrWhiteSpace(processo.EmailsNotificacao))
-        {
-            TempData["EmailWarning"] = "Não existem e-mails de notificação configurados neste processo. Edite o processo para adicionar destinatários.";
-            return RedirectToAction(nameof(Details), new { id });
-        }
-
-        try
-        {
-            await _emailService.EnviarNotificacaoDecisaoAsync(processo);
-            processo.EmailResultadoEnviadoEm = DateTime.UtcNow;
-            _db.SaveChanges();
-
-            TempData["Sucesso"] = "Comunicação de adjudicação enviada com sucesso por email.";
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Falha ao enviar email de resultado para o processo {ProcessoId}.", id);
-            TempData["EmailWarning"] = "Não foi possível enviar o email de comunicação. Verifique a configuração SMTP e os endereços configurados.";
-        }
-
-        return RedirectToAction(nameof(Details), new { id });
+        return Ok();
     }
 
     [HttpPost]
