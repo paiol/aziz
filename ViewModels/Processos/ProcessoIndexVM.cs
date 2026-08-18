@@ -8,6 +8,8 @@ public class ProcessoIndexVM
     public string NumeroProcesso { get; set; } = "";
     public string Nome { get; set; } = "";
     public StatusProcesso Status { get; set; }
+    public DateTime StatusAlteradoEm { get; set; }
+    public bool TemVencedor { get; set; }
     public DateTime? PrazoEntrega { get; set; }
     public string TipoProposta { get; set; } = "";
     public AreaDepartamento Area { get; set; }

@@ -36,6 +36,8 @@ public class ProcessosController : Controller
                 NumeroProcesso = p.NumeroProcesso,
                 Nome = p.Nome,
                 Status = p.Status,
+                StatusAlteradoEm = p.StatusAlteradoEm,
+                TemVencedor = p.PropostaVencedoraId.HasValue,
                 PrazoEntrega = p.PedidoProposta.PrazoEntrega,
                 TipoProposta = p.PedidoProposta.TipoProposta,
                 Area = p.PedidoProposta.Area,
@@ -475,6 +477,7 @@ public class ProcessosController : Controller
             processo.DataAdjudicacao = DateTime.UtcNow;
             processo.ResponsavelAdjudicacao = model.ResponsavelAdjudicacao.Trim();
             processo.JustificativaAdjudicacao = string.IsNullOrWhiteSpace(model.JustificativaAdjudicacao) ? null : model.JustificativaAdjudicacao.Trim();
+            if (processo.Status != StatusProcesso.Concluido) processo.StatusAlteradoEm = DateTime.UtcNow;
             processo.Status = StatusProcesso.Concluido;
 
             foreach (var p in processo.Propostas)
@@ -525,7 +528,11 @@ public class ProcessosController : Controller
         var processo = _db.Processos.Find(id);
         if (processo == null) return NotFound();
 
-        processo.Status = novoStatus;
+        if (processo.Status != novoStatus)
+        {
+            processo.Status = novoStatus;
+            processo.StatusAlteradoEm = DateTime.UtcNow;
+        }
         _db.SaveChanges();
 
         TempData["Sucesso"] = "Estado do processo atualizado.";

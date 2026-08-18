@@ -36,7 +36,13 @@
                         <td>@p.TipoProposta</td>
                         <td>@p.Area.ToLabel()</td>
                         <td>@p.TotalFornecedores</td>
-                        <td><span class="@p.Status.ToBadgeClass()">@p.Status.ToLabel()</span></td>
+                        <td>
+                            <span class="@p.ToBadgeClassComAlerta()">@p.Status.ToLabel()</span>
+                            @if (p.TemAlertaDePrazo())
+                            {
+                                <i class="fas fa-triangle-exclamation text-danger ms-1" title="@p.MensagemAlertaDePrazo()"></i>
+                            }
+                        </td>
                         <td>@(p.PrazoEntrega?.ToString("dd/MM/yyyy") ?? "-")</td>
                         <td>@(p.OrcamentoEstimado?.ToString("C") ?? "-")</td>
                         <td>@p.TotalPropostas</td>

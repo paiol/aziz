@@ -15,7 +15,13 @@
             }
             @p.Nome
         </h2>
-        <span class="@p.Status.ToBadgeClass()">@p.Status.ToLabel()</span>
+        <span class="@p.ToBadgeClassComAlerta()">@p.Status.ToLabel()</span>
+        @if (p.TemAlertaDePrazo())
+        {
+            <span class="badge bg-danger" title="@p.MensagemAlertaDePrazo()">
+                <i class="fas fa-triangle-exclamation me-1"></i>@p.MensagemAlertaDePrazo()
+            </span>
+        }
         <span class="text-body-tertiary ms-2">@p.PedidoProposta.TipoProposta — @p.PedidoProposta.Area.ToLabel()</span>
     </div>
     <div class="d-flex gap-2 flex-wrap">

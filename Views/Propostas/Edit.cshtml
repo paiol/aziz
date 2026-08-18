@@ -50,7 +50,14 @@
 
                         <div class="col-md-4">
                             <label asp-for="PrazoEntregaDias" class="form-label">Prazo de Entrega (Dias)</label>
-                            <input asp-for="PrazoEntregaDias" class="form-control" type="number" min="0" />
+                            <input asp-for="PrazoEntregaDias" id="prazoEntregaDias" class="form-control" type="number" min="0" />
+                            @if (ViewBag.DiasDisponiveis != null)
+                            {
+                                <div class="form-text">Prazo solicitado: @((int)ViewBag.DiasDisponiveis) dias (até @(((DateTime)ViewBag.PrazoSolicitadoData).ToString("dd/MM/yyyy"))).</div>
+                                <div id="avisoPrazo" class="alert alert-warning mt-2 py-1 px-2 small d-none">
+                                    <i class="fas fa-triangle-exclamation me-1"></i> O prazo indicado é maior do que o solicitado.
+                                </div>
+                            }
                         </div>
 
                         <div class="col-md-4">
@@ -123,3 +130,24 @@
         </div>
     </div>
 </div>
+
+@if (ViewBag.DiasDisponiveis != null)
+{
+    @section Scripts {
+        <script>
+            (function () {
+                var limite = @((int)ViewBag.DiasDisponiveis);
+                var input = document.getElementById('prazoEntregaDias');
+                var aviso = document.getElementById('avisoPrazo');
+
+                function verificar() {
+                    var valor = parseInt(input.value, 10);
+                    aviso.classList.toggle('d-none', !(valor > limite));
+                }
+
+                input.addEventListener('input', verificar);
+                verificar();
+            })();
+        </script>
+    }
+}

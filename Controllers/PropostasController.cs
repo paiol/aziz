@@ -21,13 +21,22 @@ public class PropostasController : Controller
         _logger = logger;
     }
 
+    private void DefinirViewBagPrazoSolicitado(DateTime? prazoSolicitado)
+    {
+        ViewBag.PrazoSolicitadoData = prazoSolicitado;
+        ViewBag.DiasDisponiveis = prazoSolicitado.HasValue
+            ? (int?)(prazoSolicitado.Value.Date - DateTime.Today).Days
+            : null;
+    }
+
     public IActionResult Create(int processoId)
     {
-        var processo = _db.Processos.Find(processoId);
+        var processo = _db.Processos.Include(p => p.PedidoProposta).FirstOrDefault(p => p.Id == processoId);
         if (processo == null) return NotFound();
 
         ViewBag.ProcessoNome = processo.Nome;
         ViewBag.TipoCompra = processo.TipoCompra;
+        DefinirViewBagPrazoSolicitado(processo.PedidoProposta.PrazoEntrega);
         return View(new Proposta
         {
             ProcessoId = processoId,
@@ -57,6 +66,7 @@ public class PropostasController : Controller
         {
             ViewBag.ProcessoNome = processo.Nome;
             ViewBag.TipoCompra = processo.TipoCompra;
+            DefinirViewBagPrazoSolicitado(processo.PedidoProposta.PrazoEntrega);
             return View(proposta);
         }
 
@@ -80,6 +90,7 @@ public class PropostasController : Controller
             ModelState.AddModelError("", "Não foi possível criar a proposta.");
             ViewBag.ProcessoNome = processo.Nome;
             ViewBag.TipoCompra = processo.TipoCompra;
+            DefinirViewBagPrazoSolicitado(processo.PedidoProposta.PrazoEntrega);
             return View(proposta);
         }
     }
@@ -89,9 +100,10 @@ public class PropostasController : Controller
         var proposta = _db.Propostas.Include(p => p.Anexos).FirstOrDefault(p => p.Id == id);
         if (proposta == null) return NotFound();
 
-        var processo = _db.Processos.Find(proposta.ProcessoId);
+        var processo = _db.Processos.Include(p => p.PedidoProposta).FirstOrDefault(p => p.Id == proposta.ProcessoId);
         ViewBag.ProcessoNome = processo?.Nome;
         ViewBag.TipoCompra = processo?.TipoCompra ?? TipoCompra.Nacional;
+        DefinirViewBagPrazoSolicitado(processo?.PedidoProposta.PrazoEntrega);
         return View(proposta);
     }
 
@@ -107,7 +119,7 @@ public class PropostasController : Controller
 
         if (existente == null) return NotFound();
 
-        var processo = _db.Processos.Find(proposta.ProcessoId);
+        var processo = _db.Processos.Include(p => p.PedidoProposta).FirstOrDefault(p => p.Id == proposta.ProcessoId);
 
         if (proposta.TaxaCambio <= 0)
         {
@@ -118,6 +130,7 @@ public class PropostasController : Controller
         {
             ViewBag.ProcessoNome = processo?.Nome;
             ViewBag.TipoCompra = processo?.TipoCompra ?? TipoCompra.Nacional;
+            DefinirViewBagPrazoSolicitado(processo?.PedidoProposta.PrazoEntrega);
             return View(proposta);
         }
 
@@ -147,6 +160,7 @@ public class PropostasController : Controller
             ModelState.AddModelError("", "Não foi possível guardar as alterações.");
             ViewBag.ProcessoNome = processo?.Nome;
             ViewBag.TipoCompra = processo?.TipoCompra ?? TipoCompra.Nacional;
+            DefinirViewBagPrazoSolicitado(processo?.PedidoProposta.PrazoEntrega);
             return View(proposta);
         }
     }

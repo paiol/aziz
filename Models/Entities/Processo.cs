@@ -43,6 +43,10 @@ public class Processo
 
     public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
 
+    // Quando o Estado mudou pela última vez — usado para os alertas de prazo
+    // (tempo demasiado longo num estado). Atualizado sempre que o Estado muda.
+    public DateTime StatusAlteradoEm { get; set; } = DateTime.UtcNow;
+
     // Dados de Adjudicação
     [Display(Name = "Proposta Vencedora")]
     public int? PropostaVencedoraId { get; set; }
