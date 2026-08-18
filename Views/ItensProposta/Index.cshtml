@@ -41,8 +41,16 @@
                 @foreach (var item in Model.Itens)
                 {
                     var difere = item.QuantidadeSolicitada.HasValue && item.QuantidadeSolicitada.Value != item.Quantidade;
-                    <tr>
-                        <td>@item.ItemMaterial.NomeItem</td>
+                    <tr class="@(item.NaoSolicitado ? "table-warning" : "")">
+                        <td>
+                            @item.NomeExibicao
+                            @if (item.NaoSolicitado)
+                            {
+                                <span class="badge bg-warning text-dark ms-1" title="Item enviado pelo fornecedor mas não pedido no processo">
+                                    <i class="fas fa-triangle-exclamation me-1"></i>Não pedido
+                                </span>
+                            }
+                        </td>
                         <td>@(item.Incluido ? "Sim" : "Não")</td>
                         <td>@(item.QuantidadeSolicitada?.ToString() ?? "-")</td>
                         <td class="@(difere ? "cell-melhor" : "")">@item.Quantidade</td>

@@ -6,29 +6,48 @@
 
 <h2>Editar Item — @ViewBag.PropostaFornecedor</h2>
 
+@if (Model.NaoSolicitado)
+{
+    <div class="alert alert-warning">
+        <i class="fas fa-triangle-exclamation me-1"></i>
+        Este item foi adicionado pelo fornecedor mas não fazia parte do pedido de aquisição.
+    </div>
+}
+
 <div class="card">
     <div class="card-body">
         <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
             <input type="hidden" asp-for="Id" />
             <input type="hidden" asp-for="PropostaId" />
+            <input type="hidden" asp-for="NaoSolicitado" />
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <div class="row g-3">
-                <div class="col-md-6">
-                    <label asp-for="ItemMaterialId" class="form-label">Item</label>
-                    <select asp-for="ItemMaterialId" class="form-select">
-                        @foreach (var grupo in itens.GroupBy(i => string.IsNullOrEmpty(i.Dominio) ? "Sem domínio" : i.Dominio))
-                        {
-                            <optgroup label="@grupo.Key">
-                                @foreach (var i in grupo)
-                                {
-                                    var prefixo = i.ItemPaiId != null ? "— " : "";
-                                    var sufixoUnidade = string.IsNullOrWhiteSpace(i.Unidade) ? "" : $" · {i.Unidade}";
-                                    <option value="@i.Id">@prefixo@i.NomeItem@sufixoUnidade</option>
-                                }
-                            </optgroup>
-                        }
-                    </select>
-                </div>
+                @if (Model.ItemMaterialId.HasValue)
+                {
+                    <div class="col-md-6">
+                        <label asp-for="ItemMaterialId" class="form-label">Item</label>
+                        <select asp-for="ItemMaterialId" class="form-select">
+                            @foreach (var grupo in itens.GroupBy(i => string.IsNullOrEmpty(i.Dominio) ? "Sem domínio" : i.Dominio))
+                            {
+                                <optgroup label="@grupo.Key">
+                                    @foreach (var i in grupo)
+                                    {
+                                        var prefixo = i.ItemPaiId != null ? "— " : "";
+                                        var sufixoUnidade = string.IsNullOrWhiteSpace(i.Unidade) ? "" : $" · {i.Unidade}";
+                                        <option value="@i.Id">@prefixo@i.NomeItem@sufixoUnidade</option>
+                                    }
+                                </optgroup>
+                            }
+                        </select>
+                    </div>
+                }
+                else
+                {
+                    <div class="col-md-6">
+                        <label asp-for="NomeItemLivre" class="form-label">Item (nome enviado pelo fornecedor, não catalogado)</label>
+                        <input asp-for="NomeItemLivre" class="form-control" />
+                    </div>
+                }
                 <div class="col-md-2">
                     <label asp-for="QuantidadeSolicitada" class="form-label"></label>
                     <input asp-for="QuantidadeSolicitada" class="form-control" type="number" step="0.001" />

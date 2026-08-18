@@ -1,0 +1,64 @@
+@model ComparacaoPropostas.ViewModels.ItensProposta.ConfirmarImportacaoVM
+@{
+    ViewData["Title"] = "Confirmar Itens do Excel";
+}
+
+<h2>Confirmar Itens — @Model.PropostaFornecedor</h2>
+<p class="text-body-tertiary">
+    Estes itens do ficheiro Excel têm um nome diferente de qualquer item pedido neste processo.
+    Para cada um, confirma se é o <strong>mesmo item pedido</strong> (só com nomenclatura diferente) ou se é
+    mesmo um <strong>item diferente</strong>, que não fazia parte do pedido — nesse caso fica marcado na proposta
+    com um aviso.
+</p>
+
+<form asp-action="ConfirmarImportacao" method="post">
+    <input type="hidden" asp-for="PropostaId" />
+
+    @for (var i = 0; i < Model.Itens.Count; i++)
+    {
+        var linha = Model.Itens[i];
+        <div class="card mb-3 border-warning">
+            <div class="card-body">
+                <input type="hidden" asp-for="Itens[i].NomeItem" />
+                <input type="hidden" asp-for="Itens[i].QuantidadeFornecida" />
+                <input type="hidden" asp-for="Itens[i].PrecoUnitario" />
+                <input type="hidden" asp-for="Itens[i].Observacao" />
+
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+                    <div>
+                        <span class="badge bg-warning text-dark mb-1"><i class="fas fa-triangle-exclamation me-1"></i>Nome não reconhecido</span>
+                        <h5 class="mb-0">@linha.NomeItem</h5>
+                        <span class="text-body-tertiary small">
+                            Qtd. fornecida: @linha.QuantidadeFornecida — Preço: @linha.PrecoUnitario.ToString("C")
+                            @if (!string.IsNullOrWhiteSpace(linha.Observacao))
+                            {
+                                <text> — @linha.Observacao</text>
+                            }
+                        </span>
+                    </div>
+                </div>
+
+                <label class="form-label">É o mesmo item que</label>
+                <select asp-for="Itens[i].EscolhaItemPedidoId" class="form-select">
+                    <option value="">— Item diferente (não foi pedido) —</option>
+                    @foreach (var opcao in Model.ItensPedidoDisponiveis)
+                    {
+                        if (opcao.ItemPedidoId == linha.SugestaoItemPedidoId)
+                        {
+                            <option value="@opcao.ItemPedidoId" selected="selected">@opcao.NomeItem (sugestão)</option>
+                        }
+                        else
+                        {
+                            <option value="@opcao.ItemPedidoId">@opcao.NomeItem</option>
+                        }
+                    }
+                </select>
+            </div>
+        </div>
+    }
+
+    <div class="mt-4">
+        <button type="submit" class="btn btn-primary">Confirmar Importação</button>
+        <a class="btn btn-subtle-secondary" asp-action="Index" asp-route-propostaId="@Model.PropostaId">Cancelar</a>
+    </div>
+</form>

@@ -141,7 +141,8 @@ public class ScoringService : IScoringService
 
         var itensMateriais = processo.Propostas
             .SelectMany(p => p.ItensProposta)
-            .Select(ip => ip.ItemMaterial)
+            .Where(ip => ip.ItemMaterialId.HasValue)
+            .Select(ip => ip.ItemMaterial!)
             .DistinctBy(im => im.Id)
             .OrderBy(im => im.NomeItem)
             .ToList();
@@ -272,8 +273,8 @@ public class ScoringService : IScoringService
     internal (decimal Nota, string Justificativa) CalcularNotaPreco(Proposta proposta, List<Proposta> todasPropostas)
     {
         var itensIds = todasPropostas
-            .SelectMany(p => p.ItensProposta.Where(i => i.Incluido))
-            .Select(i => i.ItemMaterialId)
+            .SelectMany(p => p.ItensProposta.Where(i => i.Incluido && i.ItemMaterialId.HasValue))
+            .Select(i => i.ItemMaterialId!.Value)
             .Distinct()
             .ToList();
 

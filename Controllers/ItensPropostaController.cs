@@ -41,7 +41,7 @@ public class ItensPropostaController : Controller
 
         if (proposta == null) return NotFound();
 
-        var itens = proposta.ItensProposta.OrderBy(ip => ip.ItemMaterial.NomeItem).ToList();
+        var itens = proposta.ItensProposta.OrderBy(ip => ip.NomeExibicao).ToList();
         var incluidos = itens.Where(i => i.Incluido).ToList();
 
         var indexVm = new ItensPropostaIndexVM
@@ -49,7 +49,7 @@ public class ItensPropostaController : Controller
             Proposta = proposta,
             Itens = itens,
             ResumoPorItem = incluidos
-                .GroupBy(i => i.ItemMaterial.NomeItem)
+                .GroupBy(i => i.NomeExibicao)
                 .Select(g => new ResumoItemVM
                 {
                     NomeItem = g.Key,
@@ -132,41 +132,40 @@ public class ItensPropostaController : Controller
             using var stream = ficheiro.OpenReadStream();
             var linhas = _excelService.LerRespostaExcel(stream);
 
-            var itensPorNome = proposta.Processo.PedidoProposta.ItensPedido
+            var itensPedido = proposta.Processo.PedidoProposta.ItensPedido;
+            var itensPorNome = itensPedido
                 .GroupBy(ip => ip.ItemMaterial.NomeItem.Trim(), StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
-            var existentesPorItemMaterial = proposta.ItensProposta.ToDictionary(i => i.ItemMaterialId);
+            var existentesPorItemMaterial = proposta.ItensProposta
+                .Where(i => i.ItemMaterialId.HasValue)
+                .ToDictionary(i => i.ItemMaterialId!.Value);
 
-            var naoReconhecidos = new List<string>();
+            var pendentes = new List<ItemPendenteVM>();
             var atualizados = 0;
             var criados = 0;
 
             foreach (var linha in linhas)
             {
-                int? itemMaterialId;
-                decimal? quantidadeSolicitada = null;
-
-                if (itensPorNome.TryGetValue(linha.NomeItem.Trim(), out var itemPedido))
+                // Nome não corresponde a nenhum item pedido neste processo — em vez de
+                // importar às cegas (ou ignorar), pedimos confirmação ao utilizador.
+                if (!itensPorNome.TryGetValue(linha.NomeItem.Trim(), out var itemPedido))
                 {
-                    itemMaterialId = itemPedido.ItemMaterialId;
-                    quantidadeSolicitada = itemPedido.QuantidadeSolicitada;
-                }
-                else
-                {
-                    var itemCatalogo = _db.ItensMaterial.FirstOrDefault(im => im.NomeItem == linha.NomeItem);
-                    if (itemCatalogo == null)
+                    pendentes.Add(new ItemPendenteVM
                     {
-                        naoReconhecidos.Add(linha.NomeItem);
-                        continue;
-                    }
-                    itemMaterialId = itemCatalogo.Id;
+                        NomeItem = linha.NomeItem,
+                        QuantidadeFornecida = linha.QuantidadeFornecida ?? 0,
+                        PrecoUnitario = linha.PrecoUnitario ?? 0,
+                        Observacao = linha.Observacao,
+                        SugestaoItemPedidoId = MelhorSugestao(linha.NomeItem, itensPedido)
+                    });
+                    continue;
                 }
 
                 var quantidadeFornecida = linha.QuantidadeFornecida ?? 0;
                 var preco = linha.PrecoUnitario ?? 0;
 
-                if (existentesPorItemMaterial.TryGetValue(itemMaterialId.Value, out var existente))
+                if (existentesPorItemMaterial.TryGetValue(itemPedido.ItemMaterialId, out var existente))
                 {
                     existente.Quantidade = quantidadeFornecida;
                     existente.PrecoUnitario = preco;
@@ -176,16 +175,19 @@ public class ItensPropostaController : Controller
                 }
                 else
                 {
-                    _db.ItensProposta.Add(new ItemProposta
+                    var novo = new ItemProposta
                     {
                         PropostaId = propostaId,
-                        ItemMaterialId = itemMaterialId.Value,
-                        QuantidadeSolicitada = quantidadeSolicitada,
+                        ItemMaterialId = itemPedido.ItemMaterialId,
+                        QuantidadeSolicitada = itemPedido.QuantidadeSolicitada,
                         Quantidade = quantidadeFornecida,
                         PrecoUnitario = preco,
                         Observacao = linha.Observacao,
-                        Incluido = quantidadeFornecida > 0 || preco > 0
-                    });
+                        Incluido = quantidadeFornecida > 0 || preco > 0,
+                        NaoSolicitado = false
+                    };
+                    _db.ItensProposta.Add(novo);
+                    existentesPorItemMaterial[itemPedido.ItemMaterialId] = novo;
                     criados++;
                 }
             }
@@ -193,10 +195,31 @@ public class ItensPropostaController : Controller
             _db.SaveChanges();
             RecalcularTotalProposta(propostaId);
 
-            var mensagem = $"Ficheiro importado: {atualizados} item(ns) atualizado(s), {criados} novo(s).";
-            if (naoReconhecidos.Count > 0)
-                mensagem += $" Não reconhecidos (ignorados): {string.Join(", ", naoReconhecidos)}.";
-            TempData["Sucesso"] = mensagem;
+            if (pendentes.Count > 0)
+            {
+                var vm = new ConfirmarImportacaoVM
+                {
+                    PropostaId = propostaId,
+                    PropostaFornecedor = proposta.Fornecedor,
+                    Itens = pendentes,
+                    ItensPedidoDisponiveis = itensPedido
+                        .Select(ip => new OpcaoItemPedidoVM
+                        {
+                            ItemPedidoId = ip.Id,
+                            ItemMaterialId = ip.ItemMaterialId,
+                            NomeItem = ip.ItemMaterial.NomeItem
+                        })
+                        .OrderBy(o => o.NomeItem)
+                        .ToList()
+                };
+
+                TempData["EmailWarning"] = $"{atualizados + criados} item(ns) importado(s) diretamente. " +
+                    $"{pendentes.Count} item(ns) do ficheiro têm um nome diferente de qualquer item pedido — confirme abaixo se é o mesmo item ou um item novo.";
+
+                return View("ConfirmarImportacao", vm);
+            }
+
+            TempData["Sucesso"] = $"Ficheiro importado: {atualizados} item(ns) atualizado(s), {criados} novo(s).";
         }
         catch (Exception ex)
         {
@@ -205,6 +228,104 @@ public class ItensPropostaController : Controller
         }
 
         return RedirectToAction(nameof(Index), new { propostaId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult ConfirmarImportacao(ConfirmarImportacaoVM model)
+    {
+        var proposta = _db.Propostas
+            .Include(p => p.ItensProposta)
+            .Include(p => p.Processo).ThenInclude(pr => pr.PedidoProposta).ThenInclude(pp => pp.ItensPedido).ThenInclude(ip => ip.ItemMaterial)
+            .FirstOrDefault(p => p.Id == model.PropostaId);
+
+        if (proposta == null) return NotFound();
+
+        var itensPedidoPorId = proposta.Processo.PedidoProposta.ItensPedido.ToDictionary(ip => ip.Id);
+        var existentesPorItemMaterial = proposta.ItensProposta
+            .Where(i => i.ItemMaterialId.HasValue)
+            .ToDictionary(i => i.ItemMaterialId!.Value);
+
+        var confirmadosMesmoItem = 0;
+        var adicionadosNaoSolicitados = 0;
+
+        foreach (var linha in model.Itens ?? new())
+        {
+            if (linha.EscolhaItemPedidoId.HasValue && itensPedidoPorId.TryGetValue(linha.EscolhaItemPedidoId.Value, out var itemPedido))
+            {
+                // Confirmado: é o mesmo item pedido, só o nome veio diferente no Excel.
+                if (existentesPorItemMaterial.TryGetValue(itemPedido.ItemMaterialId, out var existente))
+                {
+                    existente.Quantidade = linha.QuantidadeFornecida;
+                    existente.PrecoUnitario = linha.PrecoUnitario;
+                    if (!string.IsNullOrWhiteSpace(linha.Observacao)) existente.Observacao = linha.Observacao;
+                    existente.Incluido = linha.QuantidadeFornecida > 0 || linha.PrecoUnitario > 0;
+                }
+                else
+                {
+                    var novo = new ItemProposta
+                    {
+                        PropostaId = model.PropostaId,
+                        ItemMaterialId = itemPedido.ItemMaterialId,
+                        QuantidadeSolicitada = itemPedido.QuantidadeSolicitada,
+                        Quantidade = linha.QuantidadeFornecida,
+                        PrecoUnitario = linha.PrecoUnitario,
+                        Observacao = linha.Observacao,
+                        Incluido = linha.QuantidadeFornecida > 0 || linha.PrecoUnitario > 0,
+                        NaoSolicitado = false
+                    };
+                    _db.ItensProposta.Add(novo);
+                    existentesPorItemMaterial[itemPedido.ItemMaterialId] = novo;
+                }
+                confirmadosMesmoItem++;
+            }
+            else
+            {
+                // Confirmado: é mesmo um item diferente, não fazia parte do pedido.
+                // Reaproveita o item do catálogo geral se já existir com este nome
+                // exato; caso contrário guarda só o nome, sem criar item novo no catálogo.
+                var itemCatalogo = _db.ItensMaterial.FirstOrDefault(im => im.NomeItem == linha.NomeItem);
+
+                _db.ItensProposta.Add(new ItemProposta
+                {
+                    PropostaId = model.PropostaId,
+                    ItemMaterialId = itemCatalogo?.Id,
+                    NomeItemLivre = itemCatalogo == null ? linha.NomeItem : null,
+                    Quantidade = linha.QuantidadeFornecida,
+                    PrecoUnitario = linha.PrecoUnitario,
+                    Observacao = linha.Observacao,
+                    Incluido = linha.QuantidadeFornecida > 0 || linha.PrecoUnitario > 0,
+                    NaoSolicitado = true
+                });
+                adicionadosNaoSolicitados++;
+            }
+        }
+
+        _db.SaveChanges();
+        RecalcularTotalProposta(model.PropostaId);
+
+        TempData["Sucesso"] = $"{confirmadosMesmoItem} item(ns) associado(s) ao pedido (nomenclatura diferente), " +
+            $"{adicionadosNaoSolicitados} item(ns) adicionado(s) como não solicitado(s).";
+
+        return RedirectToAction(nameof(Index), new { propostaId = model.PropostaId });
+    }
+
+    private static int? MelhorSugestao(string nomeItem, IEnumerable<ItemPedido> itensPedido)
+    {
+        ItemPedido? melhor = null;
+        var melhorScore = 0.0;
+
+        foreach (var ip in itensPedido)
+        {
+            var score = TextSimilarityHelper.Similaridade(nomeItem, ip.ItemMaterial.NomeItem);
+            if (score > melhorScore)
+            {
+                melhorScore = score;
+                melhor = ip;
+            }
+        }
+
+        return melhorScore >= 0.5 ? melhor?.Id : null;
     }
 
     public IActionResult Edit(int id)
