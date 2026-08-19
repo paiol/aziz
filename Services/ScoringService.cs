@@ -162,7 +162,10 @@ public class ScoringService : IScoringService
             foreach (var proposta in processo.Propostas)
             {
                 var itemProposta = proposta.ItensProposta.FirstOrDefault(ip => ip.ItemMaterialId == item.Id);
-                var incluido = itemProposta?.Incluido ?? false;
+                // Preço 0 significa "ainda não cotado" (valor por omissão ao clonar os itens do
+                // pedido para a proposta), não uma oferta genuína a custo zero — sem isto, um item
+                // nunca cotado por um fornecedor ganhava sempre o destaque de "melhor preço".
+                var incluido = itemProposta != null && itemProposta.Incluido && itemProposta.PrecoUnitario > 0;
 
                 linha.IncluidoPorProposta[proposta.Id] = incluido;
                 linha.QuantidadePorProposta[proposta.Id] = incluido ? itemProposta!.Quantidade : null;

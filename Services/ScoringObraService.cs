@@ -138,7 +138,9 @@ public class ScoringObraService : IScoringObraService
             foreach (var proposta in propostas)
             {
                 var itemProposta = proposta.ItensProposta.FirstOrDefault(i => i.ItemMQTId == item.Id);
-                var incluido = itemProposta?.Incluido ?? false;
+                // Preço 0 significa "ainda não cotado" (valor por omissão ao clonar os itens do
+                // MQT para a proposta), não uma oferta genuína a custo zero.
+                var incluido = itemProposta != null && itemProposta.Incluido && itemProposta.PrecoUnitario > 0;
 
                 linha.IncluidoPorProposta[proposta.Id] = incluido;
                 linha.QuantidadePorProposta[proposta.Id] = incluido ? itemProposta!.QuantidadeFornecida : null;
