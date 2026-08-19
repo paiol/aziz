@@ -18,6 +18,9 @@ builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpS
 builder.Services.AddScoped<IScoringService, ScoringService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IPropostaExcelService, PropostaExcelService>();
+builder.Services.AddScoped<IScoringObraService, ScoringObraService>();
+builder.Services.AddScoped<IMqtExcelService, MqtExcelService>();
+builder.Services.AddScoped<IEmailObraService, EmailObraService>();
 
 var app = builder.Build();
 

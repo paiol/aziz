@@ -1,0 +1,52 @@
+@model List<ComparacaoPropostas.Models.Entities.CriterioObra>
+@{
+    var projeto = (ComparacaoPropostas.Models.Entities.ProjetoObra)ViewBag.ProjetoObra;
+    ViewData["Title"] = "Critérios de Avaliação";
+    var somaPesos = Model.Sum(c => c.Peso);
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Critérios de Avaliação — @projeto.Designacao</h2>
+    <a class="btn btn-primary" asp-action="Create" asp-route-projetoObraId="@projeto.Id"><span class="fas fa-plus me-1"></span> Adicionar Critérios</a>
+</div>
+
+<div class="alert @(somaPesos == 100 ? "alert-subtle-success" : "alert-subtle-warning")">
+    Soma dos pesos: <strong>@somaPesos.ToString("0.##")%</strong>
+    @(somaPesos == 100 ? " — completo." : " — os pesos devem somar 100%.")
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Critério</th>
+                    <th>Categoria</th>
+                    <th>Peso</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in Model)
+                {
+                    <tr>
+                        <td>@c.Nome</td>
+                        <td>@(c.Categoria ?? "-")</td>
+                        <td>@c.Peso.ToString("0.##")%</td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-subtle-secondary" asp-action="Edit" asp-route-id="@c.Id">Editar</a>
+                            <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
+                                    data-url="@Url.Action("Delete", new { id = c.Id })" data-id="@c.Id">Apagar</button>
+                        </td>
+                    </tr>
+                }
+                @if (Model.Count == 0)
+                {
+                    <tr><td colspan="4" class="text-body-tertiary">Ainda não há critérios definidos.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<a class="btn btn-subtle-secondary mt-3" asp-controller="ProjetosObra" asp-action="Details" asp-route-id="@projeto.Id">Voltar ao Projeto</a>

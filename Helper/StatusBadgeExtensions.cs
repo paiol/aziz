@@ -71,4 +71,56 @@ public static class StatusBadgeExtensions
         TipoCompra.Internacional => "Internacional",
         _ => tipoCompra.ToString()
     };
+
+    public static string ToBadgeClass(this StatusProjetoObra status) => status switch
+    {
+        StatusProjetoObra.EmConcurso => "badge bg-primary",
+        StatusProjetoObra.EmExecucao => "badge bg-warning text-dark",
+        StatusProjetoObra.Concluido => "badge bg-success",
+        _ => "badge bg-secondary"
+    };
+
+    public static string ToLabel(this StatusProjetoObra status) => status switch
+    {
+        StatusProjetoObra.EmConcurso => "Em Concurso",
+        StatusProjetoObra.EmExecucao => "Em Execução",
+        StatusProjetoObra.Concluido => "Concluído",
+        _ => status.ToString()
+    };
+
+    public static string ToLabel(this TipoProjetoObra tipo) => tipo switch
+    {
+        TipoProjetoObra.Edificacao => "Edificação",
+        TipoProjetoObra.Infraestrutura => "Infraestrutura",
+        TipoProjetoObra.Especiais => "Especiais",
+        _ => tipo.ToString()
+    };
+
+    public static string ToBadgeClass(this StatusPropostaEmpreiteiro status) => status switch
+    {
+        StatusPropostaEmpreiteiro.Recebida => "badge bg-info text-dark",
+        StatusPropostaEmpreiteiro.EmAnalise => "badge bg-warning text-dark",
+        StatusPropostaEmpreiteiro.Aceite => "badge bg-success",
+        StatusPropostaEmpreiteiro.Rejeitada => "badge bg-danger",
+        _ => "badge bg-secondary"
+    };
+
+    public static string ToLabel(this StatusPropostaEmpreiteiro status) => status switch
+    {
+        StatusPropostaEmpreiteiro.Recebida => "Recebida",
+        StatusPropostaEmpreiteiro.EmAnalise => "Em Análise",
+        StatusPropostaEmpreiteiro.Aceite => "Aceite",
+        StatusPropostaEmpreiteiro.Rejeitada => "Rejeitada",
+        _ => status.ToString()
+    };
+
+    public static string ToLabel(this TipoDocumentoObra tipo) => tipo switch
+    {
+        TipoDocumentoObra.Desenhos => "Desenhos",
+        TipoDocumentoObra.CadernoEncargos => "Caderno de Encargos",
+        TipoDocumentoObra.MapaQuantidades => "Mapa de Quantidades",
+        TipoDocumentoObra.Fotografias => "Fotografias",
+        TipoDocumentoObra.DocDiversos => "Doc. Diversos",
+        _ => tipo.ToString()
+    };
 }

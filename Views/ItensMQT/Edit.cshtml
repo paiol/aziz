@@ -1,0 +1,40 @@
+@model ComparacaoPropostas.Models.Entities.ItemMQT
+@{
+    ViewData["Title"] = "Editar Item do MQT";
+}
+
+<h2>Editar Item</h2>
+
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="ProjetoObraId" />
+            <input type="hidden" asp-for="NaoPrevisto" />
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label asp-for="CodigoIndexacao" class="form-label">Código</label>
+                    <input asp-for="CodigoIndexacao" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Descricao" class="form-label"></label>
+                    <input asp-for="Descricao" class="form-control" required />
+                    <span asp-validation-for="Descricao" class="text-danger"></span>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="Unidade" class="form-label"></label>
+                    <input asp-for="Unidade" class="form-control" />
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="Quantidade" class="form-label"></label>
+                    <input asp-for="Quantidade" class="form-control" type="number" step="0.001" />
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">Guardar</button>
+                <a asp-action="Index" asp-route-projetoObraId="@Model.ProjetoObraId" class="btn btn-subtle-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>

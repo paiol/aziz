@@ -1,0 +1,247 @@
+@using ComparacaoPropostas.Helper
+@using ComparacaoPropostas.Models.Entities.Enums
+@model ComparacaoPropostas.ViewModels.ProjetosObra.ProjetoObraDetailVM
+@{
+    ViewData["Title"] = Model.ProjetoObra.Designacao;
+    var p = Model.ProjetoObra;
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-1">@p.Designacao</h2>
+        <span class="@p.Status.ToBadgeClass()">@p.Status.ToLabel()</span>
+        <span class="text-body-tertiary ms-2">@p.Tipo.ToLabel() @(string.IsNullOrWhiteSpace(p.Local) ? "" : $"— {p.Local}")</span>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-subtle-secondary" asp-action="Edit" asp-route-id="@p.Id">
+            <span class="fas fa-edit me-1"></span> Editar
+        </a>
+        <a class="btn btn-success" asp-controller="ComparacaoObras" asp-action="Index" asp-route-projetoObraId="@p.Id">
+            <span class="fas fa-scale-balanced me-1"></span> Ver Comparação
+        </a>
+        @if (Model.Propostas.Count > 0)
+        {
+            <a class="btn btn-primary" asp-action="Adjudicar" asp-route-id="@p.Id">
+                <span class="fas fa-trophy me-1"></span> Adjudicar Projeto
+            </a>
+        }
+    </div>
+</div>
+
+@if (p.Status == StatusProjetoObra.Concluido && p.PropostaVencedoraId.HasValue)
+{
+    <div class="card border-success mb-3 shadow-sm">
+        <div class="card-header bg-success bg-opacity-10">
+            <h5 class="mb-0 text-success"><i class="fas fa-award me-2"></i> Projeto Concluído / Adjudicado</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <span class="text-body-tertiary d-block small">Empreiteiro Vencedor</span>
+                    <strong class="fs-1 text-dark">@(p.PropostaVencedora?.Empreiteiro ?? "Não identificado")</strong>
+                </div>
+                <div class="col-md-4">
+                    <span class="text-body-tertiary d-block small">Valor Adjudicado</span>
+                    <strong class="fs-1 text-dark">@(p.ValorAdjudicado?.ToString("C") ?? "-")</strong>
+                </div>
+                <div class="col-md-4">
+                    <span class="text-body-tertiary d-block small">Data de Adjudicação</span>
+                    <span>@(p.DataAdjudicacao?.ToString("dd/MM/yyyy HH:mm") ?? "-")</span>
+                </div>
+                <div class="col-md-4">
+                    <span class="text-body-tertiary d-block small">Responsável pela Decisão</span>
+                    <span>@(p.ResponsavelAdjudicacao ?? "-")</span>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(p.JustificativaAdjudicacao))
+                {
+                    <div class="col-12">
+                        <span class="text-body-tertiary d-block small">Justificação da Decisão:</span>
+                        <div class="p-2 bg-light rounded border text-secondary">@p.JustificativaAdjudicacao</div>
+                    </div>
+                }
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(Model.MailtoResultado))
+            {
+                <hr />
+                <h6 class="mb-2"><i class="fas fa-envelope me-1"></i> Notificar quem apresentou a melhor proposta</h6>
+                <a href="@Model.MailtoResultado" class="btn btn-sm btn-outline-primary">Abrir no Email</a>
+                <div class="mt-2">
+                    <label class="form-label small mb-1">Destinatários</label>
+                    <input type="text" class="form-control form-control-sm mb-2" value="@Model.EmailDestinatarios" readonly />
+                    <label class="form-label small mb-1">Corpo da mensagem</label>
+                    <textarea class="form-control form-control-sm" rows="4" readonly>@Model.EmailCorpo</textarea>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-header"><h5 class="mb-0">Dados do Projeto</h5></div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Cliente</dt>
+                    <dd class="col-sm-8">@(p.Cliente ?? "-")</dd>
+                    <dt class="col-sm-4">Valor Estimado</dt>
+                    <dd class="col-sm-8">@(p.ValorEstimado?.ToString("C") ?? "-")</dd>
+                    <dt class="col-sm-4">Prazo</dt>
+                    <dd class="col-sm-8">@(p.Prazo.HasValue ? $"{p.Prazo} dias" : "-")</dd>
+                    <dt class="col-sm-4">Criado por</dt>
+                    <dd class="col-sm-8">@(p.CriadoPor ?? "-")</dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Mapa de Quantidades (@Model.TotalItensMQT)</h5>
+                <a class="btn btn-sm btn-subtle-primary" asp-controller="ItensMQT" asp-action="Index" asp-route-projetoObraId="@p.Id">
+                    <span class="fas fa-list me-1"></span> Gerir Itens
+                </a>
+            </div>
+            <div class="card-body">
+                <p class="text-body-tertiary mb-0">Itens e quantidades do Mapa de Quantidades. Servem de referência para as propostas de todos os empreiteiros.</p>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Propostas dos Empreiteiros (@Model.Propostas.Count)</h5>
+                <a class="btn btn-sm btn-primary" asp-controller="PropostasEmpreiteiro" asp-action="Create" asp-route-projetoObraId="@p.Id">
+                    <span class="fas fa-plus me-1"></span> Adicionar Empreiteiro / Proposta
+                </a>
+            </div>
+            <div class="card-body p-0">
+                @if (Model.Propostas.Count == 0)
+                {
+                    <p class="text-body-tertiary p-3 mb-0">Ainda não há propostas associadas a este projeto.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Posição</th>
+                                    <th>Empreiteiro</th>
+                                    <th>Valor Total</th>
+                                    <th>Prazo</th>
+                                    <th>Pontuação</th>
+                                    <th>Estado</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var pr in Model.Propostas)
+                                {
+                                    var isVencedor = p.PropostaVencedoraId == pr.Id;
+                                    <tr class="@(isVencedor ? "table-success bg-opacity-10" : "")">
+                                        <td>
+                                            <span class="badge @(pr.PosicaoRanking == 1 ? "bg-warning text-dark" : "bg-light text-secondary border")">@(pr.PosicaoRanking)º</span>
+                                        </td>
+                                        <td>
+                                            <strong>@pr.Empreiteiro</strong>
+                                            @if (isVencedor)
+                                            {
+                                                <span class="badge bg-success ms-1"><i class="fas fa-check"></i> Vencedor</span>
+                                            }
+                                        </td>
+                                        <td>@pr.ValorTotal.ToString("C")</td>
+                                        <td>@(pr.PrazoEntregaDias.HasValue ? $"{pr.PrazoEntregaDias}d" : "-")</td>
+                                        <td><strong>@pr.PontuacaoPonderada.ToString("0.00")</strong> / 5.00</td>
+                                        <td><span class="@pr.Status.ToBadgeClass()">@pr.Status.ToLabel()</span></td>
+                                        <td class="text-end">
+                                            <div class="d-inline-flex flex-column gap-1">
+                                                <a class="btn btn-sm btn-subtle-primary" asp-controller="AvaliacoesObra" asp-action="Editar" asp-route-propostaEmpreiteiroId="@pr.Id">
+                                                    <i class="fas fa-star me-1"></i> Avaliar
+                                                </a>
+                                                <a class="btn btn-sm btn-subtle-secondary" asp-controller="ItensPropostaEmpreiteiro" asp-action="Index" asp-route-propostaEmpreiteiroId="@pr.Id">
+                                                    <i class="fas fa-list me-1"></i> Itens
+                                                </a>
+                                                <a class="btn btn-sm btn-subtle-secondary" asp-controller="PropostasEmpreiteiro" asp-action="Edit" asp-route-id="@pr.Id">
+                                                    <i class="fas fa-edit me-1"></i> Editar
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
+                                                        data-url="@Url.Action("Delete", "PropostasEmpreiteiro", new { id = pr.Id })" data-id="@pr.Id">
+                                                    <i class="fas fa-trash me-1"></i> Apagar
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Critérios (@Model.SomaPesos.ToString("0")%)</h5>
+                <a class="btn btn-sm btn-subtle-primary" asp-controller="CriteriosObra" asp-action="Index" asp-route-projetoObraId="@p.Id">Gerir</a>
+            </div>
+            <ul class="list-group list-group-flush">
+                @if (p.Criterios.Count == 0)
+                {
+                    <li class="list-group-item text-body-tertiary">Nenhum critério definido ainda.</li>
+                }
+                else
+                {
+                    @foreach (var c in p.Criterios.OrderByDescending(c => c.Peso))
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span class="fw-bold">@c.Nome</span>
+                            <span class="badge bg-subtle-primary text-primary">@c.Peso.ToString("0.##")%</span>
+                        </li>
+                    }
+                }
+            </ul>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header"><h5 class="mb-0">Estado do Projeto</h5></div>
+            <div class="card-body">
+                <form asp-action="MudarStatus" asp-route-id="@p.Id" method="post">
+                    <select name="novoStatus" class="form-select mb-2" asp-items="Html.GetEnumSelectList<StatusProjetoObra>()"></select>
+                    <button type="submit" class="btn btn-primary w-100">Atualizar Estado</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header"><h5 class="mb-0">Anexos</h5></div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush mb-3">
+                    @foreach (var anexo in p.Anexos)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <a asp-controller="AnexosObra" asp-action="Download" asp-route-id="@anexo.Id">@anexo.NomeArquivo</a>
+                                <span class="text-body-tertiary d-block small">@anexo.TipoDocumento.ToLabel()</span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
+                                    data-url="@Url.Action("Delete", "AnexosObra", new { id = anexo.Id })" data-id="@anexo.Id">
+                                <span class="fas fa-trash"></span>
+                            </button>
+                        </li>
+                    }
+                    @if (p.Anexos.Count == 0)
+                    {
+                        <li class="list-group-item text-body-tertiary">Sem anexos.</li>
+                    }
+                </ul>
+                <form asp-controller="AnexosObra" asp-action="Upload" asp-route-projetoObraId="@p.Id" method="post" enctype="multipart/form-data">
+                    <select name="tipoDocumento" class="form-select form-select-sm mb-2" asp-items="Html.GetEnumSelectList<TipoDocumentoObra>()"></select>
+                    <input type="file" name="ficheiro" class="form-control form-control-sm mb-2" required />
+                    <button type="submit" class="btn btn-sm btn-subtle-primary w-100">Enviar Anexo</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

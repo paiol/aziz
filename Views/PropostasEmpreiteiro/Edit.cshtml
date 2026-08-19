@@ -1,0 +1,62 @@
+@model ComparacaoPropostas.Models.Entities.PropostaEmpreiteiro
+@{
+    ViewData["Title"] = "Editar Proposta de Empreiteiro";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-1">Editar Proposta — @Model.Empreiteiro</h2>
+        <p class="text-body-tertiary mb-0">Projeto: @ViewBag.ProjetoObraNome</p>
+    </div>
+    <a class="btn btn-outline-primary" asp-controller="ItensPropostaEmpreiteiro" asp-action="Index" asp-route-propostaEmpreiteiroId="@Model.Id">
+        <span class="fas fa-boxes-stacked me-1"></span> Gerir Itens e Preços
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="ProjetoObraId" />
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Empreiteiro" class="form-label"></label>
+                    <input asp-for="Empreiteiro" class="form-control" required />
+                    <span asp-validation-for="Empreiteiro" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-3">
+                    <label asp-for="PrazoEntregaDias" class="form-label">Prazo de Entrega (Dias)</label>
+                    <input asp-for="PrazoEntregaDias" class="form-control" type="number" min="0" />
+                </div>
+
+                <div class="col-md-3">
+                    <label asp-for="ValidadeProposta" class="form-label"></label>
+                    <input asp-for="ValidadeProposta" class="form-control" type="date" />
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Status" class="form-label"></label>
+                    <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<ComparacaoPropostas.Models.Entities.Enums.StatusPropostaEmpreiteiro>()"></select>
+                </div>
+
+                <div class="col-md-8">
+                    <label class="form-label">Total Calculado dos Itens</label>
+                    <div class="form-control bg-light"><strong>@Model.Subtotal.ToString("C")</strong></div>
+                </div>
+
+                <div class="col-12">
+                    <label asp-for="Observacoes" class="form-label"></label>
+                    <textarea asp-for="Observacoes" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">Guardar Alterações</button>
+                <a asp-controller="ProjetosObra" asp-action="Details" asp-route-id="@Model.ProjetoObraId" class="btn btn-subtle-secondary">Voltar</a>
+            </div>
+        </form>
+    </div>
+</div>

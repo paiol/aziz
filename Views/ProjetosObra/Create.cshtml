@@ -1,0 +1,56 @@
+@model ComparacaoPropostas.Models.Entities.ProjetoObra
+@{
+    ViewData["Title"] = "Novo Projeto de Obra";
+}
+
+<h2>Novo Projeto de Obra</h2>
+
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Designacao" class="form-label"></label>
+                    <input asp-for="Designacao" class="form-control" placeholder="ex.: Quadros Elétricos - Loja X" required />
+                    <span asp-validation-for="Designacao" class="text-danger"></span>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="Tipo" class="form-label"></label>
+                    <select asp-for="Tipo" class="form-select" asp-items="Html.GetEnumSelectList<ComparacaoPropostas.Models.Entities.Enums.TipoProjetoObra>()"></select>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="Local" class="form-label">Local (Concelho)</label>
+                    <input asp-for="Local" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Cliente" class="form-label"></label>
+                    <input asp-for="Cliente" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="ValorEstimado" class="form-label"></label>
+                    <input asp-for="ValorEstimado" class="form-control" type="number" step="0.01" min="0" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Prazo" class="form-label"></label>
+                    <input asp-for="Prazo" class="form-control" type="number" min="0" placeholder="dias" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="CriadoPor" class="form-label"></label>
+                    <input asp-for="CriadoPor" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="EmailsNotificacao" class="form-label"></label>
+                    <input asp-for="EmailsNotificacao" class="form-control" placeholder="email1@empresa.cv, email2@empresa.cv" />
+                    <div class="form-text">Separe múltiplos e-mails por vírgula. Usados para comunicar quem apresentou a melhor proposta.</div>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <span class="fas fa-save me-1"></span> Criar Projeto
+                </button>
+                <a asp-action="Index" class="btn btn-subtle-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>

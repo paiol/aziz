@@ -28,6 +28,17 @@ public class AppDbContext : DbContext
     public DbSet<ItemFbb> ItensFbb => Set<ItemFbb>();
     public DbSet<ItemCore> ItensCore => Set<ItemCore>();
 
+    // Módulo Obras — registo de projetos de construção civil, mapa de quantidades e
+    // comparação de propostas de empreiteiros. Domínio totalmente independente do resto
+    // do modelo (sem FKs para Processo/Proposta/ItemMaterial/Criterio/Avaliacao).
+    public DbSet<ProjetoObra> ProjetosObra => Set<ProjetoObra>();
+    public DbSet<ProjetoObraAnexo> ProjetoObraAnexos => Set<ProjetoObraAnexo>();
+    public DbSet<ItemMQT> ItensMQT => Set<ItemMQT>();
+    public DbSet<CriterioObra> CriteriosObra => Set<CriterioObra>();
+    public DbSet<PropostaEmpreiteiro> PropostasEmpreiteiro => Set<PropostaEmpreiteiro>();
+    public DbSet<ItemPropostaEmpreiteiro> ItensPropostaEmpreiteiro => Set<ItemPropostaEmpreiteiro>();
+    public DbSet<AvaliacaoObra> AvaliacoesObra => Set<AvaliacaoObra>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Processo>(e =>
@@ -187,6 +198,91 @@ public class AppDbContext : DbContext
                 .WithMany(p => p.Anexos)
                 .HasForeignKey(a => a.PropostaId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Módulo Obras — todas as relações contidas dentro deste próprio grupo de tabelas.
+        modelBuilder.Entity<ProjetoObra>(e =>
+        {
+            e.Property(p => p.Tipo).HasConversion<string>().HasMaxLength(20);
+            e.Property(p => p.Status).HasConversion<string>().HasMaxLength(20);
+            e.Property(p => p.ValorEstimado).HasPrecision(18, 2);
+            e.Property(p => p.ValorAdjudicado).HasPrecision(18, 2);
+
+            e.HasOne(p => p.PropostaVencedora)
+                .WithMany()
+                .HasForeignKey(p => p.PropostaVencedoraId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ProjetoObraAnexo>(e =>
+        {
+            e.Property(a => a.TipoDocumento).HasConversion<string>().HasMaxLength(30);
+
+            e.HasOne(a => a.ProjetoObra)
+                .WithMany(p => p.Anexos)
+                .HasForeignKey(a => a.ProjetoObraId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ItemMQT>(e =>
+        {
+            e.Property(i => i.Quantidade).HasPrecision(18, 3);
+
+            e.HasOne(i => i.ProjetoObra)
+                .WithMany(p => p.ItensMQT)
+                .HasForeignKey(i => i.ProjetoObraId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CriterioObra>(e =>
+        {
+            e.Property(c => c.Peso).HasPrecision(5, 2);
+
+            e.HasOne(c => c.ProjetoObra)
+                .WithMany(p => p.Criterios)
+                .HasForeignKey(c => c.ProjetoObraId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PropostaEmpreiteiro>(e =>
+        {
+            e.Property(p => p.Status).HasConversion<string>().HasMaxLength(20);
+
+            e.HasOne(p => p.ProjetoObra)
+                .WithMany(o => o.Propostas)
+                .HasForeignKey(p => p.ProjetoObraId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ItemPropostaEmpreiteiro>(e =>
+        {
+            e.Property(i => i.QuantidadeFornecida).HasPrecision(18, 3);
+            e.Property(i => i.PrecoUnitario).HasPrecision(18, 2);
+
+            e.HasOne(i => i.PropostaEmpreiteiro)
+                .WithMany(p => p.ItensProposta)
+                .HasForeignKey(i => i.PropostaEmpreiteiroId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(i => i.ItemMQT)
+                .WithMany(m => m.ItensProposta)
+                .HasForeignKey(i => i.ItemMQTId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<AvaliacaoObra>(e =>
+        {
+            e.HasOne(a => a.PropostaEmpreiteiro)
+                .WithMany(p => p.Avaliacoes)
+                .HasForeignKey(a => a.PropostaEmpreiteiroId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(a => a.CriterioObra)
+                .WithMany(c => c.Avaliacoes)
+                .HasForeignKey(a => a.CriterioObraId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasIndex(a => new { a.PropostaEmpreiteiroId, a.CriterioObraId }).IsUnique();
         });
     }
 }

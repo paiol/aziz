@@ -1,0 +1,53 @@
+@model ComparacaoPropostas.Models.Entities.PropostaEmpreiteiro
+@{
+    ViewData["Title"] = "Nova Proposta de Empreiteiro";
+}
+
+<h2>Nova Proposta — @ViewBag.ProjetoObraNome</h2>
+
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            <input type="hidden" asp-for="ProjetoObraId" />
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="alert alert-subtle-info mb-3">
+                <i class="fas fa-info-circle me-1"></i>
+                Ao criar a proposta, os itens do Mapa de Quantidades serão clonados automaticamente. Em seguida, poderá definir os preços de cada item.
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Empreiteiro" class="form-label"></label>
+                    <input asp-for="Empreiteiro" class="form-control" placeholder="ex.: Empresa ABC, Lda" required />
+                    <span asp-validation-for="Empreiteiro" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-3">
+                    <label asp-for="PrazoEntregaDias" class="form-label">Prazo de Entrega (Dias)</label>
+                    <input asp-for="PrazoEntregaDias" class="form-control" type="number" min="0" />
+                </div>
+
+                <div class="col-md-3">
+                    <label asp-for="ValidadeProposta" class="form-label"></label>
+                    <input asp-for="ValidadeProposta" class="form-control" type="date" />
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Status" class="form-label"></label>
+                    <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<ComparacaoPropostas.Models.Entities.Enums.StatusPropostaEmpreiteiro>()"></select>
+                </div>
+
+                <div class="col-12">
+                    <label asp-for="Observacoes" class="form-label"></label>
+                    <textarea asp-for="Observacoes" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary"><span class="fas fa-save me-1"></span> Criar Proposta e Preencher Itens</button>
+                <a asp-controller="ProjetosObra" asp-action="Details" asp-route-id="@Model.ProjetoObraId" class="btn btn-subtle-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
