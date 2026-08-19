@@ -4,6 +4,7 @@ namespace ComparacaoPropostas.Models.Entities.Enums;
 
 public enum TipoProjetoObra
 {
+    [Display(Name = "Edificação")]
     Edificacao,
     Infraestrutura,
     Especiais
@@ -15,6 +16,7 @@ public enum StatusProjetoObra
     EmConcurso,
     [Display(Name = "Em Execução")]
     EmExecucao,
+    [Display(Name = "Concluído")]
     Concluido
 }
 

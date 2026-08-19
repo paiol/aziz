@@ -1,0 +1,60 @@
+@model ComparacaoPropostas.Models.Entities.ItemCcv
+@{
+    ViewData["Title"] = "Editar Item CCV";
+}
+
+<h2>Editar Item CCV</h2>
+
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+            <input type="hidden" asp-for="Id" />
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Nome" class="form-label"></label>
+                    <input asp-for="Nome" class="form-control" />
+                    <span asp-validation-for="Nome" class="text-danger"></span>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="Tipo" class="form-label"></label>
+                    <input asp-for="Tipo" class="form-control" />
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="Categoria" class="form-label"></label>
+                    <input asp-for="Categoria" class="form-control" />
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="Unidade" class="form-label"></label>
+                    <select asp-for="Unidade" class="form-select">
+                        <option value="">— Selecione —</option>
+                        <option value="uni.">uni.</option>
+                        <option value="m">m</option>
+                        <option value="kg">kg</option>
+                        <option value="T">T</option>
+                        <option value="Kit">Kit</option>
+                        <option value="Pacote">Pacote</option>
+                        <option value="Rolo">Rolo</option>
+                        <option value="Caixa">Caixa</option>
+                        @if (!string.IsNullOrWhiteSpace(Model.Unidade) && !new[] { "uni.", "m", "kg", "T", "Kit", "Pacote", "Rolo", "Caixa" }.Contains(Model.Unidade))
+                        {
+                            <option value="@Model.Unidade">@Model.Unidade (atual)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="Dominio" class="form-label"></label>
+                    <input asp-for="Dominio" class="form-control" />
+                </div>
+                <div class="col-12">
+                    <label asp-for="Descricao" class="form-label"></label>
+                    <textarea asp-for="Descricao" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">Guardar</button>
+                <a asp-action="Index" class="btn btn-subtle-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>

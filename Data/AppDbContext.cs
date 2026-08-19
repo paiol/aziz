@@ -27,6 +27,7 @@ public class AppDbContext : DbContext
     public DbSet<ItemMbb> ItensMbb => Set<ItemMbb>();
     public DbSet<ItemFbb> ItensFbb => Set<ItemFbb>();
     public DbSet<ItemCore> ItensCore => Set<ItemCore>();
+    public DbSet<ItemCcv> ItensCcv => Set<ItemCcv>();
 
     // Módulo Obras — registo de projetos de construção civil, mapa de quantidades e
     // comparação de propostas de empreiteiros. Domínio totalmente independente do resto
