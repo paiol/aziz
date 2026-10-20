@@ -40,6 +40,10 @@ public class AppDbContext : DbContext
     public DbSet<ItemPropostaEmpreiteiro> ItensPropostaEmpreiteiro => Set<ItemPropostaEmpreiteiro>();
     public DbSet<AvaliacaoObra> AvaliacoesObra => Set<AvaliacaoObra>();
 
+    // Integração App → Airtable (ver Services/Airtable).
+    public DbSet<AirtableLink> AirtableLinks => Set<AirtableLink>();
+    public DbSet<AirtableSyncPendente> AirtableSyncPendentes => Set<AirtableSyncPendente>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Processo>(e =>
@@ -284,6 +288,23 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
 
             e.HasIndex(a => new { a.PropostaEmpreiteiroId, a.CriterioObraId }).IsUnique();
+        });
+
+        // Integração App → Airtable
+        modelBuilder.Entity<AirtableLink>(e =>
+        {
+            e.Property(l => l.TabelaId).HasMaxLength(20);
+            e.Property(l => l.Chave).HasMaxLength(50);
+            e.Property(l => l.RecordId).HasMaxLength(20);
+            e.HasIndex(l => new { l.TabelaId, l.Chave }).IsUnique();
+            e.HasIndex(l => l.ProcessoId);
+        });
+
+        modelBuilder.Entity<AirtableSyncPendente>(e =>
+        {
+            e.Property(p => p.Tipo).HasMaxLength(20);
+            e.Property(p => p.Erro).HasMaxLength(1000);
+            e.HasIndex(p => new { p.ProcessadoEm, p.ProximaTentativaEm });
         });
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using ComparacaoPropostas.Data;
 using ComparacaoPropostas.Services;
+using ComparacaoPropostas.Services.Airtable;
 
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
@@ -11,8 +12,18 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+// Integração App → Airtable: o interceptor põe cada alteração numa fila (tabela
+// AirtableSyncPendentes) e o AirtableSyncWorker envia-a em segundo plano. Ver Services/Airtable.
+builder.Services.Configure<AirtableOptions>(builder.Configuration.GetSection(AirtableOptions.Secao));
+builder.Services.AddSingleton<AirtableSyncSinal>();
+builder.Services.AddSingleton<AirtableSyncInterceptor>();
+builder.Services.AddHttpClient<IAirtableClient, AirtableClient>(c => c.Timeout = TimeSpan.FromSeconds(60));
+builder.Services.AddScoped<IAirtableSyncService, AirtableSyncService>();
+builder.Services.AddHostedService<AirtableSyncWorker>();
+
+builder.Services.AddDbContext<AppDbContext>((sp, options) =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+        .AddInterceptors(sp.GetRequiredService<AirtableSyncInterceptor>()));
 
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
 builder.Services.AddScoped<IScoringService, ScoringService>();

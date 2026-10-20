@@ -61,3 +61,43 @@ Em **Hosting** → **Domain**, associa o domínio ou subdomínio pretendido a es
 ### 8. Testar
 
 Abre o URL do site e confirma que a página inicial carrega. Se der erro 500, ativa temporariamente `stdoutLogEnabled="true"` no `web.config` para veres o erro exato nos logs (pasta `logs/` do site).
+
+---
+
+# Integração com o Airtable (App → Airtable)
+
+Cada gravação na app (processos, critérios, propostas, itens das propostas, avaliações, catálogo de itens) é enviada automaticamente para a base Airtable **appiAu2t9S3VoA1bO**, em segundo plano, poucos segundos depois. A app é a fonte de verdade: o que for alterado à mão no Airtable em registos sincronizados é substituído na próxima gravação desse processo na app.
+
+## Como funciona
+
+- `Services/Airtable/AirtableSyncInterceptor.cs` — deteta as alterações em cada `SaveChanges` e regista-as na tabela `AirtableSyncPendentes` (na mesma transação da gravação). Não foi preciso alterar nenhum controller.
+- `Services/Airtable/AirtableSyncWorker.cs` — processa a fila em segundo plano; erros ficam registados e são repetidos (1, 2, 4… minutos, até 1 hora).
+- `Services/Airtable/AirtableSyncService.cs` — envia o processo completo (upsert pelo campo **ID App** de cada tabela do Airtable) e apaga no Airtable o que deixou de existir na app.
+- `Services/Airtable/AirtableMapper.cs` — correspondência campo a campo. Valores sempre em CVE; Peso 0–100 → percentagem; Estados: Criado→Aberto, Recebido→Em Avaliação, Concluído→Decidido, Cancelado→Cancelado / Recebida, Em Análise→Em Avaliação, Aceite→Aprovada, Rejeitada→Reprovada.
+- Avaliações: o Airtable recebe **uma avaliação por Proposta × Critério com a nota final da app** (média dos avaliadores ou nota automática), para que a *Pontuação Ponderada* do Airtable seja igual à pontuação da app.
+- Página de estado na app: menu **Integrações → Airtable** (fila, erros, botões *Ressincronizar tudo* e *Tentar erros agora*).
+
+## Ativar
+
+1. Em https://airtable.com/create/tokens cria um *Personal Access Token*:
+   - Scopes: `data.records:read` e `data.records:write`
+   - Access: apenas a base **Comparação de Propostas**
+2. No `appsettings.Production.json` do servidor (não vai para o git) acrescenta:
+
+   ```json
+   "Airtable": {
+     "Enabled": true,
+     "Token": "patXXXXXXXXXXXXXX.XXXXXXXX"
+   }
+   ```
+
+   (alternativa: variáveis de ambiente `Airtable__Enabled=true` e `Airtable__Token=...` no bloco `<environmentVariables>` do `web.config`).
+3. Publica a nova versão (passos 4 e 5 acima). A migração `AddAirtableSync` cria as tabelas `AirtableLinks` e `AirtableSyncPendentes`; a app aplica-a sozinha no arranque (`Database.Migrate()`), ou corre `dotnet ef database update` como no passo 3.
+4. Abre a app → **Integrações → Airtable** → **Ressincronizar tudo** para a carga inicial dos processos existentes.
+
+## Cuidados
+
+- **Não apagar nem renomear-para-outra-coisa os campos "ID App"** no Airtable — são a chave que evita duplicados. (Renomear outros campos ou tabelas não faz mal: a integração usa os IDs internos.) Se apagares um campo usado pela integração, os envios passam a falhar e o erro aparece na página de estado; os IDs estão em `Services/Airtable/AirtableSchema.cs`.
+- Registos criados à mão no Airtable (sem ID App) nunca são tocados pela sincronização.
+- Quando um processo passa a **Concluído** na app, fica **Decidido** no Airtable e dispara a automação "Classificação de propostas ao decidir processo". Para processos vindos da app, os campos *Criado por* e *Equipa a Notificar* ficam vazios, por isso essa automação não tem a quem enviar (a app já envia o seu próprio e-mail de resultado). Se não quiseres essas execuções falhadas, acrescenta à automação a condição "ID App está vazio".
+- O SmarterASP (IIS) pode desligar a aplicação quando não tem visitas; o envio retoma no pedido seguinte — nada se perde, porque a fila está na base de dados.

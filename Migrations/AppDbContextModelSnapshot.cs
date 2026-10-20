@@ -22,6 +22,84 @@ namespace ComparacaoPropostas.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.AirtableLink", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AtualizadoEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Chave")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("ProcessoId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RecordId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("TabelaId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProcessoId");
+
+                    b.HasIndex("TabelaId", "Chave")
+                        .IsUnique();
+
+                    b.ToTable("AirtableLinks");
+                });
+
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.AirtableSyncPendente", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("EntidadeId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Erro")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ProcessadoEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ProximaTentativaEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Tentativas")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProcessadoEm", "ProximaTentativaEm");
+
+                    b.ToTable("AirtableSyncPendentes");
+                });
+
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.Avaliacao", b =>
                 {
                     b.Property<int>("Id")

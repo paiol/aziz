@@ -1,0 +1,109 @@
+@model ComparacaoPropostas.Controllers.AirtableEstadoViewModel
+@{
+    ViewData["Title"] = "Integração Airtable";
+    // Datas guardadas em UTC; Cabo Verde é UTC-1 todo o ano (sem hora de verão).
+    string Hora(DateTime? utc) => utc.HasValue ? utc.Value.AddHours(-1).ToString("dd/MM/yyyy HH:mm") : "-";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2 class="mb-1">Integração Airtable</h2>
+        <p class="text-body-tertiary mb-0">
+            Cada gravação de processos, propostas, critérios, itens e avaliações é enviada automaticamente para a base Airtable (sentido App → Airtable).
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <form asp-action="TentarAgora" method="post">
+            <button type="submit" class="btn btn-subtle-secondary" disabled="@(Model.ComErro == 0)">
+                <span class="fas fa-rotate-right me-1"></span> Tentar erros agora
+            </button>
+        </form>
+        <form asp-action="ResincronizarTudo" method="post"
+              onsubmit="return confirm('Enviar de novo todos os processos e o catálogo de itens para o Airtable?');">
+            <button type="submit" class="btn btn-primary" disabled="@(!Model.Ativo)">
+                <span class="fas fa-arrows-rotate me-1"></span> Ressincronizar tudo
+            </button>
+        </form>
+    </div>
+</div>
+
+@if (!Model.Ativo)
+{
+    <div class="alert alert-warning">
+        A sincronização está <strong>desligada</strong>.
+        @if (!Model.TokenConfigurado)
+        {
+            <span>Falta o token do Airtable (<code>Airtable:Token</code>).</span>
+        }
+        @if (!Model.Enabled)
+        {
+            <span>A opção <code>Airtable:Enabled</code> está a <code>false</code>.</span>
+        }
+        Vê as instruções em <code>DEPLOY.md</code>, secção "Integração com o Airtable".
+    </div>
+}
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+        <div class="card h-100"><div class="card-body">
+            <div class="text-body-tertiary fs-9">Estado</div>
+            <div class="fs-6 fw-bold">
+                @if (Model.Ativo) { <span class="badge bg-success">Ativa</span> } else { <span class="badge bg-secondary">Desligada</span> }
+            </div>
+            <div class="text-body-tertiary fs-10 mt-1">Base @Model.BaseId</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card h-100"><div class="card-body">
+            <div class="text-body-tertiary fs-9">Na fila</div>
+            <div class="fs-6 fw-bold">@Model.Pendentes</div>
+            <div class="text-body-tertiary fs-10 mt-1">Último envio: @Hora(Model.UltimoEnvio)</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card h-100"><div class="card-body">
+            <div class="text-body-tertiary fs-9">Com erro (a repetir)</div>
+            <div class="fs-6 fw-bold @(Model.ComErro > 0 ? "text-danger" : "")">@Model.ComErro</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card h-100"><div class="card-body">
+            <div class="text-body-tertiary fs-9">Enviados (24 h) / ligados</div>
+            <div class="fs-6 fw-bold">@Model.Processados24h / @Model.RegistosLigados</div>
+        </div></div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <h5 class="mb-3">Erros recentes</h5>
+        @if (Model.Erros.Count == 0)
+        {
+            <p class="text-body-tertiary mb-0">Sem erros.</p>
+        }
+        else
+        {
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>Registo</th>
+                        <th>Tentativas</th>
+                        <th>Próxima tentativa</th>
+                        <th>Erro</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var e in Model.Erros)
+                    {
+                        <tr>
+                            <td class="text-nowrap">@e.Tipo #@e.EntidadeId</td>
+                            <td>@e.Tentativas</td>
+                            <td class="text-nowrap">@Hora(e.ProximaTentativaEm)</td>
+                            <td class="text-break"><small>@e.Erro</small></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
