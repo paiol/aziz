@@ -1,0 +1,263 @@
+@using ComparacaoPropostas.Models.Entities.Enums
+@using ComparacaoPropostas.Services
+@model ComparacaoPropostas.Models.Entities.ProjetoPlano
+@{
+    var plano = (ComparacaoPropostas.Models.Entities.Plano)ViewBag.Plano;
+    var sugestoes = (Dictionary<string, List<string>>)ViewBag.Sugestoes;
+    var meses = PlanoCalculos.NomesMeses.Select((m, i) => new SelectListItem(m, (i + 1).ToString())).ToList();
+    var ano = plano.Ano;
+}
+
+@foreach (var (id, valores) in sugestoes)
+{
+    <datalist id="lista-@id">
+        @foreach (var v in valores)
+        {
+            <option value="@v"></option>
+        }
+    </datalist>
+}
+
+<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">Identificação</h5></div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="Nome" class="form-label"></label>
+                <input asp-for="Nome" class="form-control" required />
+                <span asp-validation-for="Nome" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="DesignacaoRubrica" class="form-label"></label>
+                <input asp-for="DesignacaoRubrica" class="form-control" list="lista-rubricas" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Descricao" class="form-label"></label>
+                <textarea asp-for="Descricao" class="form-control" rows="3"></textarea>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Observacoes" class="form-label">Observações / justificação @ano</label>
+                <textarea asp-for="Observacoes" class="form-control" rows="3"></textarea>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="Classificacao" class="form-label"></label>
+                <input asp-for="Classificacao" class="form-control" list="lista-classificacoes" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="Tipo" class="form-label"></label>
+                <input asp-for="Tipo" class="form-control" list="lista-tipos" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="Coordenacao" class="form-label"></label>
+                <input asp-for="Coordenacao" class="form-control" list="lista-coords" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="Ilha" class="form-label"></label>
+                <input asp-for="Ilha" class="form-control" list="lista-ilhas" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="OrigemIniciativa" class="form-label"></label>
+                <input asp-for="OrigemIniciativa" class="form-control" list="lista-origens" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="CapexAnoMenos2" class="form-label">Capex @(ano - 2)</label>
+                <input asp-for="CapexAnoMenos2" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="CodCapexAnoAnterior" class="form-label">Cód. Capex @(ano - 1)</label>
+                <input asp-for="CodCapexAnoAnterior" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="CodCapex" class="form-label">Cód. Capex @ano</label>
+                <input asp-for="CodCapex" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="SeguimentoOrcamento" class="form-label"></label>
+                <input asp-for="SeguimentoOrcamento" class="form-control" />
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">Situação @ano</h5></div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label asp-for="Situacao" class="form-label">Situação @ano</label>
+                <select asp-for="Situacao" class="form-select" asp-items="Html.GetEnumSelectList<SituacaoProjetoPlano>()">
+                    <option value="">(sem situação)</option>
+                </select>
+                <div class="form-text">Transitado, Transitado parcial e Novo entram no plano; Condicionado fica à parte.</div>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="Capex" class="form-label"></label>
+                <input asp-for="Capex" class="form-control" list="lista-capex" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="Prioridade" class="form-label"></label>
+                <select asp-for="Prioridade" class="form-select" asp-items="Html.GetEnumSelectList<PrioridadeProjetoPlano>()">
+                    <option value="">-</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label asp-for="TrimestrePrevisto" class="form-label"></label>
+                <input asp-for="TrimestrePrevisto" class="form-control" list="lista-trimestres" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="ExecucaoAnoAnterior" class="form-label">Execução @(ano - 1) (0–1)</label>
+                <input asp-for="ExecucaoAnoAnterior" class="form-control" type="text" inputmode="decimal" placeholder="ex.: 0,53" />
+            </div>
+            <div class="col-md-12">
+                <label asp-for="CondicaoMotivo" class="form-label"></label>
+                <input asp-for="CondicaoMotivo" class="form-control" />
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">Execução e fiscalização</h5></div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-2">
+                <label asp-for="Zona" class="form-label"></label>
+                <input asp-for="Zona" class="form-control" list="lista-zonas" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="ExecucaoProjeto" class="form-label"></label>
+                <input asp-for="ExecucaoProjeto" class="form-control" list="lista-executantes" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="FiscalizacaoCivil" class="form-label"></label>
+                <input asp-for="FiscalizacaoCivil" class="form-control" list="lista-executantes" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="FiscalizacaoTracados" class="form-label"></label>
+                <input asp-for="FiscalizacaoTracados" class="form-control" list="lista-executantes" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="ExecucaoMontagem" class="form-label"></label>
+                <input asp-for="ExecucaoMontagem" class="form-control" list="lista-executantes" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="FiscalizacaoMontagem" class="form-label"></label>
+                <input asp-for="FiscalizacaoMontagem" class="form-control" list="lista-executantes" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="PerfilEquipaMontagem" class="form-label"></label>
+                <input asp-for="PerfilEquipaMontagem" class="form-control" list="lista-perfis" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="PrestadorExternoIlha" class="form-label"></label>
+                <input asp-for="PrestadorExternoIlha" class="form-control" list="lista-simnao" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="NecessidadeAquisicao" class="form-label"></label>
+                <input asp-for="NecessidadeAquisicao" class="form-control" />
+            </div>
+            <div class="col-md-12">
+                <label asp-for="EntidadesExecutantes" class="form-label"></label>
+                <textarea asp-for="EntidadesExecutantes" class="form-control" rows="2"></textarea>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">Valores (CVE)</h5></div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label asp-for="PropostasSemAdjudicacao" class="form-label"></label>
+                <input asp-for="PropostasSemAdjudicacao" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="AdjudicadoAnoAnterior" class="form-label">Adjudicado @(ano - 1) (informativo)</label>
+                <input asp-for="AdjudicadoAnoAnterior" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="AdjudicadoAnosAnteriores" class="form-label">Adjudicado anos anteriores (informativo)</label>
+                <input asp-for="AdjudicadoAnosAnteriores" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="TotalOrcamentoAnoAnterior" class="form-label">TOTAL ORC. @(ano - 1) (referência)</label>
+                <input asp-for="TotalOrcamentoAnoAnterior" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="ValorTransitar" class="form-label">Valor a transitar @ano</label>
+                <input asp-for="ValorTransitar" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="ValorNovo" class="form-label">Valor novo @ano (estimativa)</label>
+                <input asp-for="ValorNovo" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="ValorCondicionado" class="form-label">Valor condicionado @ano</label>
+                <input asp-for="ValorCondicionado" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-3">
+                <div class="form-text mt-4">TOTAL ORC. @ano = Valor a transitar + Valor novo (0 se o projeto estiver fora do plano).</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">Custos @ano por natureza (CVE)</h5></div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-2">
+                <label asp-for="CustoAquisicaoSite" class="form-label"></label>
+                <input asp-for="CustoAquisicaoSite" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="CustoEquipamento" class="form-label"></label>
+                <input asp-for="CustoEquipamento" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="CustoConstrucoes" class="form-label"></label>
+                <input asp-for="CustoConstrucoes" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="CustoServicos" class="form-label"></label>
+                <input asp-for="CustoServicos" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="CustoDeslocacoes" class="form-label"></label>
+                <input asp-for="CustoDeslocacoes" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="CustoTerceirizacao" class="form-label"></label>
+                <input asp-for="CustoTerceirizacao" class="form-control" type="text" inputmode="decimal" />
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">Calendário e esforço da equipa</h5></div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label asp-for="MesInicio" class="form-label"></label>
+                <select asp-for="MesInicio" class="form-select" asp-items="meses"><option value="">(Jan)</option></select>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="MesFim" class="form-label"></label>
+                <select asp-for="MesFim" class="form-select" asp-items="meses"><option value="">(Dez)</option></select>
+                <span asp-validation-for="MesFim" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="EsforcoArquiteturaDias" class="form-label">Esforço @ano · Arquitetura (dias)</label>
+                <input asp-for="EsforcoArquiteturaDias" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="EsforcoEnergiaDias" class="form-label">Esforço @ano · Energia (dias)</label>
+                <input asp-for="EsforcoEnergiaDias" class="form-control" type="text" inputmode="decimal" />
+            </div>
+        </div>
+    </div>
+</div>

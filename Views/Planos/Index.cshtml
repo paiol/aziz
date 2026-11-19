@@ -1,0 +1,76 @@
+@using ComparacaoPropostas.Helper
+@using ComparacaoPropostas.Models.Entities.Enums
+@model List<ComparacaoPropostas.Models.Entities.Plano>
+@{
+    ViewData["Title"] = "Planos";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Planos</h2>
+    <a class="btn btn-primary" asp-action="Create"><span class="fas fa-plus me-1"></span> Novo Plano</a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form asp-action="Importar" method="post" enctype="multipart/form-data" class="d-flex flex-wrap gap-2 align-items-end">
+            <div>
+                <label class="form-label mb-1">Importar plano a partir do ficheiro SCOPE_INF (.xlsx)</label>
+                <input type="file" name="ficheiro" accept=".xlsx" class="form-control form-control-sm" required />
+            </div>
+            <button type="submit" class="btn btn-subtle-success btn-sm">
+                <span class="fas fa-upload me-1"></span> Importar como novo plano
+            </button>
+        </form>
+        <div class="form-text">Lê as folhas "Scope DEP-INF", "Formação e feiras" e a capacidade da equipa em "Parâmetros plano".</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        @if (Model.Count == 0)
+        {
+            <div class="alert alert-info mb-0">Ainda não existem planos registados.</div>
+        }
+        else
+        {
+            <table class="table table-hover data-table">
+                <thead>
+                    <tr>
+                        <th>Ano</th>
+                        <th>Designação</th>
+                        <th>Departamento</th>
+                        <th class="text-end">Projetos (entram)</th>
+                        <th class="text-end">TOTAL ORC.</th>
+                        <th class="text-end">Formação e feiras</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model)
+                    {
+                        var ativos = p.Projetos.Where(x => x.Caixa == CaixaPlano.Entra).ToList();
+                        <tr>
+                            <td>@p.Ano</td>
+                            <td><a asp-action="Details" asp-route-id="@p.Id">@p.Designacao</a></td>
+                            <td>@(p.Departamento ?? "-")</td>
+                            <td class="text-end">@ativos.Count / @p.Projetos.Count</td>
+                            <td class="text-end">@ativos.Sum(x => x.TotalOrcamento).ToCve()</td>
+                            <td class="text-end">@p.AcoesFormacao.Count</td>
+                            <td class="text-end">
+                                <div class="d-inline-flex flex-column gap-1">
+                                    <a class="btn btn-sm btn-subtle-secondary" asp-action="Edit" asp-route-id="@p.Id">
+                                        <i class="fas fa-edit me-1"></i> Editar
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
+                                            data-url="@Url.Action("Delete", new { id = p.Id })" data-id="@p.Id">
+                                        <i class="fas fa-trash me-1"></i> Apagar
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

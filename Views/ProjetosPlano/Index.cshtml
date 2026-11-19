@@ -1,0 +1,95 @@
+@using ComparacaoPropostas.Helper
+@using ComparacaoPropostas.Models.Entities.Enums
+@model List<ComparacaoPropostas.Models.Entities.ProjetoPlano>
+@{
+    var plano = (ComparacaoPropostas.Models.Entities.Plano)ViewBag.Plano;
+    var caixa = (CaixaPlano?)ViewBag.Caixa;
+    ViewData["Title"] = "Projetos do Plano";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-1">Projetos — @plano.Designacao</h2>
+        <a asp-controller="Planos" asp-action="Details" asp-route-id="@plano.Id" class="small"><span class="fas fa-arrow-left me-1"></span>Voltar ao resumo do plano</a>
+    </div>
+    <a class="btn btn-primary" asp-action="Create" asp-route-planoId="@plano.Id"><span class="fas fa-plus me-1"></span> Novo Projeto</a>
+</div>
+
+<div class="mb-3 d-flex flex-wrap gap-2">
+    <a class="btn btn-sm @(caixa == null ? "btn-primary" : "btn-subtle-secondary")" asp-action="Index" asp-route-planoId="@plano.Id">Todos</a>
+    @foreach (var c in Enum.GetValues<CaixaPlano>())
+    {
+        <a class="btn btn-sm @(caixa == c ? "btn-primary" : "btn-subtle-secondary")" asp-action="Index" asp-route-planoId="@plano.Id" asp-route-caixa="@c">@c.ToLabel()</a>
+    }
+</div>
+
+<div class="card">
+    <div class="card-body table-responsive">
+        @if (Model.Count == 0)
+        {
+            <div class="alert alert-info mb-0">Não existem projetos @(caixa == null ? "neste plano" : $"na caixa \"{caixa.Value.ToLabel()}\"").</div>
+        }
+        else
+        {
+            <table class="table table-hover table-sm data-table">
+                <thead>
+                    <tr>
+                        <th>Projeto</th>
+                        <th>Rubrica</th>
+                        <th>Classificação</th>
+                        <th>Ilha</th>
+                        <th>Situação</th>
+                        <th>Caixa</th>
+                        <th>Prioridade</th>
+                        <th class="text-end">Transitado</th>
+                        <th class="text-end">Novo</th>
+                        <th class="text-end">TOTAL ORC.</th>
+                        <th class="text-end">Δ vs @(plano.Ano - 1)</th>
+                        <th class="text-end">Esforço Arq./Ene.</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model)
+                    {
+                        <tr>
+                            <td>
+                                <a asp-action="Edit" asp-route-id="@p.Id">@p.Nome</a>
+                                @if (!string.IsNullOrWhiteSpace(p.Descricao))
+                                {
+                                    <div class="small text-body-tertiary text-truncate" style="max-width: 22rem" title="@p.Descricao">@p.Descricao</div>
+                                }
+                            </td>
+                            <td class="small">@(p.DesignacaoRubrica ?? "-")</td>
+                            <td class="small">@(p.Classificacao ?? "-")</td>
+                            <td>@(p.Ilha ?? "-")</td>
+                            <td>@(p.Situacao?.ToLabel() ?? "-")</td>
+                            <td><span class="@p.Caixa.ToBadgeClass()">@p.Caixa.ToLabel()</span></td>
+                            <td>@(p.Prioridade?.ToLabel() ?? "-")</td>
+                            <td class="text-end" data-order="@p.ValorTransitar">@p.ValorTransitar.ToCve()</td>
+                            <td class="text-end" data-order="@p.ValorNovo">@p.ValorNovo.ToCve()</td>
+                            <td class="text-end fw-semibold" data-order="@p.TotalOrcamento">@p.TotalOrcamento.ToCve()</td>
+                            <td class="text-end @(p.DeltaAnoAnterior < 0 ? "text-danger" : "")" data-order="@p.DeltaAnoAnterior">@p.DeltaAnoAnterior.ToCve()</td>
+                            <td class="text-end">@((p.EsforcoArquiteturaDias ?? 0).ToDias()) / @((p.EsforcoEnergiaDias ?? 0).ToDias())</td>
+                            <td class="text-end text-nowrap">
+                                <a class="btn btn-sm btn-subtle-secondary" asp-action="Edit" asp-route-id="@p.Id">Editar</a>
+                                <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
+                                        data-url="@Url.Action("Delete", new { id = p.Id })" data-id="@p.Id">Apagar</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="fw-semibold">
+                        <td colspan="7">Total (@Model.Count projeto(s))</td>
+                        <td class="text-end">@Model.Sum(p => p.ValorTransitar ?? 0).ToCve()</td>
+                        <td class="text-end">@Model.Sum(p => p.ValorNovo ?? 0).ToCve()</td>
+                        <td class="text-end">@Model.Sum(p => p.TotalOrcamento).ToCve()</td>
+                        <td class="text-end">@Model.Sum(p => p.DeltaAnoAnterior).ToCve()</td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        }
+    </div>
+</div>

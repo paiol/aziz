@@ -1,0 +1,218 @@
+@using ComparacaoPropostas.Helper
+@using ComparacaoPropostas.Models.Entities.Enums
+@using ComparacaoPropostas.Services
+@model ComparacaoPropostas.ViewModels.Planos.PlanoDetailVM
+@{
+    var p = Model.Plano;
+    var r = Model.Resumo;
+    ViewData["Title"] = p.Designacao;
+    var capMesArq = p.CapacidadeArquiteturaDias / 12m;
+    var capMesEne = p.CapacidadeEnergiaDias / 12m;
+    string UsoClasse(decimal? uso) => uso is null ? "" : uso > 1m ? "text-danger fw-semibold" : uso > 0.85m ? "text-warning fw-semibold" : "text-success";
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-1">@p.Designacao</h2>
+        <span class="text-body-tertiary">Ano @p.Ano @(string.IsNullOrWhiteSpace(p.Departamento) ? "" : $"— {p.Departamento}")</span>
+        @if (!string.IsNullOrWhiteSpace(p.Descricao))
+        {
+            <div class="text-body-tertiary small mt-1">@p.Descricao</div>
+        }
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-subtle-secondary" asp-action="Edit" asp-route-id="@p.Id"><span class="fas fa-edit me-1"></span> Editar</a>
+        <a class="btn btn-primary" asp-controller="ProjetosPlano" asp-action="Index" asp-route-planoId="@p.Id">
+            <span class="fas fa-list-check me-1"></span> Projetos (@p.Projetos.Count)
+        </a>
+        <a class="btn btn-primary" asp-controller="AcoesFormacaoPlano" asp-action="Index" asp-route-planoId="@p.Id">
+            <span class="fas fa-graduation-cap me-1"></span> Formação e feiras (@p.AcoesFormacao.Count)
+        </a>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="card h-100"><div class="card-body">
+            <span class="text-body-tertiary d-block small">TOTAL ORC. @p.Ano</span>
+            <span class="fs-5 fw-semibold">@r.TotalOrcamento.ToCve()</span>
+            <span class="d-block small text-body-tertiary">Transitado @r.ValorTransitar.ToCve() · Projetos @r.ValorNovo.ToCve()</span>
+        </div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100"><div class="card-body">
+            <span class="text-body-tertiary d-block small">TOTAL ORC. @(p.Ano - 1) (ref.) e Δ</span>
+            <span class="fs-5 fw-semibold">@r.TotalAnoAnterior.ToCve()</span>
+            <span class="d-block small @(r.Delta < 0 ? "text-danger" : "text-success")">Δ @r.Delta.ToCve()</span>
+        </div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100"><div class="card-body">
+            <span class="text-body-tertiary d-block small">Projetos ativos</span>
+            <span class="fs-5 fw-semibold">@r.NumAtivos</span>
+            <span class="d-block small text-body-tertiary">@r.NumAtivosSemValor sem valor estimado · @r.NumCondicionados condicionado(s)</span>
+        </div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100"><div class="card-body">
+            <span class="text-body-tertiary d-block small">Uso da capacidade (Arq. / Energia)</span>
+            <span class="fs-5 fw-semibold">
+                <span class="@UsoClasse(r.UsoCapacidadeArquitetura)">@r.UsoCapacidadeArquitetura.ToPercent()</span> /
+                <span class="@UsoClasse(r.UsoCapacidadeEnergia)">@r.UsoCapacidadeEnergia.ToPercent()</span>
+            </span>
+            <span class="d-block small text-body-tertiary">@r.EsforcoArquitetura.ToDias() / @r.EsforcoEnergia.ToDias() dias de esforço</span>
+        </div></div>
+    </div>
+</div>
+
+@if (r.ValorCondicionado > 0 || r.NumTransferidoDom > 0)
+{
+    <div class="alert alert-subtle-info small">
+        Fora do TOTAL: valor condicionado @r.ValorCondicionado.ToCve(); transferido para DOM @r.TransferidoDom.ToCve() (@r.NumTransferidoDom projeto(s) em Exploração - DOM).
+    </div>
+}
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">Projetos por caixa do plano</h5></div>
+    <div class="card-body">
+        <table class="table table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>Caixa do plano</th>
+                    <th class="text-end">Nº projetos</th>
+                    <th class="text-end">TOTAL ORC.</th>
+                    <th class="text-end">dos quais terceirização</th>
+                    <th class="text-end">Esforço Arq. (dias)</th>
+                    <th class="text-end">Esforço Energia (dias)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in r.PorCaixa.Where(c => c.NumProjetos > 0))
+                {
+                    <tr>
+                        <td><a asp-controller="ProjetosPlano" asp-action="Index" asp-route-planoId="@p.Id" asp-route-caixa="@c.Caixa"><span class="@c.Caixa.ToBadgeClass()">@c.Caixa.ToLabel()</span></a></td>
+                        <td class="text-end">@c.NumProjetos</td>
+                        <td class="text-end">@c.TotalOrcamento.ToCve()</td>
+                        <td class="text-end">@c.Terceirizacao.ToCve()</td>
+                        <td class="text-end">@c.EsforcoArquitetura.ToDias()</td>
+                        <td class="text-end">@c.EsforcoEnergia.ToDias()</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">Por designação da rubrica</h5></div>
+    <div class="card-body table-responsive">
+        @if (r.PorRubrica.Count == 0)
+        {
+            <div class="alert alert-info mb-0">Ainda não existem projetos neste plano.</div>
+        }
+        else
+        {
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>Designação da rubrica</th>
+                        <th class="text-end">Nº ativos</th>
+                        <th class="text-end">Transitado</th>
+                        <th class="text-end">Projetos</th>
+                        <th class="text-end">TOTAL ORC.</th>
+                        <th class="text-end">Ref. @(p.Ano - 1)</th>
+                        <th class="text-end">Δ</th>
+                        <th class="text-end">Nº condicionados</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var l in r.PorRubrica)
+                    {
+                        <tr>
+                            <td>@l.Rubrica</td>
+                            <td class="text-end">@l.NumAtivos</td>
+                            <td class="text-end">@l.ValorTransitar.ToCve()</td>
+                            <td class="text-end">@l.ValorNovo.ToCve()</td>
+                            <td class="text-end fw-semibold">@l.TotalOrcamento.ToCve()</td>
+                            <td class="text-end">@l.TotalAnoAnterior.ToCve()</td>
+                            <td class="text-end @(l.Delta < 0 ? "text-danger" : "")">@l.Delta.ToCve()</td>
+                            <td class="text-end">@l.NumCondicionados</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="fw-semibold">
+                        <td>Total</td>
+                        <td class="text-end">@r.NumAtivos</td>
+                        <td class="text-end">@r.ValorTransitar.ToCve()</td>
+                        <td class="text-end">@r.ValorNovo.ToCve()</td>
+                        <td class="text-end">@r.TotalOrcamento.ToCve()</td>
+                        <td class="text-end">@r.TotalAnoAnterior.ToCve()</td>
+                        <td class="text-end">@r.Delta.ToCve()</td>
+                        <td class="text-end">@r.NumCondicionados</td>
+                    </tr>
+                </tfoot>
+            </table>
+        }
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">
+        <h5 class="mb-0">Carga mensal vs capacidade (projetos que entram, dias-pessoa)</h5>
+        <span class="small text-body-tertiary">Sem datas de início/fim, o esforço reparte-se por igual pelos 12 meses.</span>
+    </div>
+    <div class="card-body table-responsive">
+        <table class="table table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>Mês</th>
+                    <th class="text-end">Carga Arq.</th>
+                    <th class="text-end">Capacidade Arq.</th>
+                    <th class="text-end">Uso Arq.</th>
+                    <th class="text-end">Carga Energia</th>
+                    <th class="text-end">Capacidade Energia</th>
+                    <th class="text-end">Uso Energia</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (var m = 0; m < 12; m++)
+                {
+                    decimal? usoArq = capMesArq > 0 ? r.CargaMensalArquitetura[m] / capMesArq : null;
+                    decimal? usoEne = capMesEne > 0 ? r.CargaMensalEnergia[m] / capMesEne : null;
+                    <tr>
+                        <td>@PlanoCalculos.NomesMeses[m]</td>
+                        <td class="text-end">@r.CargaMensalArquitetura[m].ToDias()</td>
+                        <td class="text-end">@(capMesArq?.ToDias() ?? "-")</td>
+                        <td class="text-end @UsoClasse(usoArq)">@usoArq.ToPercent()</td>
+                        <td class="text-end">@r.CargaMensalEnergia[m].ToDias()</td>
+                        <td class="text-end">@(capMesEne?.ToDias() ?? "-")</td>
+                        <td class="text-end @UsoClasse(usoEne)">@usoEne.ToPercent()</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">Formação e feiras @p.Ano (OPEX — não entra no TOTAL ORC. CAPEX)</h5></div>
+    <div class="card-body">
+        <partial name="~/Views/AcoesFormacaoPlano/_Cenarios.cshtml" model="r.CenariosFormacao" />
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form asp-action="ImportarParaPlano" asp-route-id="@p.Id" method="post" enctype="multipart/form-data" class="d-flex flex-wrap gap-2 align-items-end"
+              onsubmit="return confirm('Os projetos e as ações de formação atuais deste plano serão substituídos pelos do ficheiro. Continuar?');">
+            <div>
+                <label class="form-label mb-1">Recarregar este plano a partir do ficheiro SCOPE_INF (.xlsx)</label>
+                <input type="file" name="ficheiro" accept=".xlsx" class="form-control form-control-sm" required />
+            </div>
+            <button type="submit" class="btn btn-subtle-warning btn-sm">
+                <span class="fas fa-rotate me-1"></span> Substituir projetos e formação
+            </button>
+        </form>
+    </div>
+</div>

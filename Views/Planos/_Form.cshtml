@@ -1,0 +1,37 @@
+@model ComparacaoPropostas.Models.Entities.Plano
+<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+<div class="row g-3">
+    <div class="col-md-2">
+        <label asp-for="Ano" class="form-label"></label>
+        <input asp-for="Ano" class="form-control" type="number" min="2000" max="2100" required />
+        <span asp-validation-for="Ano" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Designacao" class="form-label"></label>
+        <input asp-for="Designacao" class="form-control" placeholder="ex.: Plano 2027 DEP-INF" required />
+        <span asp-validation-for="Designacao" class="text-danger"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="Departamento" class="form-label"></label>
+        <input asp-for="Departamento" class="form-control" />
+    </div>
+    <div class="col-12">
+        <label asp-for="Descricao" class="form-label"></label>
+        <textarea asp-for="Descricao" class="form-control" rows="2"></textarea>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="CapacidadeArquiteturaDias" class="form-label"></label>
+        <input asp-for="CapacidadeArquiteturaDias" class="form-control" type="text" inputmode="decimal" />
+    </div>
+    <div class="col-md-4">
+        <label asp-for="CapacidadeEnergiaDias" class="form-label"></label>
+        <input asp-for="CapacidadeEnergiaDias" class="form-control" type="text" inputmode="decimal" />
+    </div>
+    <div class="col-md-4">
+        <label asp-for="CriadoPor" class="form-label"></label>
+        <input asp-for="CriadoPor" class="form-control" />
+    </div>
+    <div class="col-12">
+        <div class="form-text">Capacidade = dias-pessoa disponíveis para projetos por ano (nº pessoas × (dias úteis − férias − formação − ausências) × (1 − % trabalho recorrente)).</div>
+    </div>
+</div>

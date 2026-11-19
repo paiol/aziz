@@ -22,6 +22,86 @@ namespace ComparacaoPropostas.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.AcaoFormacaoPlano", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Acao")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("AjudaCustoDia")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("Ano")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Datas")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("Dias")
+                        .HasPrecision(9, 2)
+                        .HasColumnType("decimal(9,2)");
+
+                    b.Property<decimal?>("EstadiaDia")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Fonte")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Formato")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("InscricaoPorPessoa")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("LigacaoProjetos")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Local")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("NoPlano")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("NumeroPessoas")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Observacoes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Participantes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("PassagemPorPessoa")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("PlanoId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Prioridade")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanoId");
+
+                    b.ToTable("AcoesFormacaoPlano");
+                });
+
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.AirtableLink", b =>
                 {
                     b.Property<int>("Id")
@@ -737,6 +817,46 @@ namespace ComparacaoPropostas.Migrations
                     b.ToTable("Pedidos");
                 });
 
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.Plano", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Ano")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("CapacidadeArquiteturaDias")
+                        .HasPrecision(9, 2)
+                        .HasColumnType("decimal(9,2)");
+
+                    b.Property<decimal?>("CapacidadeEnergiaDias")
+                        .HasPrecision(9, 2)
+                        .HasColumnType("decimal(9,2)");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CriadoPor")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Departamento")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Descricao")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Designacao")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Planos");
+                });
+
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.Processo", b =>
                 {
                     b.Property<int>("Id")
@@ -935,6 +1055,181 @@ namespace ComparacaoPropostas.Migrations
                     b.ToTable("ProjetoObraAnexos");
                 });
 
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.ProjetoPlano", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal?>("AdjudicadoAnoAnterior")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("AdjudicadoAnosAnteriores")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Capex")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CapexAnoMenos2")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Classificacao")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CodCapex")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CodCapexAnoAnterior")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CondicaoMotivo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Coordenacao")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("CustoAquisicaoSite")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("CustoConstrucoes")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("CustoDeslocacoes")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("CustoEquipamento")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("CustoServicos")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("CustoTerceirizacao")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Descricao")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DesignacaoRubrica")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EntidadesExecutantes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("EsforcoArquiteturaDias")
+                        .HasPrecision(9, 2)
+                        .HasColumnType("decimal(9,2)");
+
+                    b.Property<decimal?>("EsforcoEnergiaDias")
+                        .HasPrecision(9, 2)
+                        .HasColumnType("decimal(9,2)");
+
+                    b.Property<decimal?>("ExecucaoAnoAnterior")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("decimal(9,4)");
+
+                    b.Property<string>("ExecucaoMontagem")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ExecucaoProjeto")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FiscalizacaoCivil")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FiscalizacaoMontagem")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FiscalizacaoTracados")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Ilha")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("MesFim")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MesInicio")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NecessidadeAquisicao")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Observacoes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OrigemIniciativa")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PerfilEquipaMontagem")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PlanoId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PrestadorExternoIlha")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Prioridade")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<decimal?>("PropostasSemAdjudicacao")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("SeguimentoOrcamento")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Situacao")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Tipo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("TotalOrcamentoAnoAnterior")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("TrimestrePrevisto")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("ValorCondicionado")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("ValorNovo")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("ValorTransitar")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Zona")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanoId");
+
+                    b.ToTable("ProjetosPlano");
+                });
+
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.Proposta", b =>
                 {
                     b.Property<int>("Id")
@@ -1057,6 +1352,17 @@ namespace ComparacaoPropostas.Migrations
                     b.HasIndex("ProjetoObraId");
 
                     b.ToTable("PropostasEmpreiteiro");
+                });
+
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.AcaoFormacaoPlano", b =>
+                {
+                    b.HasOne("ComparacaoPropostas.Models.Entities.Plano", "Plano")
+                        .WithMany("AcoesFormacao")
+                        .HasForeignKey("PlanoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Plano");
                 });
 
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.Avaliacao", b =>
@@ -1262,6 +1568,17 @@ namespace ComparacaoPropostas.Migrations
                     b.Navigation("ProjetoObra");
                 });
 
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.ProjetoPlano", b =>
+                {
+                    b.HasOne("ComparacaoPropostas.Models.Entities.Plano", "Plano")
+                        .WithMany("Projetos")
+                        .HasForeignKey("PlanoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Plano");
+                });
+
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.Proposta", b =>
                 {
                     b.HasOne("ComparacaoPropostas.Models.Entities.Processo", "Processo")
@@ -1327,6 +1644,13 @@ namespace ComparacaoPropostas.Migrations
                     b.Navigation("ItensPedido");
 
                     b.Navigation("Processo");
+                });
+
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.Plano", b =>
+                {
+                    b.Navigation("AcoesFormacao");
+
+                    b.Navigation("Projetos");
                 });
 
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.Processo", b =>

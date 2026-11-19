@@ -32,6 +32,7 @@ builder.Services.AddScoped<IPropostaExcelService, PropostaExcelService>();
 builder.Services.AddScoped<IScoringObraService, ScoringObraService>();
 builder.Services.AddScoped<IMqtExcelService, MqtExcelService>();
 builder.Services.AddScoped<IEmailObraService, EmailObraService>();
+builder.Services.AddScoped<IPlanoExcelService, PlanoExcelService>();
 
 var app = builder.Build();
 

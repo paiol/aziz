@@ -1,0 +1,20 @@
+@model ComparacaoPropostas.Models.Entities.AcaoFormacaoPlano
+@{
+    var plano = (ComparacaoPropostas.Models.Entities.Plano)ViewBag.Plano;
+    ViewData["Title"] = "Nova Ação de Formação / Feira";
+}
+
+<h2>Nova Ação de Formação / Feira — @plano.Designacao</h2>
+
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            <input type="hidden" asp-for="PlanoId" />
+            <partial name="_Form" model="Model" />
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary"><span class="fas fa-save me-1"></span> Adicionar</button>
+                <a asp-action="Index" asp-route-planoId="@Model.PlanoId" class="btn btn-subtle-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
