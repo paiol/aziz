@@ -24,6 +24,21 @@
     <div class="card-header"><h5 class="mb-0">Identificação</h5></div>
     <div class="card-body">
         <div class="row g-3">
+            <div class="col-md-3">
+                <label asp-for="Area" class="form-label"></label>
+                <select asp-for="Area" class="form-select" asp-items="Html.GetEnumSelectList<AreaDepartamento>()"></select>
+                <div class="form-text">Área que propõe o projeto.</div>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="EstadoAprovacao" class="form-label"></label>
+                <select asp-for="EstadoAprovacao" class="form-select" asp-items="Html.GetEnumSelectList<EstadoAprovacaoProjeto>()"></select>
+                <span asp-validation-for="EstadoAprovacao" class="text-danger"></span>
+                <div class="form-text">Só os projetos aceites entram no Capex e podem ter compras.</div>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="MotivoDecisao" class="form-label"></label>
+                <input asp-for="MotivoDecisao" class="form-control" />
+            </div>
             <div class="col-md-6">
                 <label asp-for="Nome" class="form-label"></label>
                 <input asp-for="Nome" class="form-control" required />

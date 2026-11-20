@@ -14,7 +14,7 @@ public class Plano
     public string Designacao { get; set; } = "";
 
     [Display(Name = "Departamento")]
-    public string? Departamento { get; set; } = "DEP-INF";
+    public string? Departamento { get; set; } = "DEI";
 
     [Display(Name = "Descrição")]
     public string? Descricao { get; set; }

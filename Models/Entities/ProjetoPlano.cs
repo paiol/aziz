@@ -17,6 +17,29 @@ public class ProjetoPlano
     [ValidateNever]
     public Plano Plano { get; set; } = null!;
 
+    // Projeto do plano do ano anterior de onde este transitou (null = proposto de raiz).
+    public int? ProjetoOrigemId { get; set; }
+    [ValidateNever]
+    public ProjetoPlano? ProjetoOrigem { get; set; }
+
+    // Compras (pedidos de proposta → processos) que executam este projeto.
+    [ValidateNever]
+    public ICollection<PedidoProposta> Pedidos { get; set; } = new List<PedidoProposta>();
+
+    // Área que propõe o projeto (o plano é feito por áreas).
+    [Display(Name = "Área")]
+    public AreaDepartamento Area { get; set; } = AreaDepartamento.DepInf;
+
+    // Aceite = entra no Capex do ano e pode ter compras associadas.
+    [Display(Name = "Aprovação")]
+    public EstadoAprovacaoProjeto EstadoAprovacao { get; set; } = EstadoAprovacaoProjeto.Proposto;
+
+    [Display(Name = "Motivo da decisão")]
+    public string? MotivoDecisao { get; set; }
+
+    [Display(Name = "Data da decisão")]
+    public DateTime? DataDecisao { get; set; }
+
     // Identificação
     [Display(Name = "Capex ano -2")]
     public string? CapexAnoMenos2 { get; set; }

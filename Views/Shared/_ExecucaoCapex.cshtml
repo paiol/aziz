@@ -1,0 +1,36 @@
+@using ComparacaoPropostas.Helper
+@model ComparacaoPropostas.Services.ExecucaoProjetoCapex
+@{
+    var pct = Model.PercentagemExecutada ?? 0m;
+    var pctEmCurso = Model.Orcamento > 0 ? Model.EmCurso / Model.Orcamento : 0m;
+    var barra = Model.Ultrapassado ? "bg-danger" : pct > 0.85m ? "bg-warning" : "bg-success";
+}
+<div class="row g-3 mb-2">
+    <div class="col-6 col-md-3">
+        <span class="text-body-tertiary d-block small">Orçamento (TOTAL ORC.)</span>
+        <span class="fw-semibold">@Model.Orcamento.ToCve()</span>
+    </div>
+    <div class="col-6 col-md-3">
+        <span class="text-body-tertiary d-block small">Adjudicado</span>
+        <span class="fw-semibold">@Model.Adjudicado.ToCve()</span>
+    </div>
+    <div class="col-6 col-md-3">
+        <span class="text-body-tertiary d-block small">Compras em curso (estimado)</span>
+        <span class="fw-semibold">@Model.EmCurso.ToCve()</span>
+    </div>
+    <div class="col-6 col-md-3">
+        <span class="text-body-tertiary d-block small">Saldo disponível</span>
+        <span class="fw-semibold @(Model.Saldo < 0 ? "text-danger" : "text-success")">@Model.Saldo.ToCve()</span>
+    </div>
+</div>
+<div class="progress" style="height: 10px" title="Executado @Model.PercentagemExecutada.ToPercent()">
+    <div class="progress-bar @barra" role="progressbar" style="width: @(Math.Min(100m, pct * 100m).ToString(System.Globalization.CultureInfo.InvariantCulture))%"></div>
+    <div class="progress-bar bg-info bg-opacity-50" role="progressbar" style="width: @(Math.Max(0m, Math.Min(100m - pct * 100m, pctEmCurso * 100m)).ToString(System.Globalization.CultureInfo.InvariantCulture))%"></div>
+</div>
+<div class="small text-body-tertiary mt-1">
+    Executado @Model.PercentagemExecutada.ToPercent() · @Model.NumCompras compra(s)
+    @if (Model.Ultrapassado)
+    {
+        <span class="text-danger fw-semibold ms-2"><i class="fas fa-triangle-exclamation me-1"></i>Orçamento ultrapassado</span>
+    }
+</div>

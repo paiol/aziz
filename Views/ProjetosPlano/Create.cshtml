@@ -4,13 +4,13 @@
     ViewData["Title"] = "Novo Projeto do Plano";
 }
 
-<h2>Novo Projeto — @plano.Designacao</h2>
+<h2>Propor Projeto — @plano.Designacao</h2>
 
 <form asp-action="Create" method="post">
     <input type="hidden" asp-for="PlanoId" />
     <partial name="_Form" model="Model" />
     <div class="mt-3 mb-4">
-        <button type="submit" class="btn btn-primary"><span class="fas fa-save me-1"></span> Adicionar Projeto</button>
+        <button type="submit" class="btn btn-primary"><span class="fas fa-save me-1"></span> Propor Projeto</button>
         <a asp-action="Index" asp-route-planoId="@Model.PlanoId" class="btn btn-subtle-secondary">Cancelar</a>
     </div>
 </form>

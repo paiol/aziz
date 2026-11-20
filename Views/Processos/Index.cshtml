@@ -9,6 +9,31 @@
     <a class="btn btn-primary" asp-action="Create"><span class="fas fa-plus me-1"></span> Novo Processo</a>
 </div>
 
+@if (Model.Count > 0)
+{
+    var estados = Enum.GetValues<ComparacaoPropostas.Models.Entities.Enums.StatusProcesso>();
+    var porArea = Model.Where(p => p.ValorAdjudicadoCVE.HasValue && p.Status != ComparacaoPropostas.Models.Entities.Enums.StatusProcesso.Cancelado)
+        .GroupBy(p => p.Area).OrderBy(g => g.Key).ToList();
+    <div class="row g-3 mb-3">
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header py-2"><h6 class="mb-0">Processos por estado</h6></div>
+                <div class="card-body" style="height: 220px">
+                    <canvas class="js-grafico" data-grafico="@GraficoHelper.Circular(estados.Select(s => s.ToLabel()), estados.Select(s => (decimal)Model.Count(p => p.Status == s)))"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-header py-2"><h6 class="mb-0">Adjudicado por área (CVE)</h6></div>
+                <div class="card-body" style="height: 220px">
+                    <canvas class="js-grafico" data-moeda="cve" data-grafico="@GraficoHelper.Barras(porArea.Select(g => g.Key.ToLabel()), "Adjudicado", porArea.Select(g => g.Sum(p => p.ValorAdjudicadoCVE ?? 0)))"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 <div class="card">
     <div class="card-body">
         <table class="table table-hover data-table">
@@ -16,6 +41,7 @@
                 <tr>
                     <th>Nº Processo</th>
                     <th>Nome</th>
+                    <th>Projeto Capex</th>
                     <th>Tipo Proposta</th>
                     <th>Área</th>
                     <th>Qtd. Fornecedores</th>
@@ -33,6 +59,7 @@
                     <tr>
                         <td>@(string.IsNullOrWhiteSpace(p.NumeroProcesso) ? "-" : p.NumeroProcesso)</td>
                         <td><a asp-action="Details" asp-route-id="@p.Id">@p.Nome</a></td>
+                        <td>@if (p.ProjetoCapexId.HasValue) { <a asp-controller="ProjetosPlano" asp-action="Details" asp-route-id="@p.ProjetoCapexId">@p.ProjetoCapex</a> } else { <span class="text-body-tertiary">-</span> }</td>
                         <td>@p.TipoProposta</td>
                         <td>@p.Area.ToLabel()</td>
                         <td>@p.TotalFornecedores</td>

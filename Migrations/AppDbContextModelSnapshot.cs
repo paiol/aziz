@@ -803,6 +803,9 @@ namespace ComparacaoPropostas.Migrations
                     b.Property<DateTime?>("PrazoEntrega")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("ProjetoPlanoId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -813,6 +816,8 @@ namespace ComparacaoPropostas.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ProjetoPlanoId");
 
                     b.ToTable("Pedidos");
                 });
@@ -1071,6 +1076,11 @@ namespace ComparacaoPropostas.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("Area")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<string>("Capex")
                         .HasColumnType("nvarchar(max)");
 
@@ -1116,6 +1126,9 @@ namespace ComparacaoPropostas.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<DateTime?>("DataDecisao")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Descricao")
                         .HasColumnType("nvarchar(max)");
 
@@ -1132,6 +1145,11 @@ namespace ComparacaoPropostas.Migrations
                     b.Property<decimal?>("EsforcoEnergiaDias")
                         .HasPrecision(9, 2)
                         .HasColumnType("decimal(9,2)");
+
+                    b.Property<string>("EstadoAprovacao")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<decimal?>("ExecucaoAnoAnterior")
                         .HasPrecision(9, 4)
@@ -1161,6 +1179,9 @@ namespace ComparacaoPropostas.Migrations
                     b.Property<int?>("MesInicio")
                         .HasColumnType("int");
 
+                    b.Property<string>("MotivoDecisao")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("NecessidadeAquisicao")
                         .HasColumnType("nvarchar(max)");
 
@@ -1186,6 +1207,9 @@ namespace ComparacaoPropostas.Migrations
                     b.Property<string>("Prioridade")
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
+
+                    b.Property<int?>("ProjetoOrigemId")
+                        .HasColumnType("int");
 
                     b.Property<decimal?>("PropostasSemAdjudicacao")
                         .HasPrecision(18, 2)
@@ -1225,7 +1249,9 @@ namespace ComparacaoPropostas.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PlanoId");
+                    b.HasIndex("ProjetoOrigemId");
+
+                    b.HasIndex("PlanoId", "Area");
 
                     b.ToTable("ProjetosPlano");
                 });
@@ -1529,6 +1555,16 @@ namespace ComparacaoPropostas.Migrations
                     b.Navigation("Proposta");
                 });
 
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.PedidoProposta", b =>
+                {
+                    b.HasOne("ComparacaoPropostas.Models.Entities.ProjetoPlano", "ProjetoPlano")
+                        .WithMany("Pedidos")
+                        .HasForeignKey("ProjetoPlanoId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ProjetoPlano");
+                });
+
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.Processo", b =>
                 {
                     b.HasOne("ComparacaoPropostas.Models.Entities.PedidoProposta", "PedidoProposta")
@@ -1576,7 +1612,13 @@ namespace ComparacaoPropostas.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("ComparacaoPropostas.Models.Entities.ProjetoPlano", "ProjetoOrigem")
+                        .WithMany()
+                        .HasForeignKey("ProjetoOrigemId");
+
                     b.Navigation("Plano");
+
+                    b.Navigation("ProjetoOrigem");
                 });
 
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.Proposta", b =>
@@ -1669,6 +1711,11 @@ namespace ComparacaoPropostas.Migrations
                     b.Navigation("ItensMQT");
 
                     b.Navigation("Propostas");
+                });
+
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.ProjetoPlano", b =>
+                {
+                    b.Navigation("Pedidos");
                 });
 
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.Proposta", b =>

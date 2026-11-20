@@ -44,7 +44,10 @@ public class ProcessosController : Controller
                 TotalFornecedores = p.Propostas.Select(pr => pr.Fornecedor).Distinct().Count(),
                 OrcamentoEstimado = p.PedidoProposta.OrcamentoEstimado,
                 TotalPropostas = p.Propostas.Count,
-                MenorValorOfertado = p.Propostas.Any() ? p.Propostas.Min(pr => pr.ValorTotal) : (decimal?)null
+                MenorValorOfertado = p.Propostas.Any() ? p.Propostas.Min(pr => pr.ValorTotal) : (decimal?)null,
+                ValorAdjudicadoCVE = p.ValorAdjudicadoCVE,
+                ProjetoCapexId = p.PedidoProposta.ProjetoPlanoId,
+                ProjetoCapex = p.PedidoProposta.ProjetoPlano != null ? p.PedidoProposta.ProjetoPlano.Nome : null
             })
             .ToList();
 
@@ -121,6 +124,7 @@ public class ProcessosController : Controller
             vm.EmailCorpo = corpo;
         }
 
+        CarregarOrcamentoCapex(processo, excluirEste: false);
         return View(vm);
     }
 
@@ -400,6 +404,7 @@ public class ProcessosController : Controller
             PropostasDisponiveis = ranking
         };
 
+        CarregarOrcamentoCapex(processo);
         return View(vm);
     }
 
@@ -438,6 +443,14 @@ public class ProcessosController : Controller
             ModelState.AddModelError("JustificativaAdjudicacao", "É obrigatório fornecer uma justificação ao selecionar um fornecedor diferente do 1º classificado no ranking.");
         }
 
+        // Validação Capex: a adjudicação não pode ultrapassar o orçamento do projeto sem justificação.
+        if (propostaVencedora != null && string.IsNullOrWhiteSpace(model.JustificativaAdjudicacao)
+            && CarregarProjetoCapex(processo) is { } projetoCapex
+            && PlanoCalculos.AdjudicacaoUltrapassaOrcamento(projetoCapex, processo.Id, propostaVencedora.ValorTotalCVE))
+        {
+            ModelState.AddModelError("JustificativaAdjudicacao", $"Esta adjudicação ultrapassa o orçamento disponível do projeto Capex \"{projetoCapex.Nome}\". Indique a justificação.");
+        }
+
         if (!ModelState.IsValid)
         {
             model.PropostasDisponiveis = processo.Propostas
@@ -461,6 +474,7 @@ public class ProcessosController : Controller
 
             model.PrimeiroLugarRankingId = primeiroId;
             model.PrimeiroLugarFornecedor = processo.Propostas.FirstOrDefault(p => p.Id == primeiroId)?.Fornecedor;
+            CarregarOrcamentoCapex(processo);
             return View(model);
         }
 
@@ -502,6 +516,7 @@ public class ProcessosController : Controller
         {
             transaction.Rollback();
             _logger.LogError(ex, "Erro ao registar adjudicação do processo {ProcessoId}.", model.ProcessoId);
+            CarregarOrcamentoCapex(processo);
             ModelState.AddModelError("", "Não foi possível concluir a adjudicação.");
             return View(model);
         }
@@ -537,5 +552,27 @@ public class ProcessosController : Controller
 
         TempData["Sucesso"] = "Estado do processo atualizado.";
         return RedirectToAction(nameof(Details), new { id });
+    }
+
+    // Projeto Capex da compra (via Pedido), com as outras compras do projeto para calcular a execução.
+    private ProjetoPlano? CarregarProjetoCapex(Processo processo)
+    {
+        var projetoId = processo.PedidoProposta?.ProjetoPlanoId
+            ?? _db.Pedidos.Where(p => p.Id == processo.PedidoPropostaId).Select(p => p.ProjetoPlanoId).FirstOrDefault();
+        if (projetoId == null) return null;
+
+        return _db.ProjetosPlano
+            .Include(p => p.Plano)
+            .Include(p => p.Pedidos).ThenInclude(pe => pe.Processo)
+            .AsNoTracking()
+            .FirstOrDefault(p => p.Id == projetoId);
+    }
+
+    // Na adjudicação exclui-se o próprio processo (o seu valor vai ser substituído pelo novo).
+    private void CarregarOrcamentoCapex(Processo processo, bool excluirEste = true)
+    {
+        var projeto = CarregarProjetoCapex(processo);
+        ViewBag.ProjetoCapex = projeto;
+        ViewBag.ExecucaoCapex = projeto == null ? null : PlanoCalculos.CalcularExecucao(projeto, excluirEste ? processo.Id : null);
     }
 }

@@ -28,6 +28,14 @@ public enum CaixaPlano
     SemSituacao
 }
 
+// Decisão sobre o projeto proposto: só os Aceites formam o Capex e podem ter compras.
+public enum EstadoAprovacaoProjeto
+{
+    Proposto,
+    Aceite,
+    Rejeitado
+}
+
 public enum PrioridadeProjetoPlano
 {
     Alta,

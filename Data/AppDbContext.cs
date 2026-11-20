@@ -95,6 +95,12 @@ public class AppDbContext : DbContext
             e.Property(p => p.Status).HasConversion<string>().HasMaxLength(20);
             e.Property(p => p.Area).HasConversion<string>().HasMaxLength(20);
             e.Property(p => p.OrcamentoEstimado).HasPrecision(18, 2);
+
+            // Restrict: um projeto Capex com compras associadas não pode ser apagado.
+            e.HasOne(p => p.ProjetoPlano)
+                .WithMany(pp => pp.Pedidos)
+                .HasForeignKey(p => p.ProjetoPlanoId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<ItemPedido>(e =>
@@ -318,6 +324,15 @@ public class AppDbContext : DbContext
             {
                 e.Property<decimal?>(valor).HasPrecision(18, 2);
             }
+
+            e.Property(p => p.Area).HasConversion<string>().HasMaxLength(20);
+            e.Property(p => p.EstadoAprovacao).HasConversion<string>().HasMaxLength(20);
+            e.HasIndex(p => new { p.PlanoId, p.Area });
+
+            e.HasOne(p => p.ProjetoOrigem)
+                .WithMany()
+                .HasForeignKey(p => p.ProjetoOrigemId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
 
             e.HasOne(p => p.Plano)
                 .WithMany(pl => pl.Projetos)

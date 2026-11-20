@@ -1,0 +1,114 @@
+@using ComparacaoPropostas.Helper
+@using ComparacaoPropostas.Models.Entities.Enums
+@model ComparacaoPropostas.ViewModels.Capex.CapexVM
+@{
+    var p = Model.Plano;
+    ViewData["Title"] = $"Capex {p.Ano}";
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-1">Capex @p.Ano</h2>
+        <span class="text-body-tertiary">Projetos aceites de <a asp-controller="Planos" asp-action="Details" asp-route-id="@p.Id">@p.Designacao</a> e a sua execução pelas compras.</span>
+    </div>
+    <form method="get" class="d-flex gap-2 align-items-end flex-wrap">
+        <div>
+            <label class="form-label mb-1 small">Plano</label>
+            <select name="planoId" class="form-select form-select-sm" onchange="this.form.submit()"
+                    asp-items="Model.Planos.Select(x => new SelectListItem(x.Designacao, x.Id.ToString(), x.Id == p.Id))"></select>
+        </div>
+        <div>
+            <label class="form-label mb-1 small">Área</label>
+            <select name="area" class="form-select form-select-sm" onchange="this.form.submit()"
+                    asp-items="Enum.GetValues<AreaDepartamento>().Select(a => new SelectListItem(a.ToLabel(), a.ToString(), a == Model.Area))">
+                <option value="" selected="@(Model.Area == null)">Todas as áreas</option>
+            </select>
+        </div>
+    </form>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">Execução @(Model.Area == null ? "global" : $"— {Model.Area.Value.ToLabel()}")</h5></div>
+    <div class="card-body">
+        <partial name="_ExecucaoCapex" model="Model.Total" />
+    </div>
+</div>
+
+@if (Model.PorArea.Count > 0)
+{
+    <div class="row g-3 mb-3">
+        <div class="col-lg-7">
+            <div class="card h-100">
+                <div class="card-header py-2"><h6 class="mb-0">Orçamento, adjudicado e em curso por área</h6></div>
+                <div class="card-body" style="height: 280px">
+                    <canvas class="js-grafico" data-moeda="cve" data-grafico="@GraficoHelper.Barras(Model.PorArea.Select(a => a.Area.ToLabel()), new[] {
+                        new GraficoHelper.Serie("Orçamento", Model.PorArea.Select(a => a.Orcamento)),
+                        new GraficoHelper.Serie("Adjudicado", Model.PorArea.Select(a => a.Adjudicado)),
+                        new GraficoHelper.Serie("Em curso", Model.PorArea.Select(a => a.EmCurso)) })"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card h-100">
+                <div class="card-header py-2"><h6 class="mb-0">Distribuição do Capex aprovado</h6></div>
+                <div class="card-body" style="height: 280px">
+                    <canvas class="js-grafico" data-moeda="cve" data-grafico="@GraficoHelper.Circular(Model.PorArea.Select(a => a.Area.ToLabel()), Model.PorArea.Select(a => a.Orcamento))"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="card">
+    <div class="card-header"><h5 class="mb-0">Projetos aceites (@Model.Linhas.Count)</h5></div>
+    <div class="card-body table-responsive">
+        @if (Model.Linhas.Count == 0)
+        {
+            <div class="alert alert-info mb-0">
+                Ainda não há projetos aceites. Aceite os projetos propostos em
+                <a asp-controller="ProjetosPlano" asp-action="Index" asp-route-planoId="@p.Id">Projetos propostos</a>.
+            </div>
+        }
+        else
+        {
+            <table class="table table-hover table-sm data-table">
+                <thead>
+                    <tr>
+                        <th>Área</th>
+                        <th>Projeto</th>
+                        <th>Rubrica</th>
+                        <th class="text-end">Orçamento</th>
+                        <th class="text-end">Adjudicado</th>
+                        <th class="text-end">Em curso</th>
+                        <th class="text-end">Saldo</th>
+                        <th class="text-end">% exec.</th>
+                        <th class="text-end">Compras</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var l in Model.Linhas)
+                    {
+                        var e = l.Execucao;
+                        <tr>
+                            <td>@l.Projeto.Area.ToLabel()</td>
+                            <td><a asp-controller="ProjetosPlano" asp-action="Details" asp-route-id="@l.Projeto.Id">@l.Projeto.Nome</a></td>
+                            <td class="small">@(l.Projeto.DesignacaoRubrica ?? "-")</td>
+                            <td class="text-end" data-order="@e.Orcamento">@e.Orcamento.ToCve()</td>
+                            <td class="text-end" data-order="@e.Adjudicado">@e.Adjudicado.ToCve()</td>
+                            <td class="text-end" data-order="@e.EmCurso">@e.EmCurso.ToCve()</td>
+                            <td class="text-end @(e.Saldo < 0 ? "text-danger fw-semibold" : "")" data-order="@e.Saldo">@e.Saldo.ToCve()</td>
+                            <td class="text-end" data-order="@(e.PercentagemExecutada ?? 0)">@e.PercentagemExecutada.ToPercent()</td>
+                            <td class="text-end">@e.NumCompras</td>
+                            <td class="text-end text-nowrap">
+                                <a class="btn btn-sm btn-subtle-primary" asp-controller="Pedidos" asp-action="Create" asp-route-projetoPlanoId="@l.Projeto.Id" title="Nova compra para este projeto">
+                                    <i class="fas fa-cart-plus"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

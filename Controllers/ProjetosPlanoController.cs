@@ -1,11 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ComparacaoPropostas.Data;
+using ComparacaoPropostas.Helper;
 using ComparacaoPropostas.Models.Entities;
 using ComparacaoPropostas.Models.Entities.Enums;
 
 namespace ComparacaoPropostas.Controllers;
 
+// Projetos propostos pelas áreas para um plano. A página do plano lista todos os projetos
+// introduzidos, com a decisão (Proposto / Aceite / Rejeitado); só os aceites formam o Capex.
 public class ProjetosPlanoController : Controller
 {
     private readonly AppDbContext _db;
@@ -17,33 +20,39 @@ public class ProjetosPlanoController : Controller
         _logger = logger;
     }
 
-    public IActionResult Index(int planoId, CaixaPlano? caixa)
+    public IActionResult Index(int planoId, CaixaPlano? caixa, AreaDepartamento? area, EstadoAprovacaoProjeto? aprovacao)
     {
         var plano = _db.Planos.Find(planoId);
         if (plano == null) return NotFound();
 
-        var projetos = _db.ProjetosPlano
-            .Where(p => p.PlanoId == planoId)
+        var query = _db.ProjetosPlano.Where(p => p.PlanoId == planoId);
+        if (area != null) query = query.Where(p => p.Area == area);
+        if (aprovacao != null) query = query.Where(p => p.EstadoAprovacao == aprovacao);
+
+        var projetos = query
             .AsNoTracking()
             .ToList()
             .Where(p => caixa == null || p.Caixa == caixa)
-            .OrderBy(p => p.Caixa)
+            .OrderBy(p => p.Area)
+            .ThenBy(p => p.Caixa)
             .ThenBy(p => p.DesignacaoRubrica)
             .ThenBy(p => p.Nome)
             .ToList();
 
         ViewBag.Plano = plano;
         ViewBag.Caixa = caixa;
+        ViewBag.Area = area;
+        ViewBag.Aprovacao = aprovacao;
         return View(projetos);
     }
 
-    public IActionResult Create(int planoId)
+    public IActionResult Create(int planoId, AreaDepartamento? area)
     {
         var plano = _db.Planos.Find(planoId);
         if (plano == null) return NotFound();
 
         PrepararListas(plano);
-        return View(new ProjetoPlano { PlanoId = planoId, Situacao = SituacaoProjetoPlano.Novo });
+        return View(new ProjetoPlano { PlanoId = planoId, Area = area ?? AreaDepartamento.DepInf, Situacao = SituacaoProjetoPlano.Novo });
     }
 
     [HttpPost]
@@ -60,11 +69,26 @@ public class ProjetosPlanoController : Controller
             return View(projeto);
         }
 
+        if (projeto.EstadoAprovacao != EstadoAprovacaoProjeto.Proposto) projeto.DataDecisao = DateTime.UtcNow;
         _db.ProjetosPlano.Add(projeto);
         _db.SaveChanges();
 
-        TempData["Sucesso"] = "Projeto adicionado ao plano.";
-        return RedirectToAction(nameof(Index), new { planoId = projeto.PlanoId });
+        TempData["Sucesso"] = "Projeto proposto adicionado ao plano.";
+        return RedirectToAction(nameof(Index), new { planoId = projeto.PlanoId, area = projeto.Area });
+    }
+
+    // Ficha do projeto: dados do plano, decisão e execução pelas compras associadas.
+    public IActionResult Details(int id)
+    {
+        var projeto = _db.ProjetosPlano
+            .Include(p => p.Plano)
+            .Include(p => p.ProjetoOrigem).ThenInclude(o => o!.Plano)
+            .Include(p => p.Pedidos).ThenInclude(pe => pe.Processo)
+            .AsNoTracking()
+            .FirstOrDefault(p => p.Id == id);
+        if (projeto == null) return NotFound();
+
+        return View(projeto);
     }
 
     public IActionResult Edit(int id)
@@ -85,8 +109,12 @@ public class ProjetosPlanoController : Controller
         var existente = _db.ProjetosPlano.AsNoTracking().FirstOrDefault(p => p.Id == id);
         if (existente == null) return NotFound();
         projeto.PlanoId = existente.PlanoId;
+        projeto.ProjetoOrigemId = existente.ProjetoOrigemId;
+        projeto.DataDecisao = projeto.EstadoAprovacao == existente.EstadoAprovacao ? existente.DataDecisao
+            : projeto.EstadoAprovacao == EstadoAprovacaoProjeto.Proposto ? null : DateTime.UtcNow;
 
         ValidarMeses(projeto);
+        ValidarRejeicaoComCompras(id, projeto.EstadoAprovacao);
         if (!ModelState.IsValid)
         {
             PrepararListas(_db.Planos.Find(projeto.PlanoId)!);
@@ -97,7 +125,53 @@ public class ProjetosPlanoController : Controller
         _db.SaveChanges();
 
         TempData["Sucesso"] = "Projeto atualizado com sucesso.";
-        return RedirectToAction(nameof(Index), new { planoId = projeto.PlanoId });
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    // Aceitar / rejeitar / voltar a proposto a partir da listagem do plano.
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult Decidir(int id, EstadoAprovacaoProjeto estado, string? motivo, string? voltarPara)
+    {
+        var projeto = _db.ProjetosPlano.Find(id);
+        if (projeto == null) return NotFound();
+
+        if (estado != EstadoAprovacaoProjeto.Aceite && _db.Pedidos.Any(p => p.ProjetoPlanoId == id))
+        {
+            TempData["EmailWarning"] = $"O projeto \"{projeto.Nome}\" já tem compras associadas e tem de continuar aceite.";
+        }
+        else
+        {
+            projeto.EstadoAprovacao = estado;
+            projeto.DataDecisao = estado == EstadoAprovacaoProjeto.Proposto ? null : DateTime.UtcNow;
+            if (motivo != null) projeto.MotivoDecisao = string.IsNullOrWhiteSpace(motivo) ? null : motivo.Trim();
+            _db.SaveChanges();
+            TempData["Sucesso"] = $"Projeto \"{projeto.Nome}\": {estado.ToLabel()}.";
+        }
+
+        return Url.IsLocalUrl(voltarPara) ? Redirect(voltarPara!) : RedirectToAction(nameof(Index), new { planoId = projeto.PlanoId });
+    }
+
+    // Aceita de uma vez os projetos propostos que entram no plano (Transitado / Transitado parcial / Novo).
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult AceitarQueEntram(int planoId, AreaDepartamento? area)
+    {
+        var propostos = _db.ProjetosPlano
+            .Where(p => p.PlanoId == planoId && p.EstadoAprovacao == EstadoAprovacaoProjeto.Proposto && (area == null || p.Area == area))
+            .ToList()
+            .Where(p => p.Caixa == CaixaPlano.Entra)
+            .ToList();
+
+        foreach (var p in propostos)
+        {
+            p.EstadoAprovacao = EstadoAprovacaoProjeto.Aceite;
+            p.DataDecisao = DateTime.UtcNow;
+        }
+        _db.SaveChanges();
+
+        TempData["Sucesso"] = $"{propostos.Count} projeto(s) aceite(s).";
+        return RedirectToAction(nameof(Index), new { planoId, area });
     }
 
     [HttpPost]
@@ -108,8 +182,15 @@ public class ProjetosPlanoController : Controller
         if (projeto == null) return NotFound();
 
         var planoId = projeto.PlanoId;
+        if (_db.Pedidos.Any(p => p.ProjetoPlanoId == id))
+        {
+            TempData["EmailWarning"] = "Não é possível remover: o projeto tem compras associadas.";
+            return RedirectToAction(nameof(Index), new { planoId });
+        }
+
         try
         {
+            foreach (var seguinte in _db.ProjetosPlano.Where(p => p.ProjetoOrigemId == id)) seguinte.ProjetoOrigemId = null;
             _db.ProjetosPlano.Remove(projeto);
             _db.SaveChanges();
             TempData["Sucesso"] = "Projeto removido do plano.";
@@ -127,6 +208,12 @@ public class ProjetosPlanoController : Controller
     {
         if (projeto.MesInicio.HasValue && projeto.MesFim.HasValue && projeto.MesFim < projeto.MesInicio)
             ModelState.AddModelError(nameof(ProjetoPlano.MesFim), "O mês de fim não pode ser anterior ao mês de início.");
+    }
+
+    private void ValidarRejeicaoComCompras(int id, EstadoAprovacaoProjeto estado)
+    {
+        if (estado != EstadoAprovacaoProjeto.Aceite && _db.Pedidos.Any(p => p.ProjetoPlanoId == id))
+            ModelState.AddModelError(nameof(ProjetoPlano.EstadoAprovacao), "O projeto já tem compras associadas e tem de continuar aceite.");
     }
 
     // Sugestões (datalist) com os valores já usados no plano, à semelhança das listas da folha "Listas".

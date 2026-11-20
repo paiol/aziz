@@ -36,6 +36,21 @@ public static class PlanoLabelExtensions
         _ => "badge bg-light text-dark"
     };
 
+    public static string ToLabel(this EstadoAprovacaoProjeto estado) => estado switch
+    {
+        EstadoAprovacaoProjeto.Proposto => "Proposto",
+        EstadoAprovacaoProjeto.Aceite => "Aceite",
+        EstadoAprovacaoProjeto.Rejeitado => "Rejeitado",
+        _ => estado.ToString()
+    };
+
+    public static string ToBadgeClass(this EstadoAprovacaoProjeto estado) => estado switch
+    {
+        EstadoAprovacaoProjeto.Aceite => "badge bg-success",
+        EstadoAprovacaoProjeto.Rejeitado => "badge bg-danger",
+        _ => "badge bg-info text-dark"
+    };
+
     public static string ToLabel(this PrioridadeProjetoPlano prioridade) => prioridade switch
     {
         PrioridadeProjetoPlano.Alta => "Alta",

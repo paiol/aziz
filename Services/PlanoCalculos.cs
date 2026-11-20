@@ -15,6 +15,19 @@ public class LinhaResumoRubrica
     public int NumCondicionados { get; set; }
 }
 
+public class LinhaResumoArea
+{
+    public AreaDepartamento Area { get; set; }
+    public int NumProjetos { get; set; }
+    public int NumPropostos { get; set; }
+    public int NumAceites { get; set; }
+    public int NumRejeitados { get; set; }
+    // TOTAL ORC. dos projetos que entram no plano e ainda não foram rejeitados (proposta da área).
+    public decimal OrcamentoProposto { get; set; }
+    // TOTAL ORC. dos projetos aceites (Capex aprovado da área).
+    public decimal OrcamentoAceite { get; set; }
+}
+
 public class LinhaResumoCaixa
 {
     public CaixaPlano Caixa { get; set; }
@@ -55,13 +68,139 @@ public class ResumoPlano
 
     public List<LinhaResumoRubrica> PorRubrica { get; set; } = new();
     public List<LinhaResumoCaixa> PorCaixa { get; set; } = new();
+    public List<LinhaResumoArea> PorArea { get; set; } = new();
+    public int NumPropostos { get; set; }
+    public int NumAceites { get; set; }
+    public int NumRejeitados { get; set; }
+    public decimal OrcamentoAceite { get; set; }
     public List<CenarioFormacao> CenariosFormacao { get; set; } = new();
+}
+
+// Execução de um projeto Capex pelas compras associadas (pedidos → processos).
+public class ExecucaoProjetoCapex
+{
+    public decimal Orcamento { get; set; }
+    public decimal Adjudicado { get; set; }
+    // Orçamento estimado dos pedidos ainda sem adjudicação (compras em curso).
+    public decimal EmCurso { get; set; }
+    public int NumCompras { get; set; }
+    public decimal Saldo => Orcamento - Adjudicado;
+    public decimal SaldoAposEmCurso => Orcamento - Adjudicado - EmCurso;
+    public decimal? PercentagemExecutada => Orcamento > 0 ? Adjudicado / Orcamento : null;
+    public bool Ultrapassado => Adjudicado > Orcamento;
 }
 
 // Regras de cálculo do plano, replicadas das fórmulas do ficheiro SCOPE_INF
 // (folhas Scope, Resumo, Painel e Formação e feiras).
 public static class PlanoCalculos
 {
+    // ---- Execução do Capex pelas compras -------------------------------------------------
+
+    private static bool PedidoAtivo(PedidoProposta p)
+        => p.Status != StatusPedido.Cancelado && p.Processo?.Status != StatusProcesso.Cancelado;
+
+    private static decimal? AdjudicadoCve(PedidoProposta p) => PedidoAtivo(p) ? p.Processo?.ValorAdjudicadoCVE : null;
+
+    // Requer ProjetoPlano.Pedidos carregados com o respetivo Processo.
+    public static ExecucaoProjetoCapex CalcularExecucao(ProjetoPlano projeto, int? excluirProcessoId = null)
+    {
+        var pedidos = projeto.Pedidos.Where(PedidoAtivo).Where(p => excluirProcessoId == null || p.Processo?.Id != excluirProcessoId).ToList();
+        return new ExecucaoProjetoCapex
+        {
+            Orcamento = projeto.TotalOrcamento,
+            Adjudicado = pedidos.Sum(p => AdjudicadoCve(p) ?? 0m),
+            EmCurso = pedidos.Where(p => AdjudicadoCve(p) == null).Sum(p => p.OrcamentoEstimado ?? 0m),
+            NumCompras = pedidos.Count
+        };
+    }
+
+    // Validação da adjudicação: o novo valor, somado ao já adjudicado noutros processos do
+    // mesmo projeto, não pode passar o TOTAL ORC. sem justificação.
+    public static bool AdjudicacaoUltrapassaOrcamento(ProjetoPlano projeto, int processoId, decimal valorCve)
+    {
+        var execucao = CalcularExecucao(projeto, processoId);
+        return execucao.Adjudicado + valorCve > execucao.Orcamento;
+    }
+
+    // ---- Transição para o plano do ano seguinte ------------------------------------------
+
+    // Sugestão inicial para a revisão do ano seguinte (o utilizador pode mudar cada linha):
+    // rejeitados e fora do plano não passam; totalmente adjudicados saem como executados;
+    // condicionados continuam condicionados; com adjudicação parcial transitam parcialmente.
+    public static SituacaoProjetoPlano? DecisaoTransicaoSugerida(ProjetoPlano anterior)
+    {
+        if (anterior.EstadoAprovacao == EstadoAprovacaoProjeto.Rejeitado || anterior.Caixa == CaixaPlano.ForaDoPlano) return null;
+        var execucao = CalcularExecucao(anterior);
+        if (execucao.Orcamento > 0m && execucao.Adjudicado >= execucao.Orcamento) return SituacaoProjetoPlano.ExecutadoRetirar;
+        if (anterior.Caixa == CaixaPlano.Condicionado) return SituacaoProjetoPlano.Condicionado;
+        return execucao.Adjudicado > 0m ? SituacaoProjetoPlano.TransitadoParcial : SituacaoProjetoPlano.Transitado;
+    }
+
+    // Valor que fica por executar: o orçamento do ano menos o que já foi adjudicado.
+    public static decimal ValorTransitarSugerido(ProjetoPlano anterior)
+        => Math.Max(0m, anterior.TotalOrcamento - CalcularExecucao(anterior).Adjudicado);
+
+    // Cria a linha do plano seguinte a partir do projeto do ano anterior, como na folha Scope:
+    // o TOTAL do ano anterior passa a referência, o adjudicado passa a "adjudicado ano anterior"
+    // e o valor por executar passa a "valor a transitar".
+    public static ProjetoPlano TransitarProjeto(ProjetoPlano anterior, SituacaoProjetoPlano situacao, decimal? valorTransitar)
+    {
+        var execucao = CalcularExecucao(anterior);
+        var caixa = CaixaDoPlano(situacao);
+        var entra = caixa != CaixaPlano.ForaDoPlano;
+        return new ProjetoPlano
+        {
+            ProjetoOrigemId = anterior.Id,
+            Area = anterior.Area,
+            // O que transita mantém-se aceite; condicionado volta a proposta; o que sai fica rejeitado.
+            EstadoAprovacao = caixa switch
+            {
+                CaixaPlano.Entra => EstadoAprovacaoProjeto.Aceite,
+                CaixaPlano.ForaDoPlano => EstadoAprovacaoProjeto.Rejeitado,
+                _ => EstadoAprovacaoProjeto.Proposto
+            },
+            DataDecisao = caixa is CaixaPlano.Entra or CaixaPlano.ForaDoPlano ? DateTime.UtcNow : null,
+            MotivoDecisao = caixa switch
+            {
+                CaixaPlano.Entra => "Transitado do plano anterior",
+                CaixaPlano.ForaDoPlano => "Não entra no plano (transição do ano anterior)",
+                _ => null
+            },
+            Nome = anterior.Nome,
+            CapexAnoMenos2 = anterior.CodCapexAnoAnterior,
+            CodCapexAnoAnterior = anterior.CodCapex,
+            SeguimentoOrcamento = anterior.SeguimentoOrcamento,
+            DesignacaoRubrica = anterior.DesignacaoRubrica,
+            OrigemIniciativa = anterior.OrigemIniciativa,
+            Tipo = anterior.Tipo,
+            Coordenacao = anterior.Coordenacao,
+            Ilha = anterior.Ilha,
+            Classificacao = anterior.Classificacao,
+            Descricao = anterior.Descricao,
+            Situacao = situacao,
+            Prioridade = anterior.Prioridade,
+            ExecucaoAnoAnterior = execucao.PercentagemExecutada is decimal pct ? Math.Min(1m, Math.Round(pct, 4)) : null,
+            Zona = anterior.Zona,
+            ExecucaoProjeto = anterior.ExecucaoProjeto,
+            FiscalizacaoCivil = anterior.FiscalizacaoCivil,
+            FiscalizacaoTracados = anterior.FiscalizacaoTracados,
+            ExecucaoMontagem = anterior.ExecucaoMontagem,
+            PerfilEquipaMontagem = anterior.PerfilEquipaMontagem,
+            FiscalizacaoMontagem = anterior.FiscalizacaoMontagem,
+            PrestadorExternoIlha = anterior.PrestadorExternoIlha,
+            NecessidadeAquisicao = anterior.NecessidadeAquisicao,
+            EntidadesExecutantes = anterior.EntidadesExecutantes,
+            AdjudicadoAnoAnterior = execucao.Adjudicado,
+            AdjudicadoAnosAnteriores = (anterior.AdjudicadoAnoAnterior ?? 0m) + (anterior.AdjudicadoAnosAnteriores ?? 0m),
+            TotalOrcamentoAnoAnterior = anterior.TotalOrcamento,
+            ValorTransitar = entra ? (valorTransitar ?? ValorTransitarSugerido(anterior)) : 0m,
+            ValorNovo = 0m,
+            EsforcoArquiteturaDias = anterior.EsforcoArquiteturaDias,
+            EsforcoEnergiaDias = anterior.EsforcoEnergiaDias
+        };
+    }
+
+    // ---- Regras da folha ---------------------------------------------------------------
     public static readonly string[] NomesMeses = { "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez" };
 
     // Coluna GI: Transitado / Transitado parcial / Novo entram; Condicionado fica à parte;
@@ -116,7 +255,9 @@ public static class PlanoCalculos
 
     public static ResumoPlano CalcularResumo(Plano plano)
     {
-        var projetos = plano.Projetos.ToList();
+        // Os projetos rejeitados ficam fora de todos os totais do plano.
+        var todos = plano.Projetos.ToList();
+        var projetos = todos.Where(p => p.EstadoAprovacao != EstadoAprovacaoProjeto.Rejeitado).ToList();
         var ativos = projetos.Where(p => p.Caixa == CaixaPlano.Entra).ToList();
         var condicionados = projetos.Where(p => p.Caixa == CaixaPlano.Condicionado).ToList();
         var dom = projetos.Where(p => p.Situacao == SituacaoProjetoPlano.ExploracaoDom).ToList();
@@ -176,6 +317,26 @@ public static class PlanoCalculos
                     EsforcoArquitetura = g.Sum(p => p.EsforcoArquiteturaDias ?? 0m),
                     EsforcoEnergia = g.Sum(p => p.EsforcoEnergiaDias ?? 0m)
                 };
+            })
+            .ToList();
+
+        bool Aceite(ProjetoPlano p) => p.EstadoAprovacao == EstadoAprovacaoProjeto.Aceite && p.Caixa != CaixaPlano.ForaDoPlano;
+        resumo.NumPropostos = todos.Count(p => p.EstadoAprovacao == EstadoAprovacaoProjeto.Proposto);
+        resumo.NumAceites = todos.Count(Aceite);
+        resumo.NumRejeitados = todos.Count(p => p.EstadoAprovacao == EstadoAprovacaoProjeto.Rejeitado);
+        resumo.OrcamentoAceite = todos.Where(Aceite).Sum(p => p.TotalOrcamento);
+        resumo.PorArea = todos
+            .GroupBy(p => p.Area)
+            .OrderBy(g => g.Key)
+            .Select(g => new LinhaResumoArea
+            {
+                Area = g.Key,
+                NumProjetos = g.Count(),
+                NumPropostos = g.Count(p => p.EstadoAprovacao == EstadoAprovacaoProjeto.Proposto),
+                NumAceites = g.Count(Aceite),
+                NumRejeitados = g.Count(p => p.EstadoAprovacao == EstadoAprovacaoProjeto.Rejeitado),
+                OrcamentoProposto = g.Where(p => p.Caixa == CaixaPlano.Entra && p.EstadoAprovacao != EstadoAprovacaoProjeto.Rejeitado).Sum(p => p.TotalOrcamento),
+                OrcamentoAceite = g.Where(Aceite).Sum(p => p.TotalOrcamento)
             })
             .ToList();
 
