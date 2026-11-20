@@ -995,6 +995,9 @@ namespace ComparacaoPropostas.Migrations
                     b.Property<int?>("Prazo")
                         .HasColumnType("int");
 
+                    b.Property<int?>("ProjetoPlanoId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("PropostaVencedoraId")
                         .HasColumnType("int");
 
@@ -1020,6 +1023,8 @@ namespace ComparacaoPropostas.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ProjetoPlanoId");
 
                     b.HasIndex("PropostaVencedoraId");
 
@@ -1585,10 +1590,17 @@ namespace ComparacaoPropostas.Migrations
 
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.ProjetoObra", b =>
                 {
+                    b.HasOne("ComparacaoPropostas.Models.Entities.ProjetoPlano", "ProjetoPlano")
+                        .WithMany("Obras")
+                        .HasForeignKey("ProjetoPlanoId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("ComparacaoPropostas.Models.Entities.PropostaEmpreiteiro", "PropostaVencedora")
                         .WithMany()
                         .HasForeignKey("PropostaVencedoraId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ProjetoPlano");
 
                     b.Navigation("PropostaVencedora");
                 });
@@ -1715,6 +1727,8 @@ namespace ComparacaoPropostas.Migrations
 
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.ProjetoPlano", b =>
                 {
+                    b.Navigation("Obras");
+
                     b.Navigation("Pedidos");
                 });
 

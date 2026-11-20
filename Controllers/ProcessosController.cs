@@ -564,6 +564,7 @@ public class ProcessosController : Controller
         return _db.ProjetosPlano
             .Include(p => p.Plano)
             .Include(p => p.Pedidos).ThenInclude(pe => pe.Processo)
+            .Include(p => p.Obras)
             .AsNoTracking()
             .FirstOrDefault(p => p.Id == projetoId);
     }

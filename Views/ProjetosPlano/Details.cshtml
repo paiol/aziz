@@ -29,9 +29,17 @@
             <a class="btn btn-primary" asp-controller="Pedidos" asp-action="Create" asp-route-projetoPlanoId="@p.Id">
                 <span class="fas fa-cart-plus me-1"></span> Nova Compra
             </a>
+            <a class="btn @(p.EhObra ? "btn-primary" : "btn-subtle-primary")" asp-controller="ProjetosObra" asp-action="Create" asp-route-projetoPlanoId="@p.Id">
+                <span class="fas fa-helmet-safety me-1"></span> Nova Obra
+            </a>
         }
     </div>
 </div>
+@if (p.EhObra)
+{
+    <div class="mb-2"><span class="badge bg-info text-dark"><i class="fas fa-helmet-safety me-1"></i>Projeto com obra</span>
+        <span class="small text-body-tertiary ms-1">A obra (concurso de empreiteiros, MQT, adjudicação) é gerida no módulo Obras e conta na execução deste projeto.</span></div>
+}
 
 @if (!string.IsNullOrWhiteSpace(p.MotivoDecisao) || p.DataDecisao.HasValue)
 {
@@ -97,6 +105,48 @@
                             </td>
                             <td class="text-end">@pe.OrcamentoEstimado.ToCve()</td>
                             <td class="text-end">@(pe.Processo?.ValorAdjudicadoCVE.ToCve() ?? "-")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">Obras associadas</h5></div>
+    <div class="card-body table-responsive">
+        @if (p.Obras.Count == 0)
+        {
+            <div class="alert alert-info mb-0">
+                Ainda não há obras associadas a este projeto.
+                @if (aceite && p.EhObra)
+                {
+                    <a asp-controller="ProjetosObra" asp-action="Create" asp-route-projetoPlanoId="@p.Id">Registar a obra</a>
+                }
+            </div>
+        }
+        else
+        {
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>Obra</th>
+                        <th>Estado</th>
+                        <th>Local</th>
+                        <th class="text-end">Valor estimado</th>
+                        <th class="text-end">Valor adjudicado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var o in p.Obras.OrderByDescending(x => x.CriadoEm))
+                    {
+                        <tr>
+                            <td><a asp-controller="ProjetosObra" asp-action="Details" asp-route-id="@o.Id">@o.Designacao</a></td>
+                            <td><span class="@o.Status.ToBadgeClass()">@o.Status.ToLabel()</span></td>
+                            <td>@(o.Local ?? "-")</td>
+                            <td class="text-end">@o.ValorEstimado.ToCve()</td>
+                            <td class="text-end">@o.ValorAdjudicado.ToCve()</td>
                         </tr>
                     }
                 </tbody>

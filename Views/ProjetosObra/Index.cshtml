@@ -21,6 +21,7 @@
                 <thead>
                     <tr>
                         <th>Designação</th>
+                        <th>Projeto Capex</th>
                         <th>Tipo</th>
                         <th>Local</th>
                         <th>Cliente</th>
@@ -35,6 +36,7 @@
                     {
                         <tr>
                             <td><a asp-action="Details" asp-route-id="@p.Id">@p.Designacao</a></td>
+                            <td>@if (p.ProjetoPlano != null) { <a asp-controller="ProjetosPlano" asp-action="Details" asp-route-id="@p.ProjetoPlano.Id">@p.ProjetoPlano.Nome</a> } else { <span class="text-body-tertiary">-</span> }</td>
                             <td>@p.Tipo.ToLabel()</td>
                             <td>@(p.Local ?? "-")</td>
                             <td>@(p.Cliente ?? "-")</td>

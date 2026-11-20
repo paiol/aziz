@@ -26,6 +26,13 @@ public class ProjetoPlano
     [ValidateNever]
     public ICollection<PedidoProposta> Pedidos { get; set; } = new List<PedidoProposta>();
 
+    // Obras (módulo Obras: concurso de empreiteiros) que executam este projeto.
+    [ValidateNever]
+    public ICollection<ProjetoObra> Obras { get; set; } = new List<ProjetoObra>();
+
+    [NotMapped]
+    public bool EhObra => PlanoCalculos.EhObra(this);
+
     // Área que propõe o projeto (o plano é feito por áreas).
     [Display(Name = "Área")]
     public AreaDepartamento Area { get; set; } = AreaDepartamento.DepInf;

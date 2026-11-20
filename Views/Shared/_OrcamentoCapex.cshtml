@@ -15,13 +15,13 @@
     <div class="card-body">
         @if (projeto == null || execucao == null)
         {
-            <div class="small text-warning mb-0">Esta compra ainda não está ligada a nenhum projeto Capex. Associe-a no Pedido de Proposta.</div>
+            <div class="small text-warning mb-0">Ainda não está ligada a nenhum projeto Capex (registo anterior à ligação). Associe o projeto Capex ao editar.</div>
         }
         else
         {
             @if (naAdjudicacao)
             {
-                <div class="small text-body-tertiary mb-2">Execução do projeto sem contar esta compra. Se o valor adjudicado passar o saldo disponível, a justificação é obrigatória.</div>
+                <div class="small text-body-tertiary mb-2">Execução do projeto sem contar esta adjudicação. Se o valor adjudicado passar o saldo disponível, a justificação é obrigatória.</div>
             }
             <partial name="_ExecucaoCapex" model="execucao" />
         }

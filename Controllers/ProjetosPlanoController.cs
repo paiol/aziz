@@ -84,6 +84,7 @@ public class ProjetosPlanoController : Controller
             .Include(p => p.Plano)
             .Include(p => p.ProjetoOrigem).ThenInclude(o => o!.Plano)
             .Include(p => p.Pedidos).ThenInclude(pe => pe.Processo)
+            .Include(p => p.Obras)
             .AsNoTracking()
             .FirstOrDefault(p => p.Id == id);
         if (projeto == null) return NotFound();
@@ -136,9 +137,9 @@ public class ProjetosPlanoController : Controller
         var projeto = _db.ProjetosPlano.Find(id);
         if (projeto == null) return NotFound();
 
-        if (estado != EstadoAprovacaoProjeto.Aceite && _db.Pedidos.Any(p => p.ProjetoPlanoId == id))
+        if (estado != EstadoAprovacaoProjeto.Aceite && TemComprasOuObras(id))
         {
-            TempData["EmailWarning"] = $"O projeto \"{projeto.Nome}\" já tem compras associadas e tem de continuar aceite.";
+            TempData["EmailWarning"] = $"O projeto \"{projeto.Nome}\" já tem compras ou obras associadas e tem de continuar aceite.";
         }
         else
         {
@@ -182,9 +183,9 @@ public class ProjetosPlanoController : Controller
         if (projeto == null) return NotFound();
 
         var planoId = projeto.PlanoId;
-        if (_db.Pedidos.Any(p => p.ProjetoPlanoId == id))
+        if (TemComprasOuObras(id))
         {
-            TempData["EmailWarning"] = "Não é possível remover: o projeto tem compras associadas.";
+            TempData["EmailWarning"] = "Não é possível remover: o projeto tem compras ou obras associadas.";
             return RedirectToAction(nameof(Index), new { planoId });
         }
 
@@ -204,6 +205,9 @@ public class ProjetosPlanoController : Controller
         return RedirectToAction(nameof(Index), new { planoId });
     }
 
+    private bool TemComprasOuObras(int id)
+        => _db.Pedidos.Any(p => p.ProjetoPlanoId == id) || _db.ProjetosObra.Any(o => o.ProjetoPlanoId == id);
+
     private void ValidarMeses(ProjetoPlano projeto)
     {
         if (projeto.MesInicio.HasValue && projeto.MesFim.HasValue && projeto.MesFim < projeto.MesInicio)
@@ -212,8 +216,8 @@ public class ProjetosPlanoController : Controller
 
     private void ValidarRejeicaoComCompras(int id, EstadoAprovacaoProjeto estado)
     {
-        if (estado != EstadoAprovacaoProjeto.Aceite && _db.Pedidos.Any(p => p.ProjetoPlanoId == id))
-            ModelState.AddModelError(nameof(ProjetoPlano.EstadoAprovacao), "O projeto já tem compras associadas e tem de continuar aceite.");
+        if (estado != EstadoAprovacaoProjeto.Aceite && TemComprasOuObras(id))
+            ModelState.AddModelError(nameof(ProjetoPlano.EstadoAprovacao), "O projeto já tem compras ou obras associadas e tem de continuar aceite.");
     }
 
     // Sugestões (datalist) com os valores já usados no plano, à semelhança das listas da folha "Listas".

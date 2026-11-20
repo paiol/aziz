@@ -75,35 +75,10 @@ public class PedidosController : Controller
     // Lista os projetos aceites (Capex) agrupados por plano, para escolher na compra.
     // O projeto atual da compra aparece sempre, mesmo que já não esteja aceite.
     private void CarregarProjetosCapex(int? atualId)
-    {
-        var projetos = _db.ProjetosPlano
-            .Include(p => p.Plano)
-            .Where(p => p.EstadoAprovacao == EstadoAprovacaoProjeto.Aceite || p.Id == atualId)
-            .AsNoTracking()
-            .ToList()
-            .Where(p => p.Caixa != CaixaPlano.ForaDoPlano || p.Id == atualId)
-            .OrderByDescending(p => p.Plano.Ano).ThenBy(p => p.Area).ThenBy(p => p.Nome)
-            .ToList();
-
-        var grupos = projetos.Select(p => p.Plano.Designacao).Distinct().ToDictionary(d => d, d => new SelectListGroup { Name = d });
-        ViewBag.ProjetosCapex = projetos
-            .Select(p => new SelectListItem($"{p.Area.ToLabel()} · {p.Nome}", p.Id.ToString(), p.Id == atualId) { Group = grupos[p.Plano.Designacao] })
-            .ToList();
-    }
+        => ViewBag.ProjetosCapex = CapexProjetosHelper.ListaProjetos(_db, atualId);
 
     private void ValidarProjetoCapex(int? projetoPlanoId, bool obrigatorio, int? atualId = null)
-    {
-        if (projetoPlanoId == null)
-        {
-            if (obrigatorio) ModelState.AddModelError(nameof(PedidoProposta.ProjetoPlanoId), "Escolha o projeto Capex a que esta compra pertence.");
-            return;
-        }
-
-        var projeto = _db.ProjetosPlano.AsNoTracking().FirstOrDefault(p => p.Id == projetoPlanoId);
-        var aceite = projeto != null && projeto.EstadoAprovacao == EstadoAprovacaoProjeto.Aceite && projeto.Caixa != CaixaPlano.ForaDoPlano;
-        if (!aceite && projetoPlanoId != atualId)
-            ModelState.AddModelError(nameof(PedidoProposta.ProjetoPlanoId), "Só é possível associar compras a projetos aceites no Capex.");
-    }
+        => CapexProjetosHelper.Validar(_db, ModelState, nameof(PedidoProposta.ProjetoPlanoId), projetoPlanoId, obrigatorio, atualId, "esta compra");
 
     [HttpPost]
     [ValidateAntiForgeryToken]

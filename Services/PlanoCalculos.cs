@@ -84,6 +84,7 @@ public class ExecucaoProjetoCapex
     // Orçamento estimado dos pedidos ainda sem adjudicação (compras em curso).
     public decimal EmCurso { get; set; }
     public int NumCompras { get; set; }
+    public int NumObras { get; set; }
     public decimal Saldo => Orcamento - Adjudicado;
     public decimal SaldoAposEmCurso => Orcamento - Adjudicado - EmCurso;
     public decimal? PercentagemExecutada => Orcamento > 0 ? Adjudicado / Orcamento : null;
@@ -94,33 +95,56 @@ public class ExecucaoProjetoCapex
 // (folhas Scope, Resumo, Painel e Formação e feiras).
 public static class PlanoCalculos
 {
-    // ---- Execução do Capex pelas compras -------------------------------------------------
+    // ---- Execução do Capex pelas compras e obras -------------------------------------------------
 
     private static bool PedidoAtivo(PedidoProposta p)
         => p.Status != StatusPedido.Cancelado && p.Processo?.Status != StatusProcesso.Cancelado;
 
     private static decimal? AdjudicadoCve(PedidoProposta p) => PedidoAtivo(p) ? p.Processo?.ValorAdjudicadoCVE : null;
 
-    // Requer ProjetoPlano.Pedidos carregados com o respetivo Processo.
-    public static ExecucaoProjetoCapex CalcularExecucao(ProjetoPlano projeto, int? excluirProcessoId = null)
+    // Requer ProjetoPlano.Pedidos (com Processo) e ProjetoPlano.Obras carregados.
+    // Compras: adjudicado = valor adjudicado (CVE) do processo; em curso = orçamento estimado do pedido.
+    // Obras: adjudicado = valor adjudicado ao empreiteiro; em curso = valor estimado da obra.
+    public static ExecucaoProjetoCapex CalcularExecucao(ProjetoPlano projeto, int? excluirProcessoId = null, int? excluirObraId = null)
     {
         var pedidos = projeto.Pedidos.Where(PedidoAtivo).Where(p => excluirProcessoId == null || p.Processo?.Id != excluirProcessoId).ToList();
+        var obras = projeto.Obras.Where(o => excluirObraId == null || o.Id != excluirObraId).ToList();
         return new ExecucaoProjetoCapex
         {
             Orcamento = projeto.TotalOrcamento,
-            Adjudicado = pedidos.Sum(p => AdjudicadoCve(p) ?? 0m),
-            EmCurso = pedidos.Where(p => AdjudicadoCve(p) == null).Sum(p => p.OrcamentoEstimado ?? 0m),
-            NumCompras = pedidos.Count
+            Adjudicado = pedidos.Sum(p => AdjudicadoCve(p) ?? 0m) + obras.Sum(o => o.ValorAdjudicado ?? 0m),
+            EmCurso = pedidos.Where(p => AdjudicadoCve(p) == null).Sum(p => p.OrcamentoEstimado ?? 0m)
+                      + obras.Where(o => o.ValorAdjudicado == null).Sum(o => o.ValorEstimado ?? 0m),
+            NumCompras = pedidos.Count,
+            NumObras = obras.Count
         };
     }
 
-    // Validação da adjudicação: o novo valor, somado ao já adjudicado noutros processos do
-    // mesmo projeto, não pode passar o TOTAL ORC. sem justificação.
+    // Validação da adjudicação: o novo valor, somado ao já adjudicado nas outras compras e
+    // obras do mesmo projeto, não pode passar o TOTAL ORC. sem justificação.
     public static bool AdjudicacaoUltrapassaOrcamento(ProjetoPlano projeto, int processoId, decimal valorCve)
     {
-        var execucao = CalcularExecucao(projeto, processoId);
+        var execucao = CalcularExecucao(projeto, excluirProcessoId: processoId);
         return execucao.Adjudicado + valorCve > execucao.Orcamento;
     }
+
+    public static bool AdjudicacaoObraUltrapassaOrcamento(ProjetoPlano projeto, int obraId, decimal valorCve)
+    {
+        var execucao = CalcularExecucao(projeto, excluirObraId: obraId);
+        return execucao.Adjudicado + valorCve > execucao.Orcamento;
+    }
+
+    // Projeto Capex que é (ou inclui) obra de construção civil — abrigos, edifícios, bases,
+    // vedações… Serve para sugerir a ligação ao módulo Obras; qualquer projeto aceite pode ter obras.
+    private static readonly string[] PalavrasObra = { "abrigo", "civil", "edif", "obra", "constru", "vedação", "fundação", "base pv", "remodela", "beneficiação" };
+
+    public static bool EhObra(ProjetoPlano p)
+    {
+        if (p.Obras.Count > 0 || (p.CustoConstrucoes ?? 0m) > 0m) return true;
+        var texto = string.Join(" ", p.Nome, p.Classificacao, p.NecessidadeAquisicao, p.DesignacaoRubrica, p.Descricao).ToLowerInvariant();
+        return PalavrasObra.Any(texto.Contains);
+    }
+
 
     // ---- Transição para o plano do ano seguinte ------------------------------------------
 

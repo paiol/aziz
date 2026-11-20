@@ -33,6 +33,7 @@ public class CapexController : Controller
         var aceites = _db.ProjetosPlano
             .Where(p => p.PlanoId == plano.Id && p.EstadoAprovacao == EstadoAprovacaoProjeto.Aceite)
             .Include(p => p.Pedidos).ThenInclude(pe => pe.Processo)
+            .Include(p => p.Obras)
             .AsNoTracking()
             .ToList()
             .Where(p => p.Caixa != CaixaPlano.ForaDoPlano)

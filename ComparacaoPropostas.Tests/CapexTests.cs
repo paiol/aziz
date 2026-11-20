@@ -69,6 +69,52 @@ public class CapexTests
     }
 
     [Fact]
+    public void CalcularExecucao_IncluiObras()
+    {
+        var p = ProjetoAceite(0m, 1000m);
+        p.Pedidos.Add(Compra(1, 100m));
+        p.Obras.Add(new ProjetoObra { Id = 7, Designacao = "Abrigo gerador", ValorEstimado = 500m, ValorAdjudicado = 450m });
+        p.Obras.Add(new ProjetoObra { Id = 8, Designacao = "Vedação", ValorEstimado = 200m });
+
+        var e = PlanoCalculos.CalcularExecucao(p);
+
+        Assert.Equal(550m, e.Adjudicado);
+        Assert.Equal(200m, e.EmCurso);
+        Assert.Equal(1, e.NumCompras);
+        Assert.Equal(2, e.NumObras);
+    }
+
+    [Fact]
+    public void AdjudicacaoObraUltrapassaOrcamento_ExcluiAPropriaObra()
+    {
+        var p = ProjetoAceite(0m, 1000m);
+        p.Pedidos.Add(Compra(1, 300m));
+        p.Obras.Add(new ProjetoObra { Id = 7, Designacao = "Abrigo", ValorAdjudicado = 900m });
+
+        Assert.False(PlanoCalculos.AdjudicacaoObraUltrapassaOrcamento(p, obraId: 7, valorCve: 700m));
+        Assert.True(PlanoCalculos.AdjudicacaoObraUltrapassaOrcamento(p, obraId: 7, valorCve: 701m));
+        // Para um processo de compra, a obra adjudicada conta: 900 + 300 já adjudicados.
+        Assert.True(PlanoCalculos.AdjudicacaoUltrapassaOrcamento(p, processoId: 1, valorCve: 101m));
+    }
+
+    [Theory]
+    [InlineData("Abrigo de gerador Calhau", null, null, true)]
+    [InlineData("Hybrid Power Calhau", "Proj. Edificio", null, true)]
+    [InlineData("Gerador Loja Maio", "Proj. Gerador", "Serv. Civil-abrigo, Serv. Fisc. Civil", true)]
+    [InlineData("Licenças NetECO", "Aquisição", null, false)]
+    public void EhObra_DetetaProjetosDeConstrucao(string nome, string? classificacao, string? necessidade, bool esperado)
+    {
+        var p = new ProjetoPlano { Nome = nome, Classificacao = classificacao, NecessidadeAquisicao = necessidade };
+        Assert.Equal(esperado, p.EhObra);
+    }
+
+    [Fact]
+    public void EhObra_ComCustoDeConstrucoes()
+    {
+        Assert.True(new ProjetoPlano { Nome = "X", CustoConstrucoes = 195000m }.EhObra);
+    }
+
+    [Fact]
     public void TransitarProjeto_CopiaDadosEPassaValoresParaAnoAnterior()
     {
         var anterior = ProjetoAceite(200m, 800m);

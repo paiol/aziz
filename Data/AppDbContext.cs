@@ -229,6 +229,12 @@ public class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(p => p.PropostaVencedoraId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Restrict: um projeto Capex com obras associadas não pode ser apagado.
+            e.HasOne(p => p.ProjetoPlano)
+                .WithMany(pp => pp.Obras)
+                .HasForeignKey(p => p.ProjetoPlanoId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<ProjetoObraAnexo>(e =>

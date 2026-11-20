@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ComparacaoPropostas.Data;
+using ComparacaoPropostas.Helper;
 using ComparacaoPropostas.Models.Entities;
 using ComparacaoPropostas.Models.Entities.Enums;
 using ComparacaoPropostas.Services;
@@ -27,6 +28,7 @@ public class ProjetosObraController : Controller
     {
         var lista = _db.ProjetosObra
             .Include(p => p.Propostas)
+            .Include(p => p.ProjetoPlano)
             .Include(p => p.ItensMQT)
             .OrderByDescending(p => p.CriadoEm)
             .ToList();
@@ -85,19 +87,35 @@ public class ProjetosObraController : Controller
             vm.EmailCorpo = corpo;
         }
 
+        CarregarOrcamentoCapex(projeto, excluirEsta: false);
         return View(vm);
     }
 
-    public IActionResult Create()
+    // Uma obra nasce de um projeto Capex aceite (pode vir pré-preenchida a partir do Capex).
+    public IActionResult Create(int? projetoPlanoId)
     {
-        return View(new ProjetoObra());
+        var obra = new ProjetoObra { ProjetoPlanoId = projetoPlanoId };
+        if (projetoPlanoId.HasValue && _db.ProjetosPlano.Find(projetoPlanoId.Value) is { } capex)
+        {
+            obra.Designacao = capex.Nome;
+            obra.Local = capex.Ilha;
+            obra.ValorEstimado = capex.CustoConstrucoes is > 0 ? capex.CustoConstrucoes : capex.TotalOrcamento;
+        }
+
+        ViewBag.ProjetosCapex = CapexProjetosHelper.ListaProjetos(_db, obra.ProjetoPlanoId, soObras: true);
+        return View(obra);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Create(ProjetoObra projeto)
     {
-        if (!ModelState.IsValid) return View(projeto);
+        CapexProjetosHelper.Validar(_db, ModelState, nameof(ProjetoObra.ProjetoPlanoId), projeto.ProjetoPlanoId, obrigatorio: true, atualId: null, "esta obra");
+        if (!ModelState.IsValid)
+        {
+            ViewBag.ProjetosCapex = CapexProjetosHelper.ListaProjetos(_db, projeto.ProjetoPlanoId, soObras: true);
+            return View(projeto);
+        }
 
         _db.ProjetosObra.Add(projeto);
         _db.SaveChanges();
@@ -110,6 +128,7 @@ public class ProjetosObraController : Controller
     {
         var projeto = _db.ProjetosObra.Find(id);
         if (projeto == null) return NotFound();
+        ViewBag.ProjetosCapex = CapexProjetosHelper.ListaProjetos(_db, projeto.ProjetoPlanoId, soObras: true);
         return View(projeto);
     }
 
@@ -129,7 +148,12 @@ public class ProjetosObraController : Controller
         projeto.JustificativaAdjudicacao = existente.JustificativaAdjudicacao;
         projeto.CriadoEm = existente.CriadoEm;
 
-        if (!ModelState.IsValid) return View(projeto);
+        CapexProjetosHelper.Validar(_db, ModelState, nameof(ProjetoObra.ProjetoPlanoId), projeto.ProjetoPlanoId, obrigatorio: existente.ProjetoPlanoId != null, atualId: existente.ProjetoPlanoId, "esta obra");
+        if (!ModelState.IsValid)
+        {
+            ViewBag.ProjetosCapex = CapexProjetosHelper.ListaProjetos(_db, projeto.ProjetoPlanoId, soObras: true);
+            return View(projeto);
+        }
 
         try
         {
@@ -228,6 +252,7 @@ public class ProjetosObraController : Controller
             PropostasDisponiveis = ranking
         };
 
+        CarregarOrcamentoCapex(projeto);
         return View(vm);
     }
 
@@ -261,6 +286,14 @@ public class ProjetosObraController : Controller
             ModelState.AddModelError("JustificativaAdjudicacao", "É obrigatório fornecer uma justificação ao selecionar um empreiteiro diferente do 1º classificado no ranking.");
         }
 
+        // Validação Capex: a obra não pode ultrapassar o orçamento do projeto sem justificação.
+        if (propostaVencedora != null && string.IsNullOrWhiteSpace(model.JustificativaAdjudicacao)
+            && CarregarProjetoCapex(projeto) is { } projetoCapex
+            && PlanoCalculos.AdjudicacaoObraUltrapassaOrcamento(projetoCapex, projeto.Id, propostaVencedora.Subtotal))
+        {
+            ModelState.AddModelError("JustificativaAdjudicacao", $"Esta adjudicação ultrapassa o orçamento disponível do projeto Capex \"{projetoCapex.Nome}\". Indique a justificação.");
+        }
+
         if (!ModelState.IsValid)
         {
             model.PropostasDisponiveis = projeto.Propostas
@@ -281,6 +314,7 @@ public class ProjetosObraController : Controller
 
             model.PrimeiroLugarRankingId = primeiroId;
             model.PrimeiroLugarEmpreiteiro = projeto.Propostas.FirstOrDefault(p => p.Id == primeiroId)?.Empreiteiro;
+            CarregarOrcamentoCapex(projeto);
             return View(model);
         }
 
@@ -307,7 +341,28 @@ public class ProjetosObraController : Controller
         {
             _logger.LogError(ex, "Erro ao registar adjudicação do projeto de obra {ProjetoObraId}.", model.ProjetoObraId);
             ModelState.AddModelError("", "Não foi possível concluir a adjudicação.");
+            CarregarOrcamentoCapex(projeto);
             return View(model);
         }
+    }
+
+    // Projeto Capex da obra, com as compras e as outras obras do projeto para calcular a execução.
+    private ProjetoPlano? CarregarProjetoCapex(ProjetoObra obra)
+    {
+        if (obra.ProjetoPlanoId == null) return null;
+        return _db.ProjetosPlano
+            .Include(p => p.Plano)
+            .Include(p => p.Pedidos).ThenInclude(pe => pe.Processo)
+            .Include(p => p.Obras)
+            .AsNoTracking()
+            .FirstOrDefault(p => p.Id == obra.ProjetoPlanoId);
+    }
+
+    // Na adjudicação exclui-se a própria obra (o seu valor vai ser substituído pelo novo).
+    private void CarregarOrcamentoCapex(ProjetoObra obra, bool excluirEsta = true)
+    {
+        var projeto = CarregarProjetoCapex(obra);
+        ViewBag.ProjetoCapex = projeto;
+        ViewBag.ExecucaoCapex = projeto == null ? null : PlanoCalculos.CalcularExecucao(projeto, excluirObraId: excluirEsta ? obra.Id : null);
     }
 }

@@ -82,7 +82,7 @@
                         <th class="text-end">Em curso</th>
                         <th class="text-end">Saldo</th>
                         <th class="text-end">% exec.</th>
-                        <th class="text-end">Compras</th>
+                        <th class="text-end">Compras / obras</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -92,17 +92,20 @@
                         var e = l.Execucao;
                         <tr>
                             <td>@l.Projeto.Area.ToLabel()</td>
-                            <td><a asp-controller="ProjetosPlano" asp-action="Details" asp-route-id="@l.Projeto.Id">@l.Projeto.Nome</a></td>
+                            <td><a asp-controller="ProjetosPlano" asp-action="Details" asp-route-id="@l.Projeto.Id">@l.Projeto.Nome</a>@if (l.Projeto.EhObra) { <span class="badge bg-info text-dark ms-1" title="Projeto com obra (módulo Obras)"><i class="fas fa-helmet-safety"></i> obra</span> }</td>
                             <td class="small">@(l.Projeto.DesignacaoRubrica ?? "-")</td>
                             <td class="text-end" data-order="@e.Orcamento">@e.Orcamento.ToCve()</td>
                             <td class="text-end" data-order="@e.Adjudicado">@e.Adjudicado.ToCve()</td>
                             <td class="text-end" data-order="@e.EmCurso">@e.EmCurso.ToCve()</td>
                             <td class="text-end @(e.Saldo < 0 ? "text-danger fw-semibold" : "")" data-order="@e.Saldo">@e.Saldo.ToCve()</td>
                             <td class="text-end" data-order="@(e.PercentagemExecutada ?? 0)">@e.PercentagemExecutada.ToPercent()</td>
-                            <td class="text-end">@e.NumCompras</td>
+                            <td class="text-end">@e.NumCompras / @e.NumObras</td>
                             <td class="text-end text-nowrap">
                                 <a class="btn btn-sm btn-subtle-primary" asp-controller="Pedidos" asp-action="Create" asp-route-projetoPlanoId="@l.Projeto.Id" title="Nova compra para este projeto">
                                     <i class="fas fa-cart-plus"></i>
+                                </a>
+                                <a class="btn btn-sm @(l.Projeto.EhObra ? "btn-subtle-info" : "btn-subtle-secondary")" asp-controller="ProjetosObra" asp-action="Create" asp-route-projetoPlanoId="@l.Projeto.Id" title="Nova obra para este projeto">
+                                    <i class="fas fa-helmet-safety"></i>
                                 </a>
                             </td>
                         </tr>

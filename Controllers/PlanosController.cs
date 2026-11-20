@@ -97,9 +97,10 @@ public class PlanosController : Controller
         var plano = _db.Planos.Find(id);
         if (plano == null) return NotFound();
 
-        if (_db.Pedidos.Any(p => p.ProjetoPlano != null && p.ProjetoPlano.PlanoId == id))
+        if (_db.Pedidos.Any(p => p.ProjetoPlano != null && p.ProjetoPlano.PlanoId == id)
+            || _db.ProjetosObra.Any(o => o.ProjetoPlano != null && o.ProjetoPlano.PlanoId == id))
         {
-            TempData["EmailWarning"] = "Não é possível remover: há compras associadas a projetos deste plano.";
+            TempData["EmailWarning"] = "Não é possível remover: há compras ou obras associadas a projetos deste plano.";
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -160,9 +161,10 @@ public class PlanosController : Controller
 
         var daArea = plano.Projetos.Where(p => p.Area == area).ToList();
         var idsDaArea = daArea.Select(p => p.Id).ToList();
-        if (_db.Pedidos.Any(p => p.ProjetoPlanoId != null && idsDaArea.Contains(p.ProjetoPlanoId.Value)))
+        if (_db.Pedidos.Any(p => p.ProjetoPlanoId != null && idsDaArea.Contains(p.ProjetoPlanoId.Value))
+            || _db.ProjetosObra.Any(o => o.ProjetoPlanoId != null && idsDaArea.Contains(o.ProjetoPlanoId.Value)))
         {
-            TempData["EmailWarning"] = $"Não é possível substituir os projetos da área {area.ToLabel()}: alguns já têm compras associadas.";
+            TempData["EmailWarning"] = $"Não é possível substituir os projetos da área {area.ToLabel()}: alguns já têm compras ou obras associadas.";
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -293,6 +295,7 @@ public class PlanosController : Controller
 
     private Plano? CarregarPlanoComCompras(int id) => _db.Planos
         .Include(p => p.Projetos).ThenInclude(pp => pp.Pedidos).ThenInclude(pe => pe.Processo)
+        .Include(p => p.Projetos).ThenInclude(pp => pp.Obras)
         .Include(p => p.AcoesFormacao)
         .AsSplitQuery()
         .FirstOrDefault(p => p.Id == id);

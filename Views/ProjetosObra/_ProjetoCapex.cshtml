@@ -1,0 +1,19 @@
+@model ComparacaoPropostas.Models.Entities.ProjetoObra
+@{
+    var projetos = (List<SelectListItem>)ViewBag.ProjetosCapex;
+}
+<div class="col-12">
+    <label asp-for="ProjetoPlanoId" class="form-label">Projeto Capex</label>
+    <select asp-for="ProjetoPlanoId" class="form-select" asp-items="projetos">
+        <option value="">— escolha o projeto Capex aceite —</option>
+    </select>
+    <span asp-validation-for="ProjetoPlanoId" class="text-danger"></span>
+    <div class="form-text">
+        Só aparecem projetos aceites no Capex; os que parecem obra (abrigos, construção civil, edifícios) vêm primeiro, marcados "(obra)".
+        O valor adjudicado ao empreiteiro conta na execução do projeto e é validado contra o seu orçamento.
+        @if (projetos.Count == 0)
+        {
+            <span class="text-warning">Ainda não há projetos aceites: aceite-os primeiro em <a asp-controller="Planos" asp-action="Index">Planos Capex</a>.</span>
+        }
+    </div>
+</div>

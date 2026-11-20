@@ -28,6 +28,7 @@ public class HomeController : Controller
         {
             var plano = _db.Planos
                 .Include(p => p.Projetos).ThenInclude(pp => pp.Pedidos).ThenInclude(pe => pe.Processo)
+                .Include(p => p.Projetos).ThenInclude(pp => pp.Obras)
                 .Include(p => p.AcoesFormacao)
                 .AsSplitQuery()
                 .AsNoTracking()
