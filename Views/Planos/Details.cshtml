@@ -35,28 +35,28 @@
     <div class="col-md-3">
         <div class="card h-100"><div class="card-body">
             <span class="text-body-tertiary d-block small">TOTAL ORC. @p.Ano</span>
-            <span class="fs-5 fw-semibold">@r.TotalOrcamento.ToCve()</span>
+            <span class="d-block fw-semibold text-nowrap" style="font-size: 1.25rem">@r.TotalOrcamento.ToCve()</span>
             <span class="d-block small text-body-tertiary">Transitado @r.ValorTransitar.ToCve() · Projetos @r.ValorNovo.ToCve()</span>
         </div></div>
     </div>
     <div class="col-md-3">
         <div class="card h-100"><div class="card-body">
             <span class="text-body-tertiary d-block small">TOTAL ORC. @(p.Ano - 1) (ref.) e Δ</span>
-            <span class="fs-5 fw-semibold">@r.TotalAnoAnterior.ToCve()</span>
+            <span class="d-block fw-semibold text-nowrap" style="font-size: 1.25rem">@r.TotalAnoAnterior.ToCve()</span>
             <span class="d-block small @(r.Delta < 0 ? "text-danger" : "text-success")">Δ @r.Delta.ToCve()</span>
         </div></div>
     </div>
     <div class="col-md-3">
         <div class="card h-100"><div class="card-body">
             <span class="text-body-tertiary d-block small">Projetos ativos</span>
-            <span class="fs-5 fw-semibold">@r.NumAtivos</span>
+            <span class="d-block fw-semibold text-nowrap" style="font-size: 1.25rem">@r.NumAtivos</span>
             <span class="d-block small text-body-tertiary">@r.NumAtivosSemValor sem valor estimado · @r.NumCondicionados condicionado(s)</span>
         </div></div>
     </div>
     <div class="col-md-3">
         <div class="card h-100"><div class="card-body">
             <span class="text-body-tertiary d-block small">Uso da capacidade (Arq. / Energia)</span>
-            <span class="fs-5 fw-semibold">
+            <span class="d-block fw-semibold text-nowrap" style="font-size: 1.25rem">
                 <span class="@UsoClasse(r.UsoCapacidadeArquitetura)">@r.UsoCapacidadeArquitetura.ToPercent()</span> /
                 <span class="@UsoClasse(r.UsoCapacidadeEnergia)">@r.UsoCapacidadeEnergia.ToPercent()</span>
             </span>
