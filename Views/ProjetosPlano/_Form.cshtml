@@ -1,22 +1,41 @@
+@using ComparacaoPropostas.Models.Entities
 @using ComparacaoPropostas.Models.Entities.Enums
 @using ComparacaoPropostas.Services
+@using ComparacaoPropostas.ViewModels.Listas
 @model ComparacaoPropostas.Models.Entities.ProjetoPlano
 @{
     var plano = (ComparacaoPropostas.Models.Entities.Plano)ViewBag.Plano;
-    var sugestoes = (Dictionary<string, List<string>>)ViewBag.Sugestoes;
+    var listas = (Dictionary<ListaPlano, List<string>>)ViewBag.Listas;
     var meses = PlanoCalculos.NomesMeses.Select((m, i) => new SelectListItem(m, (i + 1).ToString())).ToList();
     var ano = plano.Ano;
+
+    // Campo de escolha a partir da lista do plano correspondente (ver Listas do plano).
+    CampoListaVM CampoLista(string campo)
+    {
+        var lista = ListasPlano.Campos[campo];
+        return new CampoListaVM
+        {
+            Campo = campo,
+            Label = ViewData.ModelMetadata.Properties.First(p => p.PropertyName == campo).DisplayName ?? campo,
+            Atual = typeof(ProjetoPlano).GetProperty(campo)!.GetValue(Model) as string,
+            Valores = listas.GetValueOrDefault(lista) ?? new List<string>(),
+            Multipla = ListasPlano.Multipla(lista)
+        };
+    }
 }
 
-@foreach (var (id, valores) in sugestoes)
-{
-    <datalist id="lista-@id">
-        @foreach (var v in valores)
-        {
-            <option value="@v"></option>
-        }
-    </datalist>
-}
+<script>
+    // "+ Adicionar novo…": mostra a caixa de texto do valor novo.
+    document.addEventListener('change', function (e) {
+        var s = e.target;
+        if (!s.classList || !s.classList.contains('js-lista')) return;
+        var novo = document.getElementById(s.dataset.novo);
+        if (!novo) return;
+        var mostrar = s.value === '@CampoListaVM.OpcaoNovo';
+        novo.classList.toggle('d-none', !mostrar);
+        if (mostrar) novo.focus(); else novo.value = '';
+    });
+</script>
 
 <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
@@ -45,8 +64,7 @@
                 <span asp-validation-for="Nome" class="text-danger"></span>
             </div>
             <div class="col-md-6">
-                <label asp-for="DesignacaoRubrica" class="form-label"></label>
-                <input asp-for="DesignacaoRubrica" class="form-control" list="lista-rubricas" />
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.DesignacaoRubrica))" />
             </div>
             <div class="col-md-6">
                 <label asp-for="Descricao" class="form-label"></label>
@@ -57,24 +75,19 @@
                 <textarea asp-for="Observacoes" class="form-control" rows="3"></textarea>
             </div>
             <div class="col-md-3">
-                <label asp-for="Classificacao" class="form-label"></label>
-                <input asp-for="Classificacao" class="form-control" list="lista-classificacoes" />
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.Classificacao))" />
             </div>
             <div class="col-md-2">
-                <label asp-for="Tipo" class="form-label"></label>
-                <input asp-for="Tipo" class="form-control" list="lista-tipos" />
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.Tipo))" />
             </div>
             <div class="col-md-2">
-                <label asp-for="Coordenacao" class="form-label"></label>
-                <input asp-for="Coordenacao" class="form-control" list="lista-coords" />
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.Coordenacao))" />
             </div>
             <div class="col-md-2">
-                <label asp-for="Ilha" class="form-label"></label>
-                <input asp-for="Ilha" class="form-control" list="lista-ilhas" />
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.Ilha))" />
             </div>
             <div class="col-md-3">
-                <label asp-for="OrigemIniciativa" class="form-label"></label>
-                <input asp-for="OrigemIniciativa" class="form-control" list="lista-origens" />
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.OrigemIniciativa))" />
             </div>
             <div class="col-md-3">
                 <label asp-for="CapexAnoMenos2" class="form-label">Capex @(ano - 2)</label>
@@ -108,8 +121,7 @@
                 <div class="form-text">Transitado, Transitado parcial e Novo entram no plano; Condicionado fica à parte.</div>
             </div>
             <div class="col-md-3">
-                <label asp-for="Capex" class="form-label"></label>
-                <input asp-for="Capex" class="form-control" list="lista-capex" />
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.Capex))" />
             </div>
             <div class="col-md-2">
                 <label asp-for="Prioridade" class="form-label"></label>
@@ -118,8 +130,7 @@
                 </select>
             </div>
             <div class="col-md-2">
-                <label asp-for="TrimestrePrevisto" class="form-label"></label>
-                <input asp-for="TrimestrePrevisto" class="form-control" list="lista-trimestres" />
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.TrimestrePrevisto))" />
             </div>
             <div class="col-md-2">
                 <label asp-for="ExecucaoAnoAnterior" class="form-label">Execução @(ano - 1) (0–1)</label>
@@ -138,40 +149,31 @@
     <div class="card-body">
         <div class="row g-3">
             <div class="col-md-2">
-                <label asp-for="Zona" class="form-label"></label>
-                <input asp-for="Zona" class="form-control" list="lista-zonas" />
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.Zona))" />
             </div>
             <div class="col-md-2">
-                <label asp-for="ExecucaoProjeto" class="form-label"></label>
-                <input asp-for="ExecucaoProjeto" class="form-control" list="lista-executantes" />
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.ExecucaoProjeto))" />
             </div>
             <div class="col-md-2">
-                <label asp-for="FiscalizacaoCivil" class="form-label"></label>
-                <input asp-for="FiscalizacaoCivil" class="form-control" list="lista-executantes" />
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.FiscalizacaoCivil))" />
             </div>
             <div class="col-md-2">
-                <label asp-for="FiscalizacaoTracados" class="form-label"></label>
-                <input asp-for="FiscalizacaoTracados" class="form-control" list="lista-executantes" />
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.FiscalizacaoTracados))" />
             </div>
             <div class="col-md-2">
-                <label asp-for="ExecucaoMontagem" class="form-label"></label>
-                <input asp-for="ExecucaoMontagem" class="form-control" list="lista-executantes" />
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.ExecucaoMontagem))" />
             </div>
             <div class="col-md-2">
-                <label asp-for="FiscalizacaoMontagem" class="form-label"></label>
-                <input asp-for="FiscalizacaoMontagem" class="form-control" list="lista-executantes" />
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.FiscalizacaoMontagem))" />
             </div>
             <div class="col-md-3">
-                <label asp-for="PerfilEquipaMontagem" class="form-label"></label>
-                <input asp-for="PerfilEquipaMontagem" class="form-control" list="lista-perfis" />
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.PerfilEquipaMontagem))" />
             </div>
             <div class="col-md-3">
-                <label asp-for="PrestadorExternoIlha" class="form-label"></label>
-                <input asp-for="PrestadorExternoIlha" class="form-control" list="lista-simnao" />
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.PrestadorExternoIlha))" />
             </div>
             <div class="col-md-6">
-                <label asp-for="NecessidadeAquisicao" class="form-label"></label>
-                <input asp-for="NecessidadeAquisicao" class="form-control" />
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.NecessidadeAquisicao))" />
             </div>
             <div class="col-md-12">
                 <label asp-for="EntidadesExecutantes" class="form-label"></label>

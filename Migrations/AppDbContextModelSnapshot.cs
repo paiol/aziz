@@ -1385,6 +1385,856 @@ namespace ComparacaoPropostas.Migrations
                     b.ToTable("PropostasEmpreiteiro");
                 });
 
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.ValorLista", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Lista")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("Ordem")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Valor")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Lista", "Valor")
+                        .IsUnique();
+
+                    b.ToTable("ValoresLista");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Ativo = true,
+                            Lista = "Rubrica",
+                            Ordem = 10,
+                            Valor = "CVT IMS & VoLTE new build (+SmartCare & PCRF) 5G"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Ativo = true,
+                            Lista = "Rubrica",
+                            Ordem = 20,
+                            Valor = "Smartcare Roaming Care - POC"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Ativo = true,
+                            Lista = "Rubrica",
+                            Ordem = 30,
+                            Valor = "Neutral Carrier Datacenter"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Ativo = true,
+                            Lista = "Rubrica",
+                            Ordem = 40,
+                            Valor = "Projetos Data Center - Climatização DC2 e Corredor Acesso DC1"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Ativo = true,
+                            Lista = "Rubrica",
+                            Ordem = 50,
+                            Valor = "Proj. Retificadores - subsituição em 6 sites e reforço 2 sites"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Ativo = true,
+                            Lista = "Rubrica",
+                            Ordem = 60,
+                            Valor = "Proj. Segurança Energia - Bacia Retenção e Ext. Auto Fogo Sala A"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Ativo = true,
+                            Lista = "Rubrica",
+                            Ordem = 70,
+                            Valor = "Proj. Baterias litio - Substitição em 3 sites"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Ativo = true,
+                            Lista = "Rubrica",
+                            Ordem = 80,
+                            Valor = "Projetos Geradores 2026 - Novos 8 sites incluindo GlobalCVT"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Ativo = true,
+                            Lista = "Rubrica",
+                            Ordem = 90,
+                            Valor = "Projeto Power Praia"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Ativo = true,
+                            Lista = "Rubrica",
+                            Ordem = 100,
+                            Valor = "Projetos Geradores - Transitado 5 projetos"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Ativo = true,
+                            Lista = "Rubrica",
+                            Ordem = 110,
+                            Valor = "Projeto Power Mindelo"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            Ativo = true,
+                            Lista = "Rubrica",
+                            Ordem = 120,
+                            Valor = "Hybrid Power - Novo 5 sites com recursos existentes"
+                        },
+                        new
+                        {
+                            Id = 13,
+                            Ativo = true,
+                            Lista = "Rubrica",
+                            Ordem = 130,
+                            Valor = "Hybrid Power - Transitado 3 sites"
+                        },
+                        new
+                        {
+                            Id = 14,
+                            Ativo = true,
+                            Lista = "Rubrica",
+                            Ordem = 140,
+                            Valor = "Licenças NetECO Power Room A e monitorização retificadores Eltek"
+                        },
+                        new
+                        {
+                            Id = 15,
+                            Ativo = true,
+                            Lista = "Rubrica",
+                            Ordem = 150,
+                            Valor = "Hybrid Power - Novo 2 sites SL e BV"
+                        },
+                        new
+                        {
+                            Id = 16,
+                            Ativo = true,
+                            Lista = "Rubrica",
+                            Ordem = 160,
+                            Valor = "BTS Móvel Eventos"
+                        },
+                        new
+                        {
+                            Id = 17,
+                            Ativo = true,
+                            Lista = "Rubrica",
+                            Ordem = 170,
+                            Valor = "Ferramentas Fiscalização"
+                        },
+                        new
+                        {
+                            Id = 18,
+                            Ativo = true,
+                            Lista = "Rubrica",
+                            Ordem = 180,
+                            Valor = "Proj. Edificio - Calheta S.Miguel e A.S.Filipe"
+                        },
+                        new
+                        {
+                            Id = 19,
+                            Ativo = true,
+                            Lista = "Rubrica",
+                            Ordem = 190,
+                            Valor = "FTTH principais Cidades - novos  2026"
+                        },
+                        new
+                        {
+                            Id = 20,
+                            Ativo = true,
+                            Lista = "Rubrica",
+                            Ordem = 200,
+                            Valor = "Projetos RAN - em curso & Eventos"
+                        },
+                        new
+                        {
+                            Id = 21,
+                            Ativo = true,
+                            Lista = "Rubrica",
+                            Ordem = 210,
+                            Valor = "Projetos RAN - novos"
+                        },
+                        new
+                        {
+                            Id = 22,
+                            Ativo = true,
+                            Lista = "Tipo",
+                            Ordem = 10,
+                            Valor = "ENR"
+                        },
+                        new
+                        {
+                            Id = 23,
+                            Ativo = true,
+                            Lista = "Tipo",
+                            Ordem = 20,
+                            Valor = "EDF"
+                        },
+                        new
+                        {
+                            Id = 24,
+                            Ativo = true,
+                            Lista = "Tipo",
+                            Ordem = 30,
+                            Valor = "RAN"
+                        },
+                        new
+                        {
+                            Id = 25,
+                            Ativo = true,
+                            Lista = "Tipo",
+                            Ordem = 40,
+                            Valor = "PRC"
+                        },
+                        new
+                        {
+                            Id = 26,
+                            Ativo = true,
+                            Lista = "Coordenacao",
+                            Ordem = 10,
+                            Valor = "CRN"
+                        },
+                        new
+                        {
+                            Id = 27,
+                            Ativo = true,
+                            Lista = "Coordenacao",
+                            Ordem = 20,
+                            Valor = "CRS"
+                        },
+                        new
+                        {
+                            Id = 28,
+                            Ativo = true,
+                            Lista = "Coordenacao",
+                            Ordem = 30,
+                            Valor = "SSM"
+                        },
+                        new
+                        {
+                            Id = 29,
+                            Ativo = true,
+                            Lista = "Coordenacao",
+                            Ordem = 40,
+                            Valor = "CLI"
+                        },
+                        new
+                        {
+                            Id = 30,
+                            Ativo = true,
+                            Lista = "Coordenacao",
+                            Ordem = 50,
+                            Valor = "CRF"
+                        },
+                        new
+                        {
+                            Id = 31,
+                            Ativo = true,
+                            Lista = "Coordenacao",
+                            Ordem = 60,
+                            Valor = "NAC"
+                        },
+                        new
+                        {
+                            Id = 32,
+                            Ativo = true,
+                            Lista = "Ilha",
+                            Ordem = 10,
+                            Valor = "SA"
+                        },
+                        new
+                        {
+                            Id = 33,
+                            Ativo = true,
+                            Lista = "Ilha",
+                            Ordem = 20,
+                            Valor = "SV"
+                        },
+                        new
+                        {
+                            Id = 34,
+                            Ativo = true,
+                            Lista = "Ilha",
+                            Ordem = 30,
+                            Valor = "SN"
+                        },
+                        new
+                        {
+                            Id = 35,
+                            Ativo = true,
+                            Lista = "Ilha",
+                            Ordem = 40,
+                            Valor = "SL"
+                        },
+                        new
+                        {
+                            Id = 36,
+                            Ativo = true,
+                            Lista = "Ilha",
+                            Ordem = 50,
+                            Valor = "BV"
+                        },
+                        new
+                        {
+                            Id = 37,
+                            Ativo = true,
+                            Lista = "Ilha",
+                            Ordem = 60,
+                            Valor = "MO"
+                        },
+                        new
+                        {
+                            Id = 38,
+                            Ativo = true,
+                            Lista = "Ilha",
+                            Ordem = 70,
+                            Valor = "ST-PR"
+                        },
+                        new
+                        {
+                            Id = 39,
+                            Ativo = true,
+                            Lista = "Ilha",
+                            Ordem = 80,
+                            Valor = "ST-INT"
+                        },
+                        new
+                        {
+                            Id = 40,
+                            Ativo = true,
+                            Lista = "Ilha",
+                            Ordem = 90,
+                            Valor = "FG"
+                        },
+                        new
+                        {
+                            Id = 41,
+                            Ativo = true,
+                            Lista = "Ilha",
+                            Ordem = 100,
+                            Valor = "BR"
+                        },
+                        new
+                        {
+                            Id = 42,
+                            Ativo = true,
+                            Lista = "Ilha",
+                            Ordem = 110,
+                            Valor = "NAC"
+                        },
+                        new
+                        {
+                            Id = 43,
+                            Ativo = true,
+                            Lista = "Classificacao",
+                            Ordem = 10,
+                            Valor = "Proj. Novo Site"
+                        },
+                        new
+                        {
+                            Id = 44,
+                            Ativo = true,
+                            Lista = "Classificacao",
+                            Ordem = 20,
+                            Valor = "Proj. Remotização"
+                        },
+                        new
+                        {
+                            Id = 45,
+                            Ativo = true,
+                            Lista = "Classificacao",
+                            Ordem = 30,
+                            Valor = "Proj. Reengenharia"
+                        },
+                        new
+                        {
+                            Id = 46,
+                            Ativo = true,
+                            Lista = "Classificacao",
+                            Ordem = 40,
+                            Valor = "Proj. Remanejamento"
+                        },
+                        new
+                        {
+                            Id = 47,
+                            Ativo = true,
+                            Lista = "Classificacao",
+                            Ordem = 50,
+                            Valor = "Proj. Evento"
+                        },
+                        new
+                        {
+                            Id = 48,
+                            Ativo = true,
+                            Lista = "Classificacao",
+                            Ordem = 60,
+                            Valor = "Proj. Upgrade"
+                        },
+                        new
+                        {
+                            Id = 49,
+                            Ativo = true,
+                            Lista = "Classificacao",
+                            Ordem = 70,
+                            Valor = "Add Tech"
+                        },
+                        new
+                        {
+                            Id = 50,
+                            Ativo = true,
+                            Lista = "Classificacao",
+                            Ordem = 80,
+                            Valor = "Eng./design"
+                        },
+                        new
+                        {
+                            Id = 51,
+                            Ativo = true,
+                            Lista = "Classificacao",
+                            Ordem = 90,
+                            Valor = "Proj. Gerador"
+                        },
+                        new
+                        {
+                            Id = 52,
+                            Ativo = true,
+                            Lista = "Classificacao",
+                            Ordem = 100,
+                            Valor = "Proj. Hybrid Power"
+                        },
+                        new
+                        {
+                            Id = 53,
+                            Ativo = true,
+                            Lista = "Classificacao",
+                            Ordem = 110,
+                            Valor = "Proj. Baterias"
+                        },
+                        new
+                        {
+                            Id = 54,
+                            Ativo = true,
+                            Lista = "Classificacao",
+                            Ordem = 120,
+                            Valor = "Proj. Modernização"
+                        },
+                        new
+                        {
+                            Id = 55,
+                            Ativo = true,
+                            Lista = "Classificacao",
+                            Ordem = 130,
+                            Valor = "Proj. Retificador"
+                        },
+                        new
+                        {
+                            Id = 56,
+                            Ativo = true,
+                            Lista = "Classificacao",
+                            Ordem = 140,
+                            Valor = "Proj. Beneficiação"
+                        },
+                        new
+                        {
+                            Id = 57,
+                            Ativo = true,
+                            Lista = "Classificacao",
+                            Ordem = 150,
+                            Valor = "Proj. Edifício"
+                        },
+                        new
+                        {
+                            Id = 58,
+                            Ativo = true,
+                            Lista = "Classificacao",
+                            Ordem = 160,
+                            Valor = "Proj. SAF"
+                        },
+                        new
+                        {
+                            Id = 59,
+                            Ativo = true,
+                            Lista = "Classificacao",
+                            Ordem = 170,
+                            Valor = "Proj. Segurança"
+                        },
+                        new
+                        {
+                            Id = 60,
+                            Ativo = true,
+                            Lista = "Classificacao",
+                            Ordem = 180,
+                            Valor = "Aquisição"
+                        },
+                        new
+                        {
+                            Id = 61,
+                            Ativo = true,
+                            Lista = "Classificacao",
+                            Ordem = 190,
+                            Valor = "Processos"
+                        },
+                        new
+                        {
+                            Id = 62,
+                            Ativo = true,
+                            Lista = "Classificacao",
+                            Ordem = 200,
+                            Valor = "Outros"
+                        },
+                        new
+                        {
+                            Id = 63,
+                            Ativo = true,
+                            Lista = "Capex",
+                            Ordem = 10,
+                            Valor = "CAPEX 26"
+                        },
+                        new
+                        {
+                            Id = 64,
+                            Ativo = true,
+                            Lista = "Capex",
+                            Ordem = 20,
+                            Valor = "COND_CAPEX 26"
+                        },
+                        new
+                        {
+                            Id = 65,
+                            Ativo = true,
+                            Lista = "Capex",
+                            Ordem = 30,
+                            Valor = "CAPEX 27 _Transitado"
+                        },
+                        new
+                        {
+                            Id = 66,
+                            Ativo = true,
+                            Lista = "Capex",
+                            Ordem = 40,
+                            Valor = "CAPEX 27 _Novo"
+                        },
+                        new
+                        {
+                            Id = 67,
+                            Ativo = true,
+                            Lista = "Capex",
+                            Ordem = 50,
+                            Valor = "COND_CAPEX 27"
+                        },
+                        new
+                        {
+                            Id = 68,
+                            Ativo = true,
+                            Lista = "Capex",
+                            Ordem = 60,
+                            Valor = "CAPEX 28"
+                        },
+                        new
+                        {
+                            Id = 69,
+                            Ativo = true,
+                            Lista = "OrigemIniciativa",
+                            Ordem = 10,
+                            Valor = "CRN"
+                        },
+                        new
+                        {
+                            Id = 70,
+                            Ativo = true,
+                            Lista = "OrigemIniciativa",
+                            Ordem = 20,
+                            Valor = "DOM"
+                        },
+                        new
+                        {
+                            Id = 71,
+                            Ativo = true,
+                            Lista = "OrigemIniciativa",
+                            Ordem = 30,
+                            Valor = "DEI"
+                        },
+                        new
+                        {
+                            Id = 72,
+                            Ativo = true,
+                            Lista = "OrigemIniciativa",
+                            Ordem = 40,
+                            Valor = "DLG"
+                        },
+                        new
+                        {
+                            Id = 73,
+                            Ativo = true,
+                            Lista = "Trimestre",
+                            Ordem = 10,
+                            Valor = "T1"
+                        },
+                        new
+                        {
+                            Id = 74,
+                            Ativo = true,
+                            Lista = "Trimestre",
+                            Ordem = 20,
+                            Valor = "T2"
+                        },
+                        new
+                        {
+                            Id = 75,
+                            Ativo = true,
+                            Lista = "Trimestre",
+                            Ordem = 30,
+                            Valor = "T3"
+                        },
+                        new
+                        {
+                            Id = 76,
+                            Ativo = true,
+                            Lista = "Trimestre",
+                            Ordem = 40,
+                            Valor = "T4"
+                        },
+                        new
+                        {
+                            Id = 77,
+                            Ativo = true,
+                            Lista = "Trimestre",
+                            Ordem = 50,
+                            Valor = "Ano todo"
+                        },
+                        new
+                        {
+                            Id = 78,
+                            Ativo = true,
+                            Lista = "Zona",
+                            Ordem = 10,
+                            Valor = "Urbano"
+                        },
+                        new
+                        {
+                            Id = 79,
+                            Ativo = true,
+                            Lista = "Zona",
+                            Ordem = 20,
+                            Valor = "Rural"
+                        },
+                        new
+                        {
+                            Id = 80,
+                            Ativo = true,
+                            Lista = "Executante",
+                            Ordem = 10,
+                            Valor = "DEI"
+                        },
+                        new
+                        {
+                            Id = 81,
+                            Ativo = true,
+                            Lista = "Executante",
+                            Ordem = 20,
+                            Valor = "DOM"
+                        },
+                        new
+                        {
+                            Id = 82,
+                            Ativo = true,
+                            Lista = "Executante",
+                            Ordem = 30,
+                            Valor = "Terceiro"
+                        },
+                        new
+                        {
+                            Id = 83,
+                            Ativo = true,
+                            Lista = "Executante",
+                            Ordem = 40,
+                            Valor = "NA"
+                        },
+                        new
+                        {
+                            Id = 84,
+                            Ativo = true,
+                            Lista = "Executante",
+                            Ordem = 50,
+                            Valor = "Chave na mão"
+                        },
+                        new
+                        {
+                            Id = 85,
+                            Ativo = true,
+                            Lista = "PerfilMontagem",
+                            Ordem = 10,
+                            Valor = "Energia"
+                        },
+                        new
+                        {
+                            Id = 86,
+                            Ativo = true,
+                            Lista = "PerfilMontagem",
+                            Ordem = 20,
+                            Valor = "Equipa"
+                        },
+                        new
+                        {
+                            Id = 87,
+                            Ativo = true,
+                            Lista = "PerfilMontagem",
+                            Ordem = 30,
+                            Valor = "ST"
+                        },
+                        new
+                        {
+                            Id = 88,
+                            Ativo = true,
+                            Lista = "PerfilMontagem",
+                            Ordem = 40,
+                            Valor = "SV"
+                        },
+                        new
+                        {
+                            Id = 89,
+                            Ativo = true,
+                            Lista = "SimNao",
+                            Ordem = 10,
+                            Valor = "Sim"
+                        },
+                        new
+                        {
+                            Id = 90,
+                            Ativo = true,
+                            Lista = "SimNao",
+                            Ordem = 20,
+                            Valor = "Não"
+                        },
+                        new
+                        {
+                            Id = 91,
+                            Ativo = true,
+                            Lista = "SimNao",
+                            Ordem = 30,
+                            Valor = "NA"
+                        },
+                        new
+                        {
+                            Id = 92,
+                            Ativo = true,
+                            Lista = "NecessidadeAquisicao",
+                            Ordem = 10,
+                            Valor = "Serv. Civil-abrigo"
+                        },
+                        new
+                        {
+                            Id = 93,
+                            Ativo = true,
+                            Lista = "NecessidadeAquisicao",
+                            Ordem = 20,
+                            Valor = "Serv. Civil-traçado"
+                        },
+                        new
+                        {
+                            Id = 94,
+                            Ativo = true,
+                            Lista = "NecessidadeAquisicao",
+                            Ordem = 30,
+                            Valor = "Serv. Desmont.-gerador"
+                        },
+                        new
+                        {
+                            Id = 95,
+                            Ativo = true,
+                            Lista = "NecessidadeAquisicao",
+                            Ordem = 40,
+                            Valor = "Serv. Desmont.-PV"
+                        },
+                        new
+                        {
+                            Id = 96,
+                            Ativo = true,
+                            Lista = "NecessidadeAquisicao",
+                            Ordem = 50,
+                            Valor = "Serv. Mont.-gerador"
+                        },
+                        new
+                        {
+                            Id = 97,
+                            Ativo = true,
+                            Lista = "NecessidadeAquisicao",
+                            Ordem = 60,
+                            Valor = "Serv. Mont.-PV"
+                        },
+                        new
+                        {
+                            Id = 98,
+                            Ativo = true,
+                            Lista = "NecessidadeAquisicao",
+                            Ordem = 70,
+                            Valor = "Equip. Gerador"
+                        },
+                        new
+                        {
+                            Id = 99,
+                            Ativo = true,
+                            Lista = "NecessidadeAquisicao",
+                            Ordem = 80,
+                            Valor = "Serv. Conf. Escape"
+                        },
+                        new
+                        {
+                            Id = 100,
+                            Ativo = true,
+                            Lista = "NecessidadeAquisicao",
+                            Ordem = 90,
+                            Valor = "Serv. Fisc. Civil"
+                        },
+                        new
+                        {
+                            Id = 101,
+                            Ativo = true,
+                            Lista = "NecessidadeAquisicao",
+                            Ordem = 100,
+                            Valor = "Serv. Fisc. Mont."
+                        },
+                        new
+                        {
+                            Id = 102,
+                            Ativo = true,
+                            Lista = "NecessidadeAquisicao",
+                            Ordem = 110,
+                            Valor = "NA"
+                        });
+                });
+
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.AcaoFormacaoPlano", b =>
                 {
                     b.HasOne("ComparacaoPropostas.Models.Entities.Plano", "Plano")

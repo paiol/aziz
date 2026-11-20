@@ -59,6 +59,24 @@ public static class PlanoLabelExtensions
         _ => prioridade.ToString()
     };
 
+    public static string ToLabel(this ListaPlano lista) => lista switch
+    {
+        ListaPlano.Rubrica => "Designação da rubrica",
+        ListaPlano.Tipo => "Tipo",
+        ListaPlano.Coordenacao => "Coordenação",
+        ListaPlano.Ilha => "Ilha",
+        ListaPlano.Classificacao => "Classificação do projeto",
+        ListaPlano.Capex => "CAPEX",
+        ListaPlano.OrigemIniciativa => "Origem da iniciativa",
+        ListaPlano.Trimestre => "Trimestre previsto",
+        ListaPlano.Zona => "Zona",
+        ListaPlano.Executante => "Execução / fiscalização",
+        ListaPlano.PerfilMontagem => "Perfil da equipa de montagem",
+        ListaPlano.SimNao => "Sim / Não",
+        ListaPlano.NecessidadeAquisicao => "Necessidade de aquisição",
+        _ => lista.ToString()
+    };
+
     public static string ToLabel(this TipoAcaoFormacao tipo) => tipo switch
     {
         TipoAcaoFormacao.Formacao => "Formação",

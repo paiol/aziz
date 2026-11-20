@@ -1,0 +1,122 @@
+@using ComparacaoPropostas.Helper
+@using ComparacaoPropostas.Models.Entities.Enums
+@model ComparacaoPropostas.ViewModels.Listas.ListasVM
+@{
+    ViewData["Title"] = "Listas do plano";
+    string Nome(ListaPlano l) => l.ToLabel();
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-1">Listas do plano</h2>
+        <span class="text-body-tertiary">Valores para escolher nos projetos do plano Capex (equivalente à folha "Listas" do ficheiro SCOPE).</span>
+    </div>
+    <form asp-action="AcrescentarUsados" method="post">
+        <input type="hidden" name="lista" value="@Model.Lista" />
+        <button type="submit" class="btn btn-subtle-secondary" title="Acrescenta às listas os valores que os projetos já usam e ainda não estão nas listas"><span class="fas fa-file-import me-1"></span> Acrescentar valores usados nos projetos</button>
+    </form>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-3">
+        <div class="card">
+            <div class="list-group list-group-flush">
+                @foreach (var l in Enum.GetValues<ListaPlano>())
+                {
+                    <a asp-action="Index" asp-route-lista="@l"
+                       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center @(l == Model.Lista ? "active" : "")">
+                        <span>@Nome(l)</span>
+                        <span class="badge @(l == Model.Lista ? "bg-light text-dark" : "bg-secondary")">@Model.Contagens.GetValueOrDefault(l)</span>
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-9">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0">@Nome(Model.Lista)</h5>
+                <span class="small text-body-tertiary">
+                    Usada em: @string.Join(", ", Model.CamposQueUsam.Select(c => c switch
+                    {
+                        "DesignacaoRubrica" => "Designação da rubrica", "Coordenacao" => "Coord.", "Classificacao" => "Classificação",
+                        "OrigemIniciativa" => "Origem iniciativa", "TrimestrePrevisto" => "Trimestre previsto",
+                        "ExecucaoProjeto" => "Execução · projeto", "FiscalizacaoCivil" => "Fiscalização · civil",
+                        "FiscalizacaoTracados" => "Fiscalização · traçados", "ExecucaoMontagem" => "Execução · montagem",
+                        "FiscalizacaoMontagem" => "Fiscalização · montagem", "PerfilEquipaMontagem" => "Perfil da equipa de montagem",
+                        "PrestadorExternoIlha" => "Prestador externo da ilha", "NecessidadeAquisicao" => "Necessidade de aquisição (escolha múltipla)",
+                        _ => c
+                    }))
+                </span>
+            </div>
+            <div class="card-body">
+                <form asp-action="Adicionar" method="post" class="d-flex gap-2 flex-wrap align-items-end mb-3">
+                    <input type="hidden" name="lista" value="@Model.Lista" />
+                    <div class="flex-grow-1" style="min-width: 14rem">
+                        <label for="novo-valor" class="form-label mb-1">Novo valor</label>
+                        <input id="novo-valor" name="valor" class="form-control" maxlength="200" required placeholder="ex.: @(Model.Lista == ListaPlano.Ilha ? "SN" : "novo valor")" />
+                    </div>
+                    <button type="submit" class="btn btn-primary"><span class="fas fa-plus me-1"></span> Acrescentar</button>
+                </form>
+
+                @if (Model.Valores.Count == 0)
+                {
+                    <div class="alert alert-info mb-0">Esta lista ainda não tem valores.</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th style="width: 6rem">Ordem</th>
+                                    <th>Valor</th>
+                                    <th class="text-end" style="width: 7rem">Projetos</th>
+                                    <th style="width: 7rem">Estado</th>
+                                    <th class="text-end" style="width: 15rem"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var l in Model.Valores)
+                                {
+                                    var v = l.Valor;
+                                    var formId = $"editar-{v.Id}";
+                                    <tr class="@(v.Ativo ? "" : "text-body-tertiary")">
+                                        <td><input form="@formId" name="ordem" type="number" class="form-control form-control-sm" value="@v.Ordem" aria-label="Ordem" /></td>
+                                        <td><input form="@formId" name="valor" class="form-control form-control-sm" value="@v.Valor" maxlength="200" required aria-label="Valor" /></td>
+                                        <td class="text-end">@l.Usos</td>
+                                        <td>
+                                            @if (v.Ativo)
+                                            {
+                                                <span class="badge bg-success">Ativo</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Inativo</span>
+                                            }
+                                        </td>
+                                        <td class="text-end text-nowrap">
+                                            <form id="@formId" asp-action="Editar" asp-route-id="@v.Id" method="post" class="d-inline">
+                                                <button type="submit" class="btn btn-sm btn-subtle-primary" title="Guardar alterações (renomear atualiza os projetos)">Guardar</button>
+                                            </form>
+                                            <form asp-action="Alternar" asp-route-id="@v.Id" method="post" class="d-inline">
+                                                <button type="submit" class="btn btn-sm btn-subtle-secondary">@(v.Ativo ? "Desativar" : "Ativar")</button>
+                                            </form>
+                                            @if (l.Usos == 0)
+                                            {
+                                                <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
+                                                        data-url="@Url.Action("Delete", new { id = v.Id })" data-id="@v.Id" title="Apagar"><i class="fas fa-trash"></i></button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="form-text mt-2">Renomear um valor atualiza todos os projetos que o usam. Um valor usado em projetos não pode ser apagado: desative-o para deixar de aparecer na escolha.</div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,40 @@
+@model ComparacaoPropostas.ViewModels.Listas.CampoListaVM
+@{
+    var novo = Model.Campo + ComparacaoPropostas.Services.ListasPlano.SufixoNovo;
+    var atual = Model.Atual?.Trim();
+}
+<label for="@Model.Campo" class="form-label">@Model.Label</label>
+@if (!Model.Multipla)
+{
+    var foraDaLista = !string.IsNullOrEmpty(atual) && !Model.Valores.Any(v => v.Equals(atual, StringComparison.OrdinalIgnoreCase));
+    <select id="@Model.Campo" name="@Model.Campo" class="form-select js-lista" data-novo="@novo">
+        <option value="">—</option>
+        @foreach (var v in Model.Valores)
+        {
+            <option value="@v" selected="@(v.Equals(atual, StringComparison.OrdinalIgnoreCase))">@v</option>
+        }
+        @if (foraDaLista)
+        {
+            <option value="@atual" selected>@atual (fora da lista)</option>
+        }
+        <option value="@ComparacaoPropostas.ViewModels.Listas.CampoListaVM.OpcaoNovo">+ Adicionar novo…</option>
+    </select>
+    <input id="@novo" name="@novo" class="form-control mt-1 d-none" maxlength="200" placeholder="Novo valor (fica guardado na lista)" />
+}
+else
+{
+    var escolhidos = ComparacaoPropostas.Services.ListasPlano.Separar(atual).ToList();
+    var extras = escolhidos.Where(e => !Model.Valores.Any(v => v.Equals(e, StringComparison.OrdinalIgnoreCase))).ToList();
+    <div class="border rounded p-2 d-flex flex-wrap gap-3">
+        @foreach (var (v, i) in Model.Valores.Concat(extras).Select((v, i) => (v, i)))
+        {
+            var id = $"{Model.Campo}_{i}";
+            <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="@id" name="@Model.Campo" value="@v"
+                       checked="@(escolhidos.Any(e => e.Equals(v, StringComparison.OrdinalIgnoreCase)))" />
+                <label class="form-check-label" for="@id">@v</label>
+            </div>
+        }
+    </div>
+    <input id="@novo" name="@novo" class="form-control mt-1" maxlength="200" placeholder="Outros (novos valores, separados por vírgula)" />
+}

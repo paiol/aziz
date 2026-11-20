@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ComparacaoPropostas.Data;
+using ComparacaoPropostas.Services;
 using ComparacaoPropostas.Helper;
 using ComparacaoPropostas.Models.Entities;
 using ComparacaoPropostas.Models.Entities.Enums;
@@ -62,6 +63,7 @@ public class ProjetosPlanoController : Controller
         var plano = _db.Planos.Find(projeto.PlanoId);
         if (plano == null) return NotFound();
 
+        ListasPlano.AplicarFormulario(projeto, Request.Form);
         ValidarMeses(projeto);
         if (!ModelState.IsValid)
         {
@@ -70,6 +72,7 @@ public class ProjetosPlanoController : Controller
         }
 
         if (projeto.EstadoAprovacao != EstadoAprovacaoProjeto.Proposto) projeto.DataDecisao = DateTime.UtcNow;
+        ListasPlano.GarantirValores(_db, new[] { projeto });
         _db.ProjetosPlano.Add(projeto);
         _db.SaveChanges();
 
@@ -114,6 +117,7 @@ public class ProjetosPlanoController : Controller
         projeto.DataDecisao = projeto.EstadoAprovacao == existente.EstadoAprovacao ? existente.DataDecisao
             : projeto.EstadoAprovacao == EstadoAprovacaoProjeto.Proposto ? null : DateTime.UtcNow;
 
+        ListasPlano.AplicarFormulario(projeto, Request.Form);
         ValidarMeses(projeto);
         ValidarRejeicaoComCompras(id, projeto.EstadoAprovacao);
         if (!ModelState.IsValid)
@@ -122,6 +126,7 @@ public class ProjetosPlanoController : Controller
             return View(projeto);
         }
 
+        ListasPlano.GarantirValores(_db, new[] { projeto });
         _db.ProjetosPlano.Update(projeto);
         _db.SaveChanges();
 
@@ -220,35 +225,10 @@ public class ProjetosPlanoController : Controller
             ModelState.AddModelError(nameof(ProjetoPlano.EstadoAprovacao), "O projeto já tem compras ou obras associadas e tem de continuar aceite.");
     }
 
-    // Sugestões (datalist) com os valores já usados no plano, à semelhança das listas da folha "Listas".
+    // Valores das listas do plano (Ilha, Tipo, Coordenação…) para os campos de escolha do formulário.
     private void PrepararListas(Plano plano)
     {
         ViewBag.Plano = plano;
-        var projetos = _db.ProjetosPlano.Where(p => p.PlanoId == plano.Id).AsNoTracking().ToList();
-
-        List<string> Valores(Func<ProjetoPlano, string?> campo, params string[] padrao) => projetos
-            .Select(campo)
-            .Concat(padrao)
-            .Where(v => !string.IsNullOrWhiteSpace(v))
-            .Select(v => v!.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(v => v)
-            .ToList();
-
-        ViewBag.Sugestoes = new Dictionary<string, List<string>>
-        {
-            ["rubricas"] = Valores(p => p.DesignacaoRubrica),
-            ["tipos"] = Valores(p => p.Tipo, "ENR", "EDF", "RAN", "PRC"),
-            ["coords"] = Valores(p => p.Coordenacao, "CRN", "CRS", "SSM", "CLI", "CRF", "NAC"),
-            ["ilhas"] = Valores(p => p.Ilha, "SA", "SV", "SN", "SL", "BV", "MO", "ST-PR", "ST-INT", "FG", "BR", "NAC"),
-            ["classificacoes"] = Valores(p => p.Classificacao),
-            ["capex"] = Valores(p => p.Capex),
-            ["origens"] = Valores(p => p.OrigemIniciativa),
-            ["trimestres"] = Valores(p => p.TrimestrePrevisto, "T1", "T2", "T3", "T4", "Ano todo"),
-            ["zonas"] = Valores(p => p.Zona, "Urbano", "Rural"),
-            ["executantes"] = Valores(p => p.ExecucaoProjeto, "DEI", "DOM", "Terceiro", "NA", "Chave na mão"),
-            ["perfis"] = Valores(p => p.PerfilEquipaMontagem, "Energia", "Equipa", "ST", "SV"),
-            ["simnao"] = new List<string> { "Sim", "Não", "NA" }
-        };
+        ViewBag.Listas = ListasPlano.CarregarAtivas(_db);
     }
 }

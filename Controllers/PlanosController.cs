@@ -139,11 +139,12 @@ public class PlanosController : Controller
             Descricao = $"{area.ToLabel()}: importado de {Path.GetFileName(ficheiro.FileName)}"
         };
         AplicarImportacao(plano, importado, area, substituirFormacao: true);
+        var novosValores = ListasPlano.GarantirValores(_db, importado.Projetos);
 
         _db.Planos.Add(plano);
         _db.SaveChanges();
 
-        TempData["Sucesso"] = MensagemImportacao(importado, area);
+        TempData["Sucesso"] = MensagemImportacao(importado, area) + (novosValores > 0 ? $" {novosValores} valor(es) novo(s) acrescentado(s) às listas do plano." : "");
         return RedirectToAction(nameof(Details), new { id = plano.Id });
     }
 
@@ -184,10 +185,11 @@ public class PlanosController : Controller
             plano.CapacidadeEnergiaDias = importado.CapacidadeEnergiaDias ?? plano.CapacidadeEnergiaDias;
         }
         AplicarImportacao(plano, importado, area, substituirFormacao);
+        var novosValores = ListasPlano.GarantirValores(_db, importado.Projetos);
 
         _db.SaveChanges();
 
-        TempData["Sucesso"] = MensagemImportacao(importado, area);
+        TempData["Sucesso"] = MensagemImportacao(importado, area) + (novosValores > 0 ? $" {novosValores} valor(es) novo(s) acrescentado(s) às listas do plano." : "");
         return RedirectToAction(nameof(Details), new { id });
     }
 

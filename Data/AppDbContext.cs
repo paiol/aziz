@@ -45,6 +45,7 @@ public class AppDbContext : DbContext
     public DbSet<Plano> Planos => Set<Plano>();
     public DbSet<ProjetoPlano> ProjetosPlano => Set<ProjetoPlano>();
     public DbSet<AcaoFormacaoPlano> AcoesFormacaoPlano => Set<AcaoFormacaoPlano>();
+    public DbSet<ValorLista> ValoresLista => Set<ValorLista>();
 
     // Integração App → Airtable (ver Services/Airtable).
     public DbSet<AirtableLink> AirtableLinks => Set<AirtableLink>();
@@ -306,6 +307,15 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
 
             e.HasIndex(a => new { a.PropostaEmpreiteiroId, a.CriterioObraId }).IsUnique();
+        });
+
+        // Módulo Plano — listas de escolha (valores iniciais da folha "Listas" do ficheiro SCOPE)
+        modelBuilder.Entity<ValorLista>(e =>
+        {
+            e.Property(v => v.Lista).HasConversion<string>().HasMaxLength(30);
+            e.Property(v => v.Valor).HasMaxLength(200);
+            e.HasIndex(v => new { v.Lista, v.Valor }).IsUnique();
+            e.HasData(ComparacaoPropostas.Services.ListasPlano.Semente());
         });
 
         // Módulo Plano

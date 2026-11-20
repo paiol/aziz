@@ -44,6 +44,34 @@ public enum PrioridadeProjetoPlano
     Baixa
 }
 
+// Listas de escolha dos projetos do plano (equivalente à folha "Listas" do ficheiro SCOPE).
+public enum ListaPlano
+{
+    [Display(Name = "Designação da rubrica")]
+    Rubrica,
+    Tipo,
+    [Display(Name = "Coordenação")]
+    Coordenacao,
+    Ilha,
+    [Display(Name = "Classificação do projeto")]
+    Classificacao,
+    [Display(Name = "CAPEX")]
+    Capex,
+    [Display(Name = "Origem da iniciativa")]
+    OrigemIniciativa,
+    [Display(Name = "Trimestre previsto")]
+    Trimestre,
+    Zona,
+    [Display(Name = "Execução / fiscalização")]
+    Executante,
+    [Display(Name = "Perfil / origem da equipa de montagem")]
+    PerfilMontagem,
+    [Display(Name = "Sim / Não")]
+    SimNao,
+    [Display(Name = "Necessidade de aquisição")]
+    NecessidadeAquisicao
+}
+
 public enum TipoAcaoFormacao
 {
     [Display(Name = "Formação")]
