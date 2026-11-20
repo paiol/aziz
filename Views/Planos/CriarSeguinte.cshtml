@@ -1,0 +1,100 @@
+@using ComparacaoPropostas.Helper
+@using ComparacaoPropostas.Models.Entities.Enums
+@model ComparacaoPropostas.ViewModels.Planos.TransicaoPlanoVM
+@{
+    ViewData["Title"] = $"Plano {Model.AnoNovo}";
+    var opcoes = new List<SelectListItem> { new("(não passa para o novo plano)", "") };
+    opcoes.AddRange(new[]
+    {
+        SituacaoProjetoPlano.Transitado, SituacaoProjetoPlano.TransitadoParcial, SituacaoProjetoPlano.Condicionado,
+        SituacaoProjetoPlano.ExecutadoRetirar, SituacaoProjetoPlano.Cancelado, SituacaoProjetoPlano.ExploracaoDom
+    }.Select(s => new SelectListItem(s.ToLabel(), s.ToString())));
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-1">Preparar o plano @Model.AnoNovo</h2>
+        <span class="text-body-tertiary">A partir de <a asp-action="Details" asp-route-id="@Model.PlanoAnteriorId">@Model.PlanoAnteriorDesignacao</a></span>
+    </div>
+</div>
+
+<div class="alert alert-subtle-info small">
+    Para cada projeto do plano anterior escolha o que acontece em @Model.AnoNovo:
+    <strong>Transitado</strong> / <strong>Transitado parcial</strong> mantêm-se aceites no Capex com o valor a transitar indicado;
+    <strong>Condicionado</strong> volta a proposto; <strong>Executado</strong>, <strong>Cancelado</strong> e <strong>Exploração - DOM</strong>
+    ficam registados como fora do plano (rejeitados). A sugestão inicial vem das compras: valor a transitar = orçamento − adjudicado.
+    Depois cada área propõe os projetos novos no plano @Model.AnoNovo.
+    @if (Model.PlanoExistenteId.HasValue)
+    {
+        <div class="mt-1">Já existe o plano @Model.AnoNovo: os projetos escolhidos são acrescentados a esse plano; os que já transitaram não se repetem.</div>
+    }
+</div>
+
+<form asp-action="CriarSeguinte" method="post">
+    <input type="hidden" asp-for="PlanoAnteriorId" />
+    <div class="card mb-3">
+        <div class="card-body row g-3">
+            <div class="col-md-6">
+                <label asp-for="DesignacaoNova" class="form-label">Designação do plano @Model.AnoNovo</label>
+                <input asp-for="DesignacaoNova" class="form-control" readonly="@Model.PlanoExistenteId.HasValue" />
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>Área</th>
+                        <th>Projeto</th>
+                        <th>Situação / aprovação</th>
+                        <th class="text-end">Orçamento</th>
+                        <th class="text-end">Adjudicado</th>
+                        <th style="min-width: 13rem">Em @Model.AnoNovo</th>
+                        <th style="min-width: 10rem">Valor a transitar (CVE)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (var i = 0; i < Model.Linhas.Count; i++)
+                    {
+                        var l = Model.Linhas[i];
+                        var escolhida = l.Decisao?.ToString() ?? string.Empty;
+                        var opcoesLinha = opcoes.Select(o => new SelectListItem(o.Text, o.Value, o.Value == escolhida)).ToList();
+                        <tr class="@(l.JaTransitado ? "text-body-tertiary" : "")">
+                            <td>@l.Area.ToLabel()</td>
+                            <td>
+                                @l.Nome
+                                <div class="small text-body-tertiary">@(l.Rubrica ?? "")</div>
+                                <input type="hidden" asp-for="Linhas[i].ProjetoAnteriorId" />
+                            </td>
+                            <td class="small">
+                                @(l.SituacaoAnterior?.ToLabel() ?? "-")
+                                <span class="@l.EstadoAnterior.ToBadgeClass() ms-1">@l.EstadoAnterior.ToLabel()</span>
+                            </td>
+                            <td class="text-end">@l.Orcamento.ToCve()</td>
+                            <td class="text-end">@l.Adjudicado.ToCve()</td>
+                            @if (l.JaTransitado)
+                            {
+                                <td colspan="2"><span class="badge bg-secondary">Já está no plano @Model.AnoNovo</span></td>
+                            }
+                            else
+                            {
+                                <td>
+                                    <select asp-for="Linhas[i].Decisao" class="form-select form-select-sm"
+                                            asp-items="opcoesLinha"></select>
+                                </td>
+                                <td><input asp-for="Linhas[i].ValorTransitar" class="form-control form-control-sm text-end" type="text" inputmode="decimal" /></td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <button type="submit" class="btn btn-primary"><span class="fas fa-forward me-1"></span> Passar para o plano @Model.AnoNovo</button>
+        <a asp-action="Details" asp-route-id="@Model.PlanoAnteriorId" class="btn btn-subtle-secondary">Cancelar</a>
+    </div>
+</form>

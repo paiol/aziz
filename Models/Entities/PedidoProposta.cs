@@ -28,6 +28,13 @@ public class PedidoProposta
     [Display(Name = "Orçamento Estimado")]
     public decimal? OrcamentoEstimado { get; set; }
 
+    // Projeto do Plano Capex que esta compra executa. Obrigatório nos pedidos novos;
+    // nulo apenas nos pedidos registados antes da Plataforma DEI ligar compras ao Capex.
+    [Display(Name = "Projeto Capex")]
+    public int? ProjetoPlanoId { get; set; }
+    [Microsoft.AspNetCore.Mvc.ModelBinding.Validation.ValidateNever]
+    public ProjetoPlano? ProjetoPlano { get; set; }
+
     // Set once a Processo picks this Pedido as its 1-1 origin; null while still Pendente.
     public Processo? Processo { get; set; }
 

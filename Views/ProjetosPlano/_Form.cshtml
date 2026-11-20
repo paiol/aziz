@@ -1,0 +1,280 @@
+@using ComparacaoPropostas.Models.Entities
+@using ComparacaoPropostas.Models.Entities.Enums
+@using ComparacaoPropostas.Services
+@using ComparacaoPropostas.ViewModels.Listas
+@model ComparacaoPropostas.Models.Entities.ProjetoPlano
+@{
+    var plano = (ComparacaoPropostas.Models.Entities.Plano)ViewBag.Plano;
+    var listas = (Dictionary<ListaPlano, List<string>>)ViewBag.Listas;
+    var meses = PlanoCalculos.NomesMeses.Select((m, i) => new SelectListItem(m, (i + 1).ToString())).ToList();
+    var ano = plano.Ano;
+
+    // Campo de escolha a partir da lista do plano correspondente (ver Listas do plano).
+    CampoListaVM CampoLista(string campo)
+    {
+        var lista = ListasPlano.Campos[campo];
+        return new CampoListaVM
+        {
+            Campo = campo,
+            Label = ViewData.ModelMetadata.Properties.First(p => p.PropertyName == campo).DisplayName ?? campo,
+            Atual = typeof(ProjetoPlano).GetProperty(campo)!.GetValue(Model) as string,
+            Valores = listas.GetValueOrDefault(lista) ?? new List<string>(),
+            Multipla = ListasPlano.Multipla(lista)
+        };
+    }
+}
+
+<script>
+    // "+ Adicionar novo…": mostra a caixa de texto do valor novo.
+    document.addEventListener('change', function (e) {
+        var s = e.target;
+        if (!s.classList || !s.classList.contains('js-lista')) return;
+        var novo = document.getElementById(s.dataset.novo);
+        if (!novo) return;
+        var mostrar = s.value === '@CampoListaVM.OpcaoNovo';
+        novo.classList.toggle('d-none', !mostrar);
+        if (mostrar) novo.focus(); else novo.value = '';
+    });
+</script>
+
+<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">Identificação</h5></div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label asp-for="Area" class="form-label"></label>
+                <select asp-for="Area" class="form-select" asp-items="Html.GetEnumSelectList<AreaDepartamento>()"></select>
+                <div class="form-text">Área que propõe o projeto.</div>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="EstadoAprovacao" class="form-label"></label>
+                <select asp-for="EstadoAprovacao" class="form-select" asp-items="Html.GetEnumSelectList<EstadoAprovacaoProjeto>()"></select>
+                <span asp-validation-for="EstadoAprovacao" class="text-danger"></span>
+                <div class="form-text">Só os projetos aceites entram no Capex e podem ter compras.</div>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="MotivoDecisao" class="form-label"></label>
+                <input asp-for="MotivoDecisao" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Nome" class="form-label"></label>
+                <input asp-for="Nome" class="form-control" required />
+                <span asp-validation-for="Nome" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.DesignacaoRubrica))" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Descricao" class="form-label"></label>
+                <textarea asp-for="Descricao" class="form-control" rows="3"></textarea>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Observacoes" class="form-label">Observações / justificação @ano</label>
+                <textarea asp-for="Observacoes" class="form-control" rows="3"></textarea>
+            </div>
+            <div class="col-md-3">
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.Classificacao))" />
+            </div>
+            <div class="col-md-2">
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.Tipo))" />
+            </div>
+            <div class="col-md-2">
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.Coordenacao))" />
+            </div>
+            <div class="col-md-2">
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.Ilha))" />
+            </div>
+            <div class="col-md-3">
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.OrigemIniciativa))" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="CapexAnoMenos2" class="form-label">Capex @(ano - 2)</label>
+                <input asp-for="CapexAnoMenos2" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="CodCapexAnoAnterior" class="form-label">Cód. Capex @(ano - 1)</label>
+                <input asp-for="CodCapexAnoAnterior" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="CodCapex" class="form-label">Cód. Capex @ano</label>
+                <input asp-for="CodCapex" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="SeguimentoOrcamento" class="form-label"></label>
+                <input asp-for="SeguimentoOrcamento" class="form-control" />
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">Situação @ano</h5></div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label asp-for="Situacao" class="form-label">Situação @ano</label>
+                <select asp-for="Situacao" class="form-select" asp-items="Html.GetEnumSelectList<SituacaoProjetoPlano>()">
+                    <option value="">(sem situação)</option>
+                </select>
+                <div class="form-text">Transitado, Transitado parcial e Novo entram no plano; Condicionado fica à parte.</div>
+            </div>
+            <div class="col-md-3">
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.Capex))" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="Prioridade" class="form-label"></label>
+                <select asp-for="Prioridade" class="form-select" asp-items="Html.GetEnumSelectList<PrioridadeProjetoPlano>()">
+                    <option value="">-</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.TrimestrePrevisto))" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="ExecucaoAnoAnterior" class="form-label">Execução @(ano - 1) (0–1)</label>
+                <input asp-for="ExecucaoAnoAnterior" class="form-control" type="text" inputmode="decimal" placeholder="ex.: 0,53" />
+            </div>
+            <div class="col-md-12">
+                <label asp-for="CondicaoMotivo" class="form-label"></label>
+                <input asp-for="CondicaoMotivo" class="form-control" />
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">Execução e fiscalização</h5></div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-2">
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.Zona))" />
+            </div>
+            <div class="col-md-2">
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.ExecucaoProjeto))" />
+            </div>
+            <div class="col-md-2">
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.FiscalizacaoCivil))" />
+            </div>
+            <div class="col-md-2">
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.FiscalizacaoTracados))" />
+            </div>
+            <div class="col-md-2">
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.ExecucaoMontagem))" />
+            </div>
+            <div class="col-md-2">
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.FiscalizacaoMontagem))" />
+            </div>
+            <div class="col-md-3">
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.PerfilEquipaMontagem))" />
+            </div>
+            <div class="col-md-3">
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.PrestadorExternoIlha))" />
+            </div>
+            <div class="col-md-6">
+                <partial name="_CampoLista" model="CampoLista(nameof(ProjetoPlano.NecessidadeAquisicao))" />
+            </div>
+            <div class="col-md-12">
+                <label asp-for="EntidadesExecutantes" class="form-label"></label>
+                <textarea asp-for="EntidadesExecutantes" class="form-control" rows="2"></textarea>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">Valores (CVE)</h5></div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label asp-for="PropostasSemAdjudicacao" class="form-label"></label>
+                <input asp-for="PropostasSemAdjudicacao" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="AdjudicadoAnoAnterior" class="form-label">Adjudicado @(ano - 1) (informativo)</label>
+                <input asp-for="AdjudicadoAnoAnterior" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="AdjudicadoAnosAnteriores" class="form-label">Adjudicado anos anteriores (informativo)</label>
+                <input asp-for="AdjudicadoAnosAnteriores" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="TotalOrcamentoAnoAnterior" class="form-label">TOTAL ORC. @(ano - 1) (referência)</label>
+                <input asp-for="TotalOrcamentoAnoAnterior" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="ValorTransitar" class="form-label">Valor a transitar @ano</label>
+                <input asp-for="ValorTransitar" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="ValorNovo" class="form-label">Valor novo @ano (estimativa)</label>
+                <input asp-for="ValorNovo" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="ValorCondicionado" class="form-label">Valor condicionado @ano</label>
+                <input asp-for="ValorCondicionado" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-3">
+                <div class="form-text mt-4">TOTAL ORC. @ano = Valor a transitar + Valor novo (0 se o projeto estiver fora do plano).</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">Custos @ano por natureza (CVE)</h5></div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-2">
+                <label asp-for="CustoAquisicaoSite" class="form-label"></label>
+                <input asp-for="CustoAquisicaoSite" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="CustoEquipamento" class="form-label"></label>
+                <input asp-for="CustoEquipamento" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="CustoConstrucoes" class="form-label"></label>
+                <input asp-for="CustoConstrucoes" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="CustoServicos" class="form-label"></label>
+                <input asp-for="CustoServicos" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="CustoDeslocacoes" class="form-label"></label>
+                <input asp-for="CustoDeslocacoes" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="CustoTerceirizacao" class="form-label"></label>
+                <input asp-for="CustoTerceirizacao" class="form-control" type="text" inputmode="decimal" />
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">Calendário e esforço da equipa</h5></div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label asp-for="MesInicio" class="form-label"></label>
+                <select asp-for="MesInicio" class="form-select" asp-items="meses"><option value="">(Jan)</option></select>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="MesFim" class="form-label"></label>
+                <select asp-for="MesFim" class="form-select" asp-items="meses"><option value="">(Dez)</option></select>
+                <span asp-validation-for="MesFim" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="EsforcoArquiteturaDias" class="form-label">Esforço @ano · Arquitetura (dias)</label>
+                <input asp-for="EsforcoArquiteturaDias" class="form-control" type="text" inputmode="decimal" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="EsforcoEnergiaDias" class="form-label">Esforço @ano · Energia (dias)</label>
+                <input asp-for="EsforcoEnergiaDias" class="form-control" type="text" inputmode="decimal" />
+            </div>
+        </div>
+    </div>
+</div>

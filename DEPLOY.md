@@ -40,7 +40,9 @@ Isto cria todas as tabelas na base de dados da SmarterASP.NET.
 dotnet publish ComparacaoPropostas.csproj -c Release -o ./publish
 ```
 
-Depois de gerares um novo `publish/`, copia o `appsettings.Production.json` atualizado para dentro dessa pasta (ele substitui o placeholder que vem do build) e confirma que o `web.config` mantém o bloco `<environmentVariables>` (o gerado automaticamente pelo `dotnet publish` não o inclui — foi adicionado manualmente desta vez).
+Depois de gerares um novo `publish/`, copia o `appsettings.Production.json` atualizado para dentro dessa pasta (ele substitui o placeholder que vem do build) O `web.config` da raiz do projeto já tem o bloco `<environmentVariables>` com `ASPNETCORE_ENVIRONMENT=Production`, e o `dotnet publish` (ou o Publish do Visual Studio) mantém-no no `web.config` publicado — não é preciso editá-lo à mão.
+
+Os perfis de publicação do Visual Studio (Web Deploy e FTP para a SmarterASP.NET) estão em `Properties/PublishProfiles/`; a password não fica guardada, é pedida ao publicar.
 
 ### 5. Enviar os ficheiros para o servidor
 

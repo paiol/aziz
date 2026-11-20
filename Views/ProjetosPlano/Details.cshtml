@@ -1,0 +1,175 @@
+@using ComparacaoPropostas.Helper
+@using ComparacaoPropostas.Models.Entities.Enums
+@using ComparacaoPropostas.Services
+@model ComparacaoPropostas.Models.Entities.ProjetoPlano
+@{
+    var p = Model;
+    var execucao = PlanoCalculos.CalcularExecucao(p);
+    var aceite = p.EstadoAprovacao == EstadoAprovacaoProjeto.Aceite && p.Caixa != CaixaPlano.ForaDoPlano;
+    ViewData["Title"] = p.Nome;
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-1">@p.Nome</h2>
+        <span class="@p.EstadoAprovacao.ToBadgeClass()">@p.EstadoAprovacao.ToLabel()</span>
+        <span class="@p.Caixa.ToBadgeClass() ms-1">@p.Caixa.ToLabel()</span>
+        <span class="text-body-tertiary ms-2">@p.Area.ToLabel() · <a asp-controller="Planos" asp-action="Details" asp-route-id="@p.PlanoId">@p.Plano.Designacao</a></span>
+        @if (p.ProjetoOrigem != null)
+        {
+            <div class="small text-body-tertiary mt-1">
+                Transitou de <a asp-action="Details" asp-route-id="@p.ProjetoOrigem.Id">@p.ProjetoOrigem.Plano.Designacao</a>
+            </div>
+        }
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-subtle-secondary" asp-action="Edit" asp-route-id="@p.Id"><span class="fas fa-edit me-1"></span> Editar</a>
+        @if (aceite)
+        {
+            <a class="btn btn-primary" asp-controller="Pedidos" asp-action="Create" asp-route-projetoPlanoId="@p.Id">
+                <span class="fas fa-cart-plus me-1"></span> Nova Compra
+            </a>
+            <a class="btn @(p.EhObra ? "btn-primary" : "btn-subtle-primary")" asp-controller="ProjetosObra" asp-action="Create" asp-route-projetoPlanoId="@p.Id">
+                <span class="fas fa-helmet-safety me-1"></span> Nova Obra
+            </a>
+        }
+    </div>
+</div>
+@if (p.EhObra)
+{
+    <div class="mb-2"><span class="badge bg-info text-dark"><i class="fas fa-helmet-safety me-1"></i>Projeto com obra</span>
+        <span class="small text-body-tertiary ms-1">A obra (concurso de empreiteiros, MQT, adjudicação) é gerida no módulo Obras e conta na execução deste projeto.</span></div>
+}
+
+@if (!string.IsNullOrWhiteSpace(p.MotivoDecisao) || p.DataDecisao.HasValue)
+{
+    <div class="alert alert-subtle-secondary small">
+        Decisão: <strong>@p.EstadoAprovacao.ToLabel()</strong>
+        @if (p.DataDecisao.HasValue) { <span> em @p.DataDecisao.Value.ToLocalTime().ToString("dd/MM/yyyy")</span> }
+        @if (!string.IsNullOrWhiteSpace(p.MotivoDecisao)) { <span> — @p.MotivoDecisao</span> }
+    </div>
+}
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">Execução do Capex</h5></div>
+    <div class="card-body">
+        @if (!aceite)
+        {
+            <div class="alert alert-subtle-warning small mb-3">Este projeto não está aceite no Capex: não pode ter compras novas.</div>
+        }
+        <partial name="_ExecucaoCapex" model="execucao" />
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">Compras associadas</h5></div>
+    <div class="card-body table-responsive">
+        @if (p.Pedidos.Count == 0)
+        {
+            <div class="alert alert-info mb-0">Ainda não há compras associadas a este projeto.</div>
+        }
+        else
+        {
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>Pedido</th>
+                        <th>Estado do pedido</th>
+                        <th>Processo</th>
+                        <th>Estado do processo</th>
+                        <th class="text-end">Orçamento estimado</th>
+                        <th class="text-end">Adjudicado (CVE)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var pe in p.Pedidos.OrderByDescending(x => x.CriadoEm))
+                    {
+                        <tr>
+                            <td><a asp-controller="Pedidos" asp-action="Edit" asp-route-id="@pe.Id">@pe.TipoProposta</a> <span class="small text-body-tertiary">@pe.CriadoEm.ToLocalTime().ToString("dd/MM/yyyy")</span></td>
+                            <td><span class="@pe.Status.ToBadgeClass()">@pe.Status.ToLabel()</span></td>
+                            <td>
+                                @if (pe.Processo != null)
+                                {
+                                    <a asp-controller="Processos" asp-action="Details" asp-route-id="@pe.Processo.Id">@(string.IsNullOrWhiteSpace(pe.Processo.NumeroProcesso) ? pe.Processo.Nome : $"{pe.Processo.NumeroProcesso} — {pe.Processo.Nome}")</a>
+                                }
+                                else
+                                {
+                                    <span class="text-body-tertiary">(sem processo)</span>
+                                }
+                            </td>
+                            <td>
+                                @if (pe.Processo != null)
+                                {
+                                    <span class="@pe.Processo.Status.ToBadgeClass()">@pe.Processo.Status.ToLabel()</span>
+                                }
+                            </td>
+                            <td class="text-end">@pe.OrcamentoEstimado.ToCve()</td>
+                            <td class="text-end">@(pe.Processo?.ValorAdjudicadoCVE.ToCve() ?? "-")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">Obras associadas</h5></div>
+    <div class="card-body table-responsive">
+        @if (p.Obras.Count == 0)
+        {
+            <div class="alert alert-info mb-0">
+                Ainda não há obras associadas a este projeto.
+                @if (aceite && p.EhObra)
+                {
+                    <a asp-controller="ProjetosObra" asp-action="Create" asp-route-projetoPlanoId="@p.Id">Registar a obra</a>
+                }
+            </div>
+        }
+        else
+        {
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>Obra</th>
+                        <th>Estado</th>
+                        <th>Local</th>
+                        <th class="text-end">Valor estimado</th>
+                        <th class="text-end">Valor adjudicado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var o in p.Obras.OrderByDescending(x => x.CriadoEm))
+                    {
+                        <tr>
+                            <td><a asp-controller="ProjetosObra" asp-action="Details" asp-route-id="@o.Id">@o.Designacao</a></td>
+                            <td><span class="@o.Status.ToBadgeClass()">@o.Status.ToLabel()</span></td>
+                            <td>@(o.Local ?? "-")</td>
+                            <td class="text-end">@o.ValorEstimado.ToCve()</td>
+                            <td class="text-end">@o.ValorAdjudicado.ToCve()</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">Dados do plano</h5></div>
+    <div class="card-body">
+        <div class="row g-3 small">
+            <div class="col-md-3"><span class="text-body-tertiary d-block">Rubrica</span>@(p.DesignacaoRubrica ?? "-")</div>
+            <div class="col-md-3"><span class="text-body-tertiary d-block">Classificação</span>@(p.Classificacao ?? "-")</div>
+            <div class="col-md-2"><span class="text-body-tertiary d-block">Ilha</span>@(p.Ilha ?? "-")</div>
+            <div class="col-md-2"><span class="text-body-tertiary d-block">Situação</span>@(p.Situacao?.ToLabel() ?? "-")</div>
+            <div class="col-md-2"><span class="text-body-tertiary d-block">Prioridade</span>@(p.Prioridade?.ToLabel() ?? "-")</div>
+            <div class="col-md-3"><span class="text-body-tertiary d-block">Valor a transitar</span>@p.ValorTransitar.ToCve()</div>
+            <div class="col-md-3"><span class="text-body-tertiary d-block">Valor novo</span>@p.ValorNovo.ToCve()</div>
+            <div class="col-md-3"><span class="text-body-tertiary d-block">TOTAL ORC. @(p.Plano.Ano - 1) (ref.)</span>@p.TotalOrcamentoAnoAnterior.ToCve()</div>
+            <div class="col-md-3"><span class="text-body-tertiary d-block">Δ</span>@p.DeltaAnoAnterior.ToCve()</div>
+            <div class="col-md-6"><span class="text-body-tertiary d-block">Descrição</span>@(p.Descricao ?? "-")</div>
+            <div class="col-md-6"><span class="text-body-tertiary d-block">Observações / justificação</span>@(p.Observacoes ?? "-")</div>
+        </div>
+    </div>
+</div>

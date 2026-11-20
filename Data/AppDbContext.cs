@@ -40,6 +40,13 @@ public class AppDbContext : DbContext
     public DbSet<ItemPropostaEmpreiteiro> ItensPropostaEmpreiteiro => Set<ItemPropostaEmpreiteiro>();
     public DbSet<AvaliacaoObra> AvaliacoesObra => Set<AvaliacaoObra>();
 
+    // Módulo Plano — plano anual do departamento (ficheiro SCOPE_INF): projetos do plano
+    // e ações de formação/feiras. Independente do resto do modelo.
+    public DbSet<Plano> Planos => Set<Plano>();
+    public DbSet<ProjetoPlano> ProjetosPlano => Set<ProjetoPlano>();
+    public DbSet<AcaoFormacaoPlano> AcoesFormacaoPlano => Set<AcaoFormacaoPlano>();
+    public DbSet<ValorLista> ValoresLista => Set<ValorLista>();
+
     // Integração App → Airtable (ver Services/Airtable).
     public DbSet<AirtableLink> AirtableLinks => Set<AirtableLink>();
     public DbSet<AirtableSyncPendente> AirtableSyncPendentes => Set<AirtableSyncPendente>();
@@ -89,6 +96,12 @@ public class AppDbContext : DbContext
             e.Property(p => p.Status).HasConversion<string>().HasMaxLength(20);
             e.Property(p => p.Area).HasConversion<string>().HasMaxLength(20);
             e.Property(p => p.OrcamentoEstimado).HasPrecision(18, 2);
+
+            // Restrict: um projeto Capex com compras associadas não pode ser apagado.
+            e.HasOne(p => p.ProjetoPlano)
+                .WithMany(pp => pp.Pedidos)
+                .HasForeignKey(p => p.ProjetoPlanoId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<ItemPedido>(e =>
@@ -217,6 +230,12 @@ public class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(p => p.PropostaVencedoraId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Restrict: um projeto Capex com obras associadas não pode ser apagado.
+            e.HasOne(p => p.ProjetoPlano)
+                .WithMany(pp => pp.Obras)
+                .HasForeignKey(p => p.ProjetoPlanoId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<ProjetoObraAnexo>(e =>
@@ -288,6 +307,68 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
 
             e.HasIndex(a => new { a.PropostaEmpreiteiroId, a.CriterioObraId }).IsUnique();
+        });
+
+        // Módulo Plano — listas de escolha (valores iniciais da folha "Listas" do ficheiro SCOPE)
+        modelBuilder.Entity<ValorLista>(e =>
+        {
+            e.Property(v => v.Lista).HasConversion<string>().HasMaxLength(30);
+            e.Property(v => v.Valor).HasMaxLength(200);
+            e.HasIndex(v => new { v.Lista, v.Valor }).IsUnique();
+            e.HasData(ComparacaoPropostas.Services.ListasPlano.Semente());
+        });
+
+        // Módulo Plano
+        modelBuilder.Entity<Plano>(e =>
+        {
+            e.Property(p => p.CapacidadeArquiteturaDias).HasPrecision(9, 2);
+            e.Property(p => p.CapacidadeEnergiaDias).HasPrecision(9, 2);
+        });
+
+        modelBuilder.Entity<ProjetoPlano>(e =>
+        {
+            e.Property(p => p.Situacao).HasConversion<string>().HasMaxLength(30);
+            e.Property(p => p.Prioridade).HasConversion<string>().HasMaxLength(10);
+            e.Property(p => p.ExecucaoAnoAnterior).HasPrecision(9, 4);
+            e.Property(p => p.EsforcoArquiteturaDias).HasPrecision(9, 2);
+            e.Property(p => p.EsforcoEnergiaDias).HasPrecision(9, 2);
+            foreach (var valor in new[] { nameof(ProjetoPlano.PropostasSemAdjudicacao), nameof(ProjetoPlano.AdjudicadoAnoAnterior),
+                         nameof(ProjetoPlano.AdjudicadoAnosAnteriores), nameof(ProjetoPlano.ValorTransitar), nameof(ProjetoPlano.ValorNovo),
+                         nameof(ProjetoPlano.ValorCondicionado), nameof(ProjetoPlano.TotalOrcamentoAnoAnterior), nameof(ProjetoPlano.CustoAquisicaoSite),
+                         nameof(ProjetoPlano.CustoEquipamento), nameof(ProjetoPlano.CustoConstrucoes), nameof(ProjetoPlano.CustoServicos),
+                         nameof(ProjetoPlano.CustoDeslocacoes), nameof(ProjetoPlano.CustoTerceirizacao) })
+            {
+                e.Property<decimal?>(valor).HasPrecision(18, 2);
+            }
+
+            e.Property(p => p.Area).HasConversion<string>().HasMaxLength(20);
+            e.Property(p => p.EstadoAprovacao).HasConversion<string>().HasMaxLength(20);
+            e.HasIndex(p => new { p.PlanoId, p.Area });
+
+            e.HasOne(p => p.ProjetoOrigem)
+                .WithMany()
+                .HasForeignKey(p => p.ProjetoOrigemId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
+
+            e.HasOne(p => p.Plano)
+                .WithMany(pl => pl.Projetos)
+                .HasForeignKey(p => p.PlanoId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AcaoFormacaoPlano>(e =>
+        {
+            e.Property(a => a.Tipo).HasConversion<string>().HasMaxLength(20);
+            e.Property(a => a.Dias).HasPrecision(9, 2);
+            e.Property(a => a.InscricaoPorPessoa).HasPrecision(18, 2);
+            e.Property(a => a.PassagemPorPessoa).HasPrecision(18, 2);
+            e.Property(a => a.EstadiaDia).HasPrecision(18, 2);
+            e.Property(a => a.AjudaCustoDia).HasPrecision(18, 2);
+
+            e.HasOne(a => a.Plano)
+                .WithMany(pl => pl.AcoesFormacao)
+                .HasForeignKey(a => a.PlanoId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Integração App → Airtable

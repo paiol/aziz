@@ -1,0 +1,99 @@
+@using ComparacaoPropostas.Helper
+@model List<ComparacaoPropostas.Models.Entities.AcaoFormacaoPlano>
+@{
+    var plano = (ComparacaoPropostas.Models.Entities.Plano)ViewBag.Plano;
+    var cenarios = (List<ComparacaoPropostas.Services.CenarioFormacao>)ViewBag.Cenarios;
+    ViewData["Title"] = "Formação e feiras";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-1">Formação e feiras — @plano.Designacao</h2>
+        <a asp-controller="Planos" asp-action="Details" asp-route-id="@plano.Id" class="small"><span class="fas fa-arrow-left me-1"></span>Voltar ao resumo do plano</a>
+    </div>
+    <a class="btn btn-primary" asp-action="Create" asp-route-planoId="@plano.Id"><span class="fas fa-plus me-1"></span> Nova Ação</a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">
+        <h5 class="mb-0">Resumo @plano.Ano</h5>
+        <span class="small text-body-tertiary">Prioridade 1 = recomendado (cenário mínimo) · 2 = se houver orçamento (alargado) · 3 = opcional. Custos em regra OPEX: não entram no TOTAL ORC. CAPEX.</span>
+    </div>
+    <div class="card-body">
+        <partial name="_Cenarios" model="cenarios" />
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body table-responsive">
+        @if (Model.Count == 0)
+        {
+            <div class="alert alert-info mb-0">Ainda não existem ações de formação ou feiras neste plano.</div>
+        }
+        else
+        {
+            <table class="table table-hover table-sm data-table">
+                <thead>
+                    <tr>
+                        <th>Ano</th>
+                        <th>Prior.</th>
+                        <th>Tipo</th>
+                        <th>Ação</th>
+                        <th>Datas</th>
+                        <th>Local</th>
+                        <th class="text-end">Nº pessoas</th>
+                        <th class="text-end">Dias</th>
+                        <th class="text-end">Total</th>
+                        <th>No plano?</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var a in Model)
+                    {
+                        var temLink = Uri.TryCreate(a.Fonte, UriKind.Absolute, out var url) && (url.Scheme == Uri.UriSchemeHttps || url.Scheme == Uri.UriSchemeHttp);
+                        <tr>
+                            <td>@(a.Ano ?? plano.Ano)</td>
+                            <td>@a.Prioridade</td>
+                            <td>@a.Tipo.ToLabel()</td>
+                            <td>
+                                @if (temLink)
+                                {
+                                    <a href="@url" target="_blank" rel="noopener noreferrer">@a.Acao</a>
+                                }
+                                else
+                                {
+                                    @a.Acao
+                                }
+                                @if (!string.IsNullOrWhiteSpace(a.LigacaoProjetos))
+                                {
+                                    <div class="small text-body-tertiary">@a.LigacaoProjetos</div>
+                                }
+                            </td>
+                            <td class="small">@(a.Datas ?? "-")</td>
+                            <td class="small">@(a.Local ?? "-")</td>
+                            <td class="text-end">@(a.NumeroPessoas?.ToString() ?? "-")</td>
+                            <td class="text-end">@(a.Dias?.ToDias() ?? "-")</td>
+                            <td class="text-end" data-order="@a.Total">@a.Total.ToCve()</td>
+                            <td>
+                                @if (a.NoPlano)
+                                {
+                                    <span class="badge bg-success">Sim</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Não</span>
+                                }
+                            </td>
+                            <td class="text-end text-nowrap">
+                                <a class="btn btn-sm btn-subtle-secondary" asp-action="Edit" asp-route-id="@a.Id">Editar</a>
+                                <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
+                                        data-url="@Url.Action("Delete", new { id = a.Id })" data-id="@a.Id">Apagar</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

@@ -1,0 +1,22 @@
+@using ComparacaoPropostas.Helper
+@model List<ComparacaoPropostas.Services.CenarioFormacao>
+<table class="table table-sm mb-0">
+    <thead>
+        <tr>
+            <th>Cenário</th>
+            <th class="text-end">Custo total</th>
+            <th class="text-end">Nº participações</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var c in Model)
+        {
+            <tr>
+                <td>@c.Nome</td>
+                <td class="text-end">@c.Custo.ToCve()</td>
+                <td class="text-end">@c.Participacoes</td>
+            </tr>
+        }
+    </tbody>
+</table>
+<div class="form-text">Só contam as ações do ano do plano; as de anos seguintes ficam para os planos seguintes.</div>

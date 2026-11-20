@@ -1,0 +1,151 @@
+@using ComparacaoPropostas.Helper
+@using ComparacaoPropostas.Models.Entities.Enums
+@model List<ComparacaoPropostas.Models.Entities.ProjetoPlano>
+@{
+    var plano = (ComparacaoPropostas.Models.Entities.Plano)ViewBag.Plano;
+    var caixa = (CaixaPlano?)ViewBag.Caixa;
+    var area = (AreaDepartamento?)ViewBag.Area;
+    var aprovacao = (EstadoAprovacaoProjeto?)ViewBag.Aprovacao;
+    var voltar = Context.Request.Path + Context.Request.QueryString;
+    var propostosQueEntram = Model.Count(p => p.EstadoAprovacao == EstadoAprovacaoProjeto.Proposto && p.Caixa == CaixaPlano.Entra);
+    ViewData["Title"] = "Projetos do Plano";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-1">Projetos propostos — @plano.Designacao</h2>
+        <a asp-controller="Planos" asp-action="Details" asp-route-id="@plano.Id" class="small"><span class="fas fa-arrow-left me-1"></span>Voltar ao resumo do plano</a>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        @if (propostosQueEntram > 0)
+        {
+            <form asp-action="AceitarQueEntram" method="post" onsubmit="return confirm('Aceitar os @propostosQueEntram projeto(s) propostos que entram no plano@(area == null ? "" : $" da área {area.Value.ToLabel()}")?');">
+                <input type="hidden" name="planoId" value="@plano.Id" />
+                <input type="hidden" name="area" value="@area" />
+                <button type="submit" class="btn btn-subtle-success"><span class="fas fa-check-double me-1"></span> Aceitar os que entram (@propostosQueEntram)</button>
+            </form>
+        }
+        <a class="btn btn-primary" asp-action="Create" asp-route-planoId="@plano.Id" asp-route-area="@area"><span class="fas fa-plus me-1"></span> Propor Projeto</a>
+    </div>
+</div>
+
+<form method="get" class="card mb-3">
+    <div class="card-body row g-2 align-items-end">
+        <input type="hidden" name="planoId" value="@plano.Id" />
+        <div class="col-md-3">
+            <label class="form-label mb-1">Área</label>
+            <select name="area" class="form-select form-select-sm" asp-items="Enum.GetValues<AreaDepartamento>().Select(a => new SelectListItem(a.ToLabel(), a.ToString(), a == area))" onchange="this.form.submit()">
+                <option value="" selected="@(area == null)">Todas as áreas</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label mb-1">Aprovação</label>
+            <select name="aprovacao" class="form-select form-select-sm" asp-items="Enum.GetValues<EstadoAprovacaoProjeto>().Select(a => new SelectListItem(a.ToLabel(), a.ToString(), a == aprovacao))" onchange="this.form.submit()">
+                <option value="" selected="@(aprovacao == null)">Todos</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label mb-1">Caixa do plano</label>
+            <select name="caixa" class="form-select form-select-sm" asp-items="Enum.GetValues<CaixaPlano>().Select(a => new SelectListItem(a.ToLabel(), a.ToString(), a == caixa))" onchange="this.form.submit()">
+                <option value="" selected="@(caixa == null)">Todas</option>
+            </select>
+        </div>
+        <div class="col-md-3 text-md-end">
+            <a class="btn btn-sm btn-subtle-secondary" asp-action="Index" asp-route-planoId="@plano.Id">Limpar filtros</a>
+        </div>
+    </div>
+</form>
+
+<div class="card">
+    <div class="card-body table-responsive">
+        @if (Model.Count == 0)
+        {
+            <div class="alert alert-info mb-0">Não existem projetos com estes filtros.</div>
+        }
+        else
+        {
+            <table class="table table-hover table-sm data-table">
+                <thead>
+                    <tr>
+                        <th>Área</th>
+                        <th>Projeto</th>
+                        <th>Rubrica</th>
+                        <th>Situação</th>
+                        <th>Caixa</th>
+                        <th>Aprovação</th>
+                        <th class="text-end">Transitado</th>
+                        <th class="text-end">Novo</th>
+                        <th class="text-end">TOTAL ORC.</th>
+                        <th class="text-end">Δ vs @(plano.Ano - 1)</th>
+                        <th>Decisão</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model)
+                    {
+                        <tr class="@(p.EstadoAprovacao == EstadoAprovacaoProjeto.Rejeitado ? "text-body-tertiary" : "")">
+                            <td>@p.Area.ToLabel()</td>
+                            <td>
+                                <a asp-action="Details" asp-route-id="@p.Id">@p.Nome</a>
+                                @if (!string.IsNullOrWhiteSpace(p.Descricao))
+                                {
+                                    <div class="small text-body-tertiary text-truncate" style="max-width: 22rem" title="@p.Descricao">@p.Descricao</div>
+                                }
+                            </td>
+                            <td class="small">@(p.DesignacaoRubrica ?? "-")</td>
+                            <td>@(p.Situacao?.ToLabel() ?? "-")</td>
+                            <td><span class="@p.Caixa.ToBadgeClass()">@p.Caixa.ToLabel()</span></td>
+                            <td>
+                                <span class="@p.EstadoAprovacao.ToBadgeClass()">@p.EstadoAprovacao.ToLabel()</span>
+                                @if (!string.IsNullOrWhiteSpace(p.MotivoDecisao))
+                                {
+                                    <div class="small text-body-tertiary">@p.MotivoDecisao</div>
+                                }
+                            </td>
+                            <td class="text-end" data-order="@p.ValorTransitar">@p.ValorTransitar.ToCve()</td>
+                            <td class="text-end" data-order="@p.ValorNovo">@p.ValorNovo.ToCve()</td>
+                            <td class="text-end fw-semibold" data-order="@p.TotalOrcamento">@p.TotalOrcamento.ToCve()</td>
+                            <td class="text-end @(p.DeltaAnoAnterior < 0 ? "text-danger" : "")" data-order="@p.DeltaAnoAnterior">@p.DeltaAnoAnterior.ToCve()</td>
+                            <td class="text-nowrap">
+                                <form asp-action="Decidir" asp-route-id="@p.Id" method="post" class="d-inline-flex gap-1">
+                                    <input type="hidden" name="voltarPara" value="@voltar" />
+                                    @if (p.EstadoAprovacao != EstadoAprovacaoProjeto.Aceite)
+                                    {
+                                        <button type="submit" name="estado" value="@EstadoAprovacaoProjeto.Aceite" class="btn btn-sm btn-subtle-success" title="Aceitar"><i class="fas fa-check"></i></button>
+                                    }
+                                    @if (p.EstadoAprovacao != EstadoAprovacaoProjeto.Rejeitado)
+                                    {
+                                        <button type="submit" name="estado" value="@EstadoAprovacaoProjeto.Rejeitado" class="btn btn-sm btn-subtle-danger" title="Rejeitar"
+                                                onclick="var m = prompt('Motivo da rejeição (opcional):'); if (m === null) return false; this.form.querySelector('[name=motivo]').value = m;"><i class="fas fa-xmark"></i></button>
+                                    }
+                                    @if (p.EstadoAprovacao != EstadoAprovacaoProjeto.Proposto)
+                                    {
+                                        <button type="submit" name="estado" value="@EstadoAprovacaoProjeto.Proposto" class="btn btn-sm btn-subtle-secondary" title="Voltar a proposto"><i class="fas fa-rotate-left"></i></button>
+                                    }
+                                    <input type="hidden" name="motivo" />
+                                </form>
+                            </td>
+                            <td class="text-end text-nowrap">
+                                <a class="btn btn-sm btn-subtle-secondary" asp-action="Edit" asp-route-id="@p.Id">Editar</a>
+                                <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
+                                        data-url="@Url.Action("Delete", new { id = p.Id })" data-id="@p.Id">Apagar</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="fw-semibold">
+                        <td colspan="6">Total (@Model.Count projeto(s); rejeitados não contam)</td>
+                        @{ var contam = Model.Where(p => p.EstadoAprovacao != EstadoAprovacaoProjeto.Rejeitado).ToList(); }
+                        <td class="text-end">@contam.Sum(p => p.ValorTransitar ?? 0).ToCve()</td>
+                        <td class="text-end">@contam.Sum(p => p.ValorNovo ?? 0).ToCve()</td>
+                        <td class="text-end">@contam.Sum(p => p.TotalOrcamento).ToCve()</td>
+                        <td class="text-end">@contam.Sum(p => p.DeltaAnoAnterior).ToCve()</td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        }
+    </div>
+</div>

@@ -15,6 +15,50 @@
 
                 <li class="nav-item">
                     <div class="nav-item-wrapper">
+                        <a class="nav-link label-1 @ActiveClass("Home")" asp-controller="Home" asp-action="Index">
+                            <div class="d-flex align-items-center">
+                                <span class="nav-link-icon"><span class="fas fa-house"></span></span>
+                                <span class="nav-link-text-wrapper"><span class="nav-link-text">Início</span></span>
+                            </div>
+                        </a>
+                    </div>
+                </li>
+
+                <li class="nav-item">
+                    <p class="navbar-vertical-label">Plano Capex</p>
+                    <hr class="navbar-vertical-line" />
+
+                    <div class="nav-item-wrapper">
+                        <a class="nav-link label-1 @ActiveClass("Planos", "ProjetosPlano", "AcoesFormacaoPlano")" asp-controller="Planos" asp-action="Index">
+                            <div class="d-flex align-items-center">
+                                <span class="nav-link-icon"><span class="fas fa-calendar-check"></span></span>
+                                <span class="nav-link-text-wrapper"><span class="nav-link-text">Planos e projetos</span></span>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="nav-item-wrapper">
+                        <a class="nav-link label-1 @ActiveClass("Capex")" asp-controller="Capex" asp-action="Index">
+                            <div class="d-flex align-items-center">
+                                <span class="nav-link-icon"><span class="fas fa-sack-dollar"></span></span>
+                                <span class="nav-link-text-wrapper"><span class="nav-link-text">Capex aprovado</span></span>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="nav-item-wrapper">
+                        <a class="nav-link label-1 @ActiveClass("Listas")" asp-controller="Listas" asp-action="Index">
+                            <div class="d-flex align-items-center">
+                                <span class="nav-link-icon"><span class="fas fa-list-ul"></span></span>
+                                <span class="nav-link-text-wrapper"><span class="nav-link-text">Listas do plano</span></span>
+                            </div>
+                        </a>
+                    </div>
+                </li>
+
+                <li class="nav-item">
+                    <p class="navbar-vertical-label">Compras</p>
+                    <hr class="navbar-vertical-line" />
+
+                    <div class="nav-item-wrapper">
                         <a class="nav-link label-1 @ActiveClass("Pedidos")" asp-controller="Pedidos" asp-action="Index">
                             <div class="d-flex align-items-center">
                                 <span class="nav-link-icon"><span class="fas fa-paper-plane"></span></span>
@@ -22,9 +66,6 @@
                             </div>
                         </a>
                     </div>
-                </li>
-
-                <li class="nav-item">
                     <div class="nav-item-wrapper">
                         <a class="nav-link label-1 @ActiveClass("Processos")" asp-controller="Processos" asp-action="Index">
                             <div class="d-flex align-items-center">

@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ComparacaoPropostas.Data;
+using ComparacaoPropostas.Helper;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using ComparacaoPropostas.Models.Entities;
 using ComparacaoPropostas.Models.Entities.Enums;
 using ComparacaoPropostas.Services;
@@ -25,19 +27,34 @@ public class PedidosController : Controller
         var pedidos = _db.Pedidos
             .Include(p => p.Processo)
             .Include(p => p.ItensPedido)
+            .Include(p => p.ProjetoPlano).ThenInclude(pp => pp!.Plano)
             .OrderByDescending(p => p.CriadoEm)
             .ToList();
 
         return View(pedidos);
     }
 
-    public IActionResult Create() => View(new PedidoProposta());
+    // Uma compra nasce sempre de um projeto Capex aceite (pode vir pré-escolhido do Capex).
+    public IActionResult Create(int? projetoPlanoId)
+    {
+        var pedido = new PedidoProposta { ProjetoPlanoId = projetoPlanoId };
+        if (projetoPlanoId.HasValue && _db.ProjetosPlano.Find(projetoPlanoId.Value) is { } projeto)
+            pedido.Area = projeto.Area;
+
+        CarregarProjetosCapex(pedido.ProjetoPlanoId);
+        return View(pedido);
+    }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Create(PedidoProposta pedido)
     {
-        if (!ModelState.IsValid) return View(pedido);
+        ValidarProjetoCapex(pedido.ProjetoPlanoId, obrigatorio: true);
+        if (!ModelState.IsValid)
+        {
+            CarregarProjetosCapex(pedido.ProjetoPlanoId);
+            return View(pedido);
+        }
 
         pedido.Status = StatusPedido.EmCurso;
         _db.Pedidos.Add(pedido);
@@ -51,8 +68,17 @@ public class PedidosController : Controller
     {
         var pedido = _db.Pedidos.Find(id);
         if (pedido == null) return NotFound();
+        CarregarProjetosCapex(pedido.ProjetoPlanoId);
         return View(pedido);
     }
+
+    // Lista os projetos aceites (Capex) agrupados por plano, para escolher na compra.
+    // O projeto atual da compra aparece sempre, mesmo que já não esteja aceite.
+    private void CarregarProjetosCapex(int? atualId)
+        => ViewBag.ProjetosCapex = CapexProjetosHelper.ListaProjetos(_db, atualId);
+
+    private void ValidarProjetoCapex(int? projetoPlanoId, bool obrigatorio, int? atualId = null)
+        => CapexProjetosHelper.Validar(_db, ModelState, nameof(PedidoProposta.ProjetoPlanoId), projetoPlanoId, obrigatorio, atualId, "esta compra");
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -69,7 +95,15 @@ public class PedidosController : Controller
         ModelState.Remove(nameof(PedidoProposta.Status));
         ModelState.Remove(nameof(PedidoProposta.CriadoEm));
 
-        if (!ModelState.IsValid) return View(pedido);
+        // Pedidos antigos (anteriores à ligação ao Capex) podem continuar sem projeto;
+        // depois de ligado, o projeto não pode ser retirado.
+        ValidarProjetoCapex(pedido.ProjetoPlanoId, obrigatorio: existente.ProjetoPlanoId != null, atualId: existente.ProjetoPlanoId);
+
+        if (!ModelState.IsValid)
+        {
+            CarregarProjetosCapex(pedido.ProjetoPlanoId);
+            return View(pedido);
+        }
 
         try
         {
@@ -82,6 +116,7 @@ public class PedidosController : Controller
         {
             _logger.LogError(ex, "Erro ao editar pedido {Id}.", id);
             ModelState.AddModelError("", "Não foi possível guardar as alterações.");
+            CarregarProjetosCapex(pedido.ProjetoPlanoId);
             return View(pedido);
         }
     }

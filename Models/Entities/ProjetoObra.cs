@@ -33,6 +33,13 @@ public class ProjetoObra
     [Display(Name = "E-mails a Notificar")]
     public string? EmailsNotificacao { get; set; }
 
+    // Projeto do Capex que esta obra executa (abrigos, construção civil, edifícios…).
+    // Obrigatório nas obras novas; nulo só nas registadas antes da ligação ao Capex.
+    [Display(Name = "Projeto Capex")]
+    public int? ProjetoPlanoId { get; set; }
+    [ValidateNever]
+    public ProjetoPlano? ProjetoPlano { get; set; }
+
     [Display(Name = "Criado por")]
     public string? CriadoPor { get; set; }
 

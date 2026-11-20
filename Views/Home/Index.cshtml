@@ -1,0 +1,174 @@
+@using ComparacaoPropostas.Helper
+@using ComparacaoPropostas.Models.Entities.Enums
+@model ComparacaoPropostas.ViewModels.Inicio.InicioVM
+@{
+    ViewData["Title"] = "Início";
+    var r = Model.ResumoPlano;
+    var plano = Model.Plano;
+    var estadosProcesso = Enum.GetValues<StatusProcesso>();
+    var estadosObra = Enum.GetValues<StatusProjetoObra>();
+}
+
+<div class="mb-4">
+    <h2 class="mb-1">Plataforma DEI</h2>
+    <p class="text-body-tertiary mb-0">Plano Capex das áreas, compras ligadas aos projetos aceites, obras e base de dados.</p>
+</div>
+
+<div class="row g-3 mb-3">
+    @* ---------------- Plano Capex ---------------- *@
+    <div class="col-xl-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5 class="mb-0"><i class="fas fa-calendar-check text-primary me-2"></i>Plano Capex</h5>
+                <div class="d-flex gap-1">
+                    @if (plano != null)
+                    {
+                        <a class="btn btn-sm btn-subtle-primary" asp-controller="ProjetosPlano" asp-action="Create" asp-route-planoId="@plano.Id"><i class="fas fa-plus me-1"></i>Propor projeto</a>
+                    }
+                    else
+                    {
+                        <a class="btn btn-sm btn-subtle-primary" asp-controller="Planos" asp-action="Create"><i class="fas fa-plus me-1"></i>Novo plano</a>
+                    }
+                    <a class="btn btn-sm btn-subtle-secondary" asp-controller="Planos" asp-action="Index"><i class="fas fa-list me-1"></i>Listagem</a>
+                </div>
+            </div>
+            <div class="card-body">
+                @if (plano == null || r == null)
+                {
+                    <div class="alert alert-info mb-0">Ainda não existe nenhum plano. Crie o plano do ano ou importe o ficheiro SCOPE de uma área.</div>
+                }
+                else
+                {
+                    <div class="mb-2"><a asp-controller="Planos" asp-action="Details" asp-route-id="@plano.Id" class="fw-semibold">@plano.Designacao</a></div>
+                    <div class="row g-2 mb-3 small">
+                        <div class="col-4"><span class="text-body-tertiary d-block">Por decidir</span><span style="font-size: 1.25rem" class="fw-semibold">@r.NumPropostos</span></div>
+                        <div class="col-4"><span class="text-body-tertiary d-block">Aceites</span><span style="font-size: 1.25rem" class="fw-semibold text-success">@r.NumAceites</span></div>
+                        <div class="col-4"><span class="text-body-tertiary d-block">Rejeitados</span><span style="font-size: 1.25rem" class="fw-semibold text-danger">@r.NumRejeitados</span></div>
+                    </div>
+                    @if (r.PorArea.Count > 0)
+                    {
+                        <div style="height: 220px">
+                            <canvas class="js-grafico" data-moeda="cve" data-grafico="@GraficoHelper.Barras(r.PorArea.Select(a => a.Area.ToLabel()), new[] {
+                                new GraficoHelper.Serie("Proposto", r.PorArea.Select(a => a.OrcamentoProposto)),
+                                new GraficoHelper.Serie("Aprovado", r.PorArea.Select(a => a.OrcamentoAceite)) })"></canvas>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+
+    @* ---------------- Capex ---------------- *@
+    <div class="col-xl-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5 class="mb-0"><i class="fas fa-sack-dollar text-success me-2"></i>Capex @(plano?.Ano.ToString() ?? "")</h5>
+                <a class="btn btn-sm btn-subtle-secondary" asp-controller="Capex" asp-action="Index" asp-route-planoId="@plano?.Id"><i class="fas fa-list me-1"></i>Projetos aceites</a>
+            </div>
+            <div class="card-body">
+                @if (Model.ExecucaoCapex.Orcamento == 0 && Model.CapexPorArea.Count == 0)
+                {
+                    <div class="alert alert-info mb-0">Ainda não há projetos aceites no Capex.</div>
+                }
+                else
+                {
+                    <partial name="_ExecucaoCapex" model="Model.ExecucaoCapex" />
+                    <div style="height: 200px" class="mt-3">
+                        <canvas class="js-grafico" data-moeda="cve" data-grafico="@GraficoHelper.Barras(Model.CapexPorArea.Select(a => a.Area.ToLabel()), new[] {
+                            new GraficoHelper.Serie("Orçamento", Model.CapexPorArea.Select(a => a.Orcamento)),
+                            new GraficoHelper.Serie("Adjudicado", Model.CapexPorArea.Select(a => a.Adjudicado)) })"></canvas>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    @* ---------------- Compras ---------------- *@
+    <div class="col-xl-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5 class="mb-0"><i class="fas fa-cart-shopping text-warning me-2"></i>Compras</h5>
+                <div class="d-flex gap-1">
+                    <a class="btn btn-sm btn-subtle-primary" asp-controller="Pedidos" asp-action="Create"><i class="fas fa-plus me-1"></i>Novo pedido</a>
+                    <a class="btn btn-sm btn-subtle-secondary" asp-controller="Pedidos" asp-action="Index"><i class="fas fa-list me-1"></i>Pedidos</a>
+                    <a class="btn btn-sm btn-subtle-secondary" asp-controller="Processos" asp-action="Index"><i class="fas fa-folder-open me-1"></i>Processos</a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row g-2 mb-3 small">
+                    <div class="col-3"><span class="text-body-tertiary d-block">Pedidos em curso</span><span style="font-size: 1.25rem" class="fw-semibold">@Model.PedidosEmCurso</span></div>
+                    <div class="col-3"><span class="text-body-tertiary d-block">Sem processo</span><span style="font-size: 1.25rem" class="fw-semibold">@Model.PedidosSemProcesso</span></div>
+                    <div class="col-3"><span class="text-body-tertiary d-block">Sem projeto Capex</span><span style="font-size: 1.25rem" class="fw-semibold @(Model.PedidosSemProjeto > 0 ? "text-warning" : "")">@Model.PedidosSemProjeto</span></div>
+                    <div class="col-3"><span class="text-body-tertiary d-block">Adjudicado @DateTime.Today.Year</span><span style="font-size: 1.25rem" class="fw-semibold text-nowrap">@Model.AdjudicadoAno.ToCve()</span></div>
+                </div>
+                <div class="row g-2">
+                    <div class="col-md-5" style="height: 200px">
+                        @if (Model.ProcessosPorEstado.Values.Sum() == 0)
+                        {
+                            <div class="small text-body-tertiary">Ainda não há processos de compra.</div>
+                        }
+                        else
+                        {
+                            <canvas class="js-grafico" data-grafico="@GraficoHelper.Circular(estadosProcesso.Select(s => s.ToLabel()), estadosProcesso.Select(s => (decimal)Model.ProcessosPorEstado.GetValueOrDefault(s)))"></canvas>
+                        }
+                    </div>
+                    <div class="col-md-7" style="height: 200px">
+                        <canvas class="js-grafico" data-moeda="cve" data-grafico="@GraficoHelper.Barras(Model.AdjudicadoPorMes.Select(m => m.Mes), $"Adjudicado {DateTime.Today.Year}", Model.AdjudicadoPorMes.Select(m => m.Valor))"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ---------------- Obras ---------------- *@
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5 class="mb-0"><i class="fas fa-helmet-safety text-info me-2"></i>Obras</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex gap-1 mb-3">
+                    <a class="btn btn-sm btn-subtle-primary" asp-controller="ProjetosObra" asp-action="Create"><i class="fas fa-plus me-1"></i>Registo</a>
+                    <a class="btn btn-sm btn-subtle-secondary" asp-controller="ProjetosObra" asp-action="Index"><i class="fas fa-list me-1"></i>Listagem</a>
+                </div>
+                @if (Model.ObrasPorEstado.Values.Sum() == 0)
+                {
+                    <div class="small text-body-tertiary">Sem projetos de obra registados.</div>
+                }
+                else
+                {
+                    <div style="height: 180px">
+                        <canvas class="js-grafico" data-grafico="@GraficoHelper.Circular(estadosObra.Select(s => s.ToLabel()), estadosObra.Select(s => (decimal)Model.ObrasPorEstado.GetValueOrDefault(s)))"></canvas>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    @* ---------------- Base de dados ---------------- *@
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100">
+            <div class="card-header"><h5 class="mb-0"><i class="fas fa-database text-secondary me-2"></i>Base de Dados</h5></div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="d-flex justify-content-between py-1 border-bottom">
+                        <a asp-controller="Fornecedores" asp-action="Index">Fornecedores</a><span class="fw-semibold">@Model.NumFornecedores</span>
+                    </li>
+                    <li class="d-flex justify-content-between py-1 border-bottom">
+                        <a asp-controller="ItensMaterial" asp-action="Index">Itens / Materiais</a><span class="fw-semibold">@Model.NumItensMaterial</span>
+                    </li>
+                    <li class="d-flex justify-content-between py-1 border-bottom">
+                        <a asp-controller="Avaliadores" asp-action="Index">Avaliadores</a><span class="fw-semibold">@Model.NumAvaliadores</span>
+                    </li>
+                    <li class="py-1 small text-body-tertiary">
+                        Catálogos: <a asp-controller="ItensEnergia" asp-action="Index">Energia</a> ·
+                        <a asp-controller="ItensMbb" asp-action="Index">MBB</a> ·
+                        <a asp-controller="ItensFbb" asp-action="Index">FBB</a> ·
+                        <a asp-controller="ItensCore" asp-action="Index">Core</a> ·
+                        <a asp-controller="ItensCcv" asp-action="Index">CCV</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>

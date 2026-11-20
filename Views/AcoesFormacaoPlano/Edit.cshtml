@@ -1,0 +1,21 @@
+@model ComparacaoPropostas.Models.Entities.AcaoFormacaoPlano
+@{
+    var plano = (ComparacaoPropostas.Models.Entities.Plano)ViewBag.Plano;
+    ViewData["Title"] = "Editar Ação de Formação / Feira";
+}
+
+<h2>Editar Ação de Formação / Feira — @plano.Designacao</h2>
+
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="PlanoId" />
+            <partial name="_Form" model="Model" />
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary"><span class="fas fa-save me-1"></span> Guardar</button>
+                <a asp-action="Index" asp-route-planoId="@Model.PlanoId" class="btn btn-subtle-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>

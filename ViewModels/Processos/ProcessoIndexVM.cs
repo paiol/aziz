@@ -17,4 +17,7 @@ public class ProcessoIndexVM
     public decimal? OrcamentoEstimado { get; set; }
     public int TotalPropostas { get; set; }
     public decimal? MenorValorOfertado { get; set; }
+    public decimal? ValorAdjudicadoCVE { get; set; }
+    public int? ProjetoCapexId { get; set; }
+    public string? ProjetoCapex { get; set; }
 }

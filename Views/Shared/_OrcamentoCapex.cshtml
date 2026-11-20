@@ -1,0 +1,29 @@
+@using ComparacaoPropostas.Helper
+@{
+    var projeto = ViewBag.ProjetoCapex as ComparacaoPropostas.Models.Entities.ProjetoPlano;
+    var execucao = ViewBag.ExecucaoCapex as ComparacaoPropostas.Services.ExecucaoProjetoCapex;
+    var naAdjudicacao = ViewData["NaAdjudicacao"] as bool? ?? false;
+}
+<div class="card mb-3 @(projeto == null ? "border-warning" : "")">
+    <div class="card-header py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h6 class="mb-0"><i class="fas fa-sack-dollar me-1"></i> Projeto Capex</h6>
+        @if (projeto != null)
+        {
+            <a class="small" asp-controller="ProjetosPlano" asp-action="Details" asp-route-id="@projeto.Id">@projeto.Area.ToLabel() · @projeto.Nome (@projeto.Plano.Designacao)</a>
+        }
+    </div>
+    <div class="card-body">
+        @if (projeto == null || execucao == null)
+        {
+            <div class="small text-warning mb-0">Ainda não está ligada a nenhum projeto Capex (registo anterior à ligação). Associe o projeto Capex ao editar.</div>
+        }
+        else
+        {
+            @if (naAdjudicacao)
+            {
+                <div class="small text-body-tertiary mb-2">Execução do projeto sem contar esta adjudicação. Se o valor adjudicado passar o saldo disponível, a justificação é obrigatória.</div>
+            }
+            <partial name="_ExecucaoCapex" model="execucao" />
+        }
+    </div>
+</div>

@@ -32,6 +32,7 @@
             <thead>
                 <tr>
                     <th>Tipo de Proposta</th>
+                    <th>Projeto Capex</th>
                     <th>Área</th>
                     <th>Estado</th>
                     <th>Pessoa Criou</th>
@@ -48,6 +49,7 @@
                 {
                     <tr>
                         <td>@p.TipoProposta</td>
+                        <td>@if (p.ProjetoPlano != null) { <a asp-controller="ProjetosPlano" asp-action="Details" asp-route-id="@p.ProjetoPlano.Id">@p.ProjetoPlano.Nome</a><div class="small text-body-tertiary">@p.ProjetoPlano.Plano.Designacao</div> } else { <span class="text-body-tertiary">-</span> }</td>
                         <td>@p.Area.ToLabel()</td>
                         <td><span class="@p.Status.ToBadgeClass()">@p.Status.ToLabel()</span></td>
                         <td>@p.PessoaCriou</td>
