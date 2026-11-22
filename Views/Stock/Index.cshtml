@@ -1,0 +1,128 @@
+@using ComparacaoPropostas.Helper
+@using ComparacaoPropostas.Models.Entities.Enums
+@model ComparacaoPropostas.ViewModels.Stock.StockIndexVM
+@{
+    ViewData["Title"] = "Gestão de Stock";
+    var areas = Enum.GetValues<AreaDepartamento>();
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-1">Gestão de Stock</h2>
+        <span class="text-body-tertiary">Materiais comprados pela DEI em armazém, por área.</span>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-primary" asp-action="Entradas"><span class="fas fa-truck-ramp-box me-1"></span> Entradas / Packing List</a>
+        <a class="btn btn-subtle-warning" asp-action="NovaSaida" asp-route-area="@Model.Area"><span class="fas fa-dolly me-1"></span> Registar saída</a>
+        <a class="btn btn-subtle-secondary" asp-action="Saidas"><span class="fas fa-list me-1"></span> Saídas</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header py-2"><h6 class="mb-0">Movimentos nos últimos 12 meses</h6></div>
+            <div class="card-body" style="height: 240px">
+                <canvas class="js-grafico" data-grafico="@GraficoHelper.Barras(Model.MovimentosPorMes.Select(m => m.Mes), new[] {
+                    new GraficoHelper.Serie("Entradas", Model.MovimentosPorMes.Select(m => (decimal)m.Entradas)),
+                    new GraficoHelper.Serie("Saídas", Model.MovimentosPorMes.Select(m => (decimal)m.Saidas)) })"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header py-2"><h6 class="mb-0">Materiais com stock por área</h6></div>
+            <div class="card-body" style="height: 240px">
+                <canvas class="js-grafico" data-grafico="@GraficoHelper.Barras(Model.MateriaisPorArea.Select(a => a.Area.ToLabel()), "Materiais", Model.MateriaisPorArea.Select(a => (decimal)a.Materiais))"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form method="get" class="card mb-3">
+    <div class="card-body row g-2 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label mb-1" for="area">Área</label>
+            <select id="area" name="area" class="form-select form-select-sm" onchange="this.form.submit()"
+                    asp-items="areas.Select(a => new SelectListItem(a.ToLabel(), a.ToString(), a == Model.Area))">
+                <option value="" selected="@(Model.Area == null)">Todas as áreas</option>
+            </select>
+        </div>
+        <div class="col-md-5">
+            <label class="form-label mb-1" for="q">Pesquisar</label>
+            <input id="q" name="q" value="@Model.Pesquisa" class="form-control form-control-sm" placeholder="Código, modelo ou descrição" />
+        </div>
+        <div class="col-md-2">
+            <div class="form-check mt-3">
+                <input class="form-check-input" type="checkbox" id="soComStock" name="soComStock" value="true" checked="@Model.SoComStock" onchange="this.form.submit()" />
+                <input type="hidden" name="soComStock" value="false" />
+                <label class="form-check-label" for="soComStock">Só com stock</label>
+            </div>
+        </div>
+        <div class="col-md-2 text-md-end">
+            <button type="submit" class="btn btn-sm btn-subtle-primary">Filtrar</button>
+        </div>
+    </div>
+</form>
+
+<div class="card">
+    <div class="card-body table-responsive">
+        @if (Model.Linhas.Count == 0)
+        {
+            <div class="alert alert-info mb-0">Não há materiais com estes filtros. Comece por importar um Packing List ou registar uma entrada.</div>
+        }
+        else
+        {
+            <table class="table table-hover table-sm data-table">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Descrição</th>
+                        <th>Modelo</th>
+                        <th>Un.</th>
+                        @foreach (var a in areas.Where(a => Model.Area == null || a == Model.Area))
+                        {
+                            <th class="text-end">@a.ToLabel()</th>
+                        }
+                        @if (Model.Area == null)
+                        {
+                            <th class="text-end">Total</th>
+                        }
+                        <th class="text-end">Nº série</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var l in Model.Linhas)
+                    {
+                        <tr class="@(l.AbaixoMinimo ? "table-warning" : "")">
+                            <td class="text-nowrap"><a asp-action="Material" asp-route-id="@l.Material.Id">@l.Material.Codigo</a></td>
+                            <td class="small">
+                                @l.Material.Descricao
+                                @if (l.AbaixoMinimo)
+                                {
+                                    <span class="badge bg-warning text-dark ms-1" title="Abaixo do stock mínimo (@l.Material.StockMinimo?.ToQtd())">mínimo</span>
+                                }
+                            </td>
+                            <td class="small">@(l.Material.Modelo ?? "-")</td>
+                            <td>@(l.Material.Unidade ?? "-")</td>
+                            @foreach (var a in areas.Where(a => Model.Area == null || a == Model.Area))
+                            {
+                                var v = l.PorArea.GetValueOrDefault(a);
+                                <td class="text-end @(v == 0 ? "text-body-tertiary" : "")" data-order="@v">@v.ToQtd()</td>
+                            }
+                            @if (Model.Area == null)
+                            {
+                                <td class="text-end fw-semibold" data-order="@l.Total">@l.Total.ToQtd()</td>
+                            }
+                            <td class="text-end">@(l.SeriesEmArmazem > 0 ? l.SeriesEmArmazem.ToString() : "-")</td>
+                            <td class="text-end text-nowrap">
+                                <a class="btn btn-sm btn-subtle-warning" asp-action="NovaSaida" asp-route-materialStockId="@l.Material.Id" asp-route-area="@Model.Area" title="Registar saída"><i class="fas fa-dolly"></i></a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

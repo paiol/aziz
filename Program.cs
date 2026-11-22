@@ -41,6 +41,7 @@ builder.Services.AddScoped<IScoringObraService, ScoringObraService>();
 builder.Services.AddScoped<IMqtExcelService, MqtExcelService>();
 builder.Services.AddScoped<IEmailObraService, EmailObraService>();
 builder.Services.AddScoped<IPlanoExcelService, PlanoExcelService>();
+builder.Services.AddScoped<ComparacaoPropostas.Services.Stock.IPackingListService, ComparacaoPropostas.Services.Stock.PackingListService>();
 
 var app = builder.Build();
 

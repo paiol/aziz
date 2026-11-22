@@ -1,0 +1,113 @@
+@using ComparacaoPropostas.Helper
+@using ComparacaoPropostas.Models.Entities
+@using ComparacaoPropostas.Models.Entities.Enums
+@model List<ComparacaoPropostas.Models.Entities.EntradaStock>
+@{
+    ViewData["Title"] = "Entradas de stock";
+    var area = (AreaDepartamento?)ViewBag.Area;
+    var contrato = (string?)ViewBag.Contrato;
+    var contratos = (List<string>)ViewBag.Contratos;
+    var projetos = (List<SelectListItem>)ViewBag.ProjetosCapex;
+    var areas = Enum.GetValues<AreaDepartamento>();
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-1">Entradas de stock</h2>
+        <a asp-action="Index" class="small"><span class="fas fa-arrow-left me-1"></span>Voltar ao stock</a>
+    </div>
+    <a class="btn btn-subtle-primary" asp-action="NovaEntrada"><span class="fas fa-plus me-1"></span> Compra DEI / entrada manual</a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0"><i class="fas fa-file-import me-1"></i> Importar Packing List Huawei</h5></div>
+    <div class="card-body">
+        <form asp-action="ImportarPackingList" method="post" enctype="multipart/form-data" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label for="ficheiro" class="form-label mb-1">Ficheiro (.xls ou .xlsx)</label>
+                <input id="ficheiro" type="file" name="ficheiro" accept=".xls,.xlsx" class="form-control" required />
+            </div>
+            <div class="col-md-2">
+                <label for="area-pl" class="form-label mb-1">Área</label>
+                <select id="area-pl" name="area" class="form-select" asp-items="areas.Select(a => new SelectListItem(a.ToLabel(), a.ToString(), a == (area ?? AreaDepartamento.DepInf)))"></select>
+            </div>
+            <div class="col-md-4">
+                <label for="projeto-pl" class="form-label mb-1">Projeto Capex (opcional)</label>
+                <select id="projeto-pl" name="projetoPlanoId" class="form-select" asp-items="projetos">
+                    <option value="">— sem projeto —</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="contrato-pl" class="form-label mb-1">Contrato 1+1</label>
+                <input id="contrato-pl" name="contrato1Mais1" class="form-control" placeholder="automático" maxlength="30" />
+            </div>
+            <div class="col-md-4">
+                <label for="local-pl" class="form-label mb-1">Armazém / localização</label>
+                <input id="local-pl" name="localizacao" class="form-control" maxlength="100" placeholder="ex.: Armazém Praia" />
+            </div>
+            <div class="col-md-8 text-md-end">
+                <button type="submit" class="btn btn-primary"><span class="fas fa-upload me-1"></span> Importar</button>
+            </div>
+            <div class="col-12 form-text mt-0">
+                Lê a folha "PACKING LIST" (caixa, código, modelo, quantidade, site) e os números de série da folha "SN LIST".
+                O contrato 1+1 é preenchido a partir do projeto Huawei (ex.: "CVT 2026-2027 1+1 Package" → 1+1_2026); pode escrever outro.
+            </div>
+        </form>
+    </div>
+</div>
+
+<form method="get" class="d-flex gap-2 flex-wrap align-items-end mb-3">
+    <div>
+        <label for="f-area" class="form-label mb-1 small">Área</label>
+        <select id="f-area" name="area" class="form-select form-select-sm" onchange="this.form.submit()"
+                asp-items="areas.Select(a => new SelectListItem(a.ToLabel(), a.ToString(), a == area))">
+            <option value="" selected="@(area == null)">Todas</option>
+        </select>
+    </div>
+    <div>
+        <label for="f-contrato" class="form-label mb-1 small">Contrato 1+1</label>
+        <select id="f-contrato" name="contrato" class="form-select form-select-sm" onchange="this.form.submit()"
+                asp-items="contratos.Select(c => new SelectListItem(c, c, c == contrato))">
+            <option value="" selected="@(contrato == null)">Todos</option>
+        </select>
+    </div>
+</form>
+
+<div class="card">
+    <div class="card-body table-responsive">
+        @if (Model.Count == 0)
+        {
+            <div class="alert alert-info mb-0">Ainda não há entradas com estes filtros.</div>
+        }
+        else
+        {
+            <table class="table table-hover table-sm data-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Documento</th>
+                        <th>Tipo</th>
+                        <th>Área</th>
+                        <th>Contrato 1+1</th>
+                        <th>Projeto Capex</th>
+                        <th class="text-end">Linhas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var e in Model)
+                    {
+                        <tr>
+                            <td data-order="@e.Data.ToString("yyyy-MM-dd")">@e.Data.ToString("dd/MM/yyyy")</td>
+                            <td><a asp-action="Entrada" asp-route-id="@e.Id">@e.Numero</a><div class="small text-body-tertiary">@(e.Fornecedor ?? "")</div></td>
+                            <td>@e.Tipo.ToLabel()</td>
+                            <td>@e.Area.ToLabel()</td>
+                            <td>@(e.Contrato1Mais1 ?? "-")</td>
+                            <td class="small">@(e.ProjetoPlano?.Nome ?? "-")</td>
+                            <td class="text-end">@e.Movimentos.Count</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

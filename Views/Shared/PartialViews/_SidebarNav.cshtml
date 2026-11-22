@@ -113,6 +113,36 @@
                 </li>
 
                 <li class="nav-item">
+                    <p class="navbar-vertical-label">Gestão de Stock</p>
+                    <hr class="navbar-vertical-line" />
+
+                    <div class="nav-item-wrapper">
+                        <a class="nav-link label-1 @(controller == "Stock" && new[] { "Index", "Material" }.Contains(ViewContext.RouteData.Values["action"]?.ToString()) ? "active" : "")" asp-controller="Stock" asp-action="Index">
+                            <div class="d-flex align-items-center">
+                                <span class="nav-link-icon"><span class="fas fa-warehouse"></span></span>
+                                <span class="nav-link-text-wrapper"><span class="nav-link-text">Stock em armazém</span></span>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="nav-item-wrapper">
+                        <a class="nav-link label-1 @(controller == "Stock" && new[] { "Entradas", "Entrada", "NovaEntrada" }.Contains(ViewContext.RouteData.Values["action"]?.ToString()) ? "active" : "")" asp-controller="Stock" asp-action="Entradas">
+                            <div class="d-flex align-items-center">
+                                <span class="nav-link-icon"><span class="fas fa-truck-ramp-box"></span></span>
+                                <span class="nav-link-text-wrapper"><span class="nav-link-text">Entradas / Packing List</span></span>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="nav-item-wrapper">
+                        <a class="nav-link label-1 @(controller == "Stock" && new[] { "Saidas", "NovaSaida" }.Contains(ViewContext.RouteData.Values["action"]?.ToString()) ? "active" : "")" asp-controller="Stock" asp-action="Saidas">
+                            <div class="d-flex align-items-center">
+                                <span class="nav-link-icon"><span class="fas fa-dolly"></span></span>
+                                <span class="nav-link-text-wrapper"><span class="nav-link-text">Saídas</span></span>
+                            </div>
+                        </a>
+                    </div>
+                </li>
+
+                <li class="nav-item">
                     <p class="navbar-vertical-label">Base de Dados</p>
                     <hr class="navbar-vertical-line" />
 

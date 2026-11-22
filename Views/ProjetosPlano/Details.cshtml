@@ -155,6 +155,55 @@
     </div>
 </div>
 
+@{
+    var movStock = (List<ComparacaoPropostas.Models.Entities.MovimentoStock>)ViewBag.MovimentosStock;
+}
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h5 class="mb-0">Materiais em stock (armazém)</h5>
+        @if (aceite)
+        {
+            <div class="d-flex gap-2">
+                <a class="btn btn-sm btn-subtle-primary" asp-controller="Stock" asp-action="Entradas">Importar Packing List</a>
+                <a class="btn btn-sm btn-subtle-warning" asp-controller="Stock" asp-action="NovaSaida" asp-route-projetoPlanoId="@p.Id" asp-route-area="@p.Area">Registar saída</a>
+            </div>
+        }
+    </div>
+    <div class="card-body table-responsive">
+        @if (movStock.Count == 0)
+        {
+            <div class="text-body-tertiary small">Ainda não há materiais recebidos nem saídos do armazém para este projeto.</div>
+        }
+        else
+        {
+            var resumo = movStock.GroupBy(x => x.Material).Select(g => new
+            {
+                Material = g.Key,
+                Recebido = g.Where(x => x.Tipo == ComparacaoPropostas.Models.Entities.TipoMovimentoStock.Entrada).Sum(x => x.Quantidade),
+                Saido = g.Where(x => x.Tipo == ComparacaoPropostas.Models.Entities.TipoMovimentoStock.Saida).Sum(x => x.Quantidade)
+            }).OrderBy(x => x.Material.Descricao).ToList();
+            <table class="table table-sm mb-0">
+                <thead><tr><th>Código</th><th>Descrição</th><th class="text-end">Recebido para o projeto</th><th class="text-end">Saído para o projeto</th><th>Un.</th></tr></thead>
+                <tbody>
+                    @foreach (var r in resumo)
+                    {
+                        <tr>
+                            <td><a asp-controller="Stock" asp-action="Material" asp-route-id="@r.Material.Id">@r.Material.Codigo</a></td>
+                            <td class="small">@r.Material.Descricao</td>
+                            <td class="text-end">@r.Recebido.ToQtd()</td>
+                            <td class="text-end">@r.Saido.ToQtd()</td>
+                            <td>@(r.Material.Unidade ?? "-")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <div class="small text-body-tertiary mt-2">
+                Entradas: @string.Join(", ", movStock.Where(x => x.Entrada != null).Select(x => x.Entrada!).DistinctBy(x => x.Id).Select(x => x.Numero + (x.Contrato1Mais1 != null ? $" ({x.Contrato1Mais1})" : "")))
+            </div>
+        }
+    </div>
+</div>
+
 <div class="card mb-3">
     <div class="card-header"><h5 class="mb-0">Dados do plano</h5></div>
     <div class="card-body">

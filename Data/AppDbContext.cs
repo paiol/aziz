@@ -47,6 +47,12 @@ public class AppDbContext : DbContext
     public DbSet<AcaoFormacaoPlano> AcoesFormacaoPlano => Set<AcaoFormacaoPlano>();
     public DbSet<ValorLista> ValoresLista => Set<ValorLista>();
 
+    // Gestão de Stock — materiais em armazém por área, entradas (Packing List Huawei, compras), saídas e nºs de série.
+    public DbSet<MaterialStock> MateriaisStock => Set<MaterialStock>();
+    public DbSet<EntradaStock> EntradasStock => Set<EntradaStock>();
+    public DbSet<MovimentoStock> MovimentosStock => Set<MovimentoStock>();
+    public DbSet<NumeroSerieStock> NumerosSerieStock => Set<NumeroSerieStock>();
+
     // Integração App → Airtable (ver Services/Airtable).
     public DbSet<AirtableLink> AirtableLinks => Set<AirtableLink>();
     public DbSet<AirtableSyncPendente> AirtableSyncPendentes => Set<AirtableSyncPendente>();
@@ -307,6 +313,43 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
 
             e.HasIndex(a => new { a.PropostaEmpreiteiroId, a.CriterioObraId }).IsUnique();
+        });
+
+        // Gestão de Stock
+        modelBuilder.Entity<MaterialStock>(e =>
+        {
+            e.HasIndex(m => m.Codigo).IsUnique();
+            e.Property(m => m.StockMinimo).HasPrecision(18, 3);
+        });
+
+        modelBuilder.Entity<EntradaStock>(e =>
+        {
+            e.Property(x => x.Tipo).HasConversion<string>().HasMaxLength(30);
+            e.Property(x => x.Area).HasConversion<string>().HasMaxLength(20);
+            e.HasIndex(x => x.Contrato1Mais1);
+            e.HasOne(x => x.ProjetoPlano).WithMany().HasForeignKey(x => x.ProjetoPlanoId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.PedidoProposta).WithMany().HasForeignKey(x => x.PedidoPropostaId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<MovimentoStock>(e =>
+        {
+            e.Property(x => x.Tipo).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Area).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Quantidade).HasPrecision(18, 3);
+            e.HasIndex(x => new { x.MaterialStockId, x.Area });
+            e.HasOne(x => x.Material).WithMany(m => m.Movimentos).HasForeignKey(x => x.MaterialStockId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Entrada).WithMany(en => en.Movimentos).HasForeignKey(x => x.EntradaStockId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.ProjetoPlano).WithMany().HasForeignKey(x => x.ProjetoPlanoId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<NumeroSerieStock>(e =>
+        {
+            e.Property(x => x.Area).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Estado).HasConversion<string>().HasMaxLength(20);
+            e.HasIndex(x => new { x.MaterialStockId, x.Serie }).IsUnique();
+            e.HasOne(x => x.Material).WithMany(m => m.NumerosSerie).HasForeignKey(x => x.MaterialStockId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Entrada).WithMany().HasForeignKey(x => x.EntradaStockId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.MovimentoSaida).WithMany().HasForeignKey(x => x.MovimentoSaidaId).OnDelete(DeleteBehavior.Restrict);
         });
 
         // Módulo Plano — listas de escolha (valores iniciais da folha "Listas" do ficheiro SCOPE)

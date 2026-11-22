@@ -92,6 +92,8 @@ public class ProjetosPlanoController : Controller
             .FirstOrDefault(p => p.Id == id);
         if (projeto == null) return NotFound();
 
+        ViewBag.MovimentosStock = _db.MovimentosStock.Include(x => x.Material).Include(x => x.Entrada)
+            .Where(x => x.ProjetoPlanoId == id).OrderByDescending(x => x.Data).AsNoTracking().ToList();
         return View(projeto);
     }
 
@@ -223,7 +225,8 @@ public class ProjetosPlanoController : Controller
     }
 
     private bool TemComprasOuObras(int id)
-        => _db.Pedidos.Any(p => p.ProjetoPlanoId == id) || _db.ProjetosObra.Any(o => o.ProjetoPlanoId == id);
+        => _db.Pedidos.Any(p => p.ProjetoPlanoId == id) || _db.ProjetosObra.Any(o => o.ProjetoPlanoId == id)
+           || _db.EntradasStock.Any(e => e.ProjetoPlanoId == id) || _db.MovimentosStock.Any(m => m.ProjetoPlanoId == id);
 
     private void ValidarMeses(ProjetoPlano projeto)
     {
