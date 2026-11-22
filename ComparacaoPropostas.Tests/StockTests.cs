@@ -126,3 +126,78 @@ public class StockCalculosTests
         Assert.Empty(StockCalculos.ValidarSaida(2, 5, seriesEmArmazem: 5, seriesEscolhidas: 2));
     }
 }
+
+public class PackingListGenericoTests
+{
+    private static DataTable Folha(string nome, int colunas)
+    {
+        var t = new DataTable(nome);
+        for (var c = 0; c < colunas; c++) t.Columns.Add($"C{c}", typeof(object));
+        return t;
+    }
+
+    private static void Linha(DataTable t, params object?[] valores)
+    {
+        var r = t.NewRow();
+        for (var i = 0; i < valores.Length; i++) r[i] = valores[i] ?? DBNull.Value;
+        t.Rows.Add(r);
+    }
+
+    [Fact]
+    public void Ler_OutroFornecedorComCabecalhosEmPortugues()
+    {
+        var t = Folha("Guia", 6);
+        Linha(t, "Eltek Portugal, Lda");
+        Linha(t, "Guia de remessa:", "GR-2026/118", null, "Data:", "2026-05-03");
+        Linha(t, "Fatura", "FT 2026/77");
+        Linha(t, "Código", "Designação", "Qtd.", "Unid.", "Nº Série");
+        Linha(t, "RECT-48V", "Retificador 48V 3kW", 2d, "UN", "EL1001, EL1002");
+        Linha(t, "CAB-16", "Cabo 16mm2", 50d, "M", null);
+        Linha(t, "Total", null, 52d);
+        var ds = new DataSet();
+        ds.Tables.Add(t);
+
+        var r = PackingListService.Ler(ds);
+
+        Assert.Equal("GR-2026/118", r.Numero);
+        Assert.Equal("FT 2026/77", r.Fatura);
+        Assert.Equal(new DateTime(2026, 5, 3), r.Data);
+        Assert.Null(r.Contrato1Mais1);
+        Assert.Equal(2, r.Linhas.Count);
+        Assert.Equal(("RECT-48V", "Retificador 48V 3kW", 2m, "UN"), (r.Linhas[0].Codigo, r.Linhas[0].Descricao, r.Linhas[0].Quantidade, r.Linhas[0].Unidade));
+        Assert.Equal(new[] { "EL1001", "EL1002" }, r.Series.Select(s => s.Serie).ToArray());
+    }
+
+    [Fact]
+    public void Inventario_SomaPorCodigoEContaLinhasPorNumeroDeSerie()
+    {
+        var t = Folha("Inventário", 5);
+        Linha(t, "Inventário Armazém Praia 2026");
+        Linha(t, "Código", "Descrição", "Unidade", "Quantidade contada", "Nº de série");
+        Linha(t, "CAB-16", "Cabo 16mm2", "M", 30d, null);
+        Linha(t, "CAB-16", "Cabo 16mm2", "M", 20.5, null);
+        Linha(t, "SMU02C", "Site Monitor Unit", "PCS", null, "6R263E040172");
+        Linha(t, "SMU02C", "Site Monitor Unit", "PCS", null, "6R263E040198");
+        var ds = new DataSet();
+        ds.Tables.Add(t);
+
+        var linhas = InventarioExcelService.Ler(ds, out var avisos);
+
+        Assert.Empty(avisos);
+        Assert.Equal(2, linhas.Count);
+        Assert.Equal(50.5m, linhas.Single(l => l.Codigo == "CAB-16").Quantidade);
+        var smu = linhas.Single(l => l.Codigo == "SMU02C");
+        Assert.Equal(2m, smu.Quantidade);
+        Assert.Equal(2, smu.Series.Count);
+    }
+
+    [Theory]
+    [InlineData(10, 8, 2)]
+    [InlineData(5, 8, -3)]
+    [InlineData(8, 8, null)]
+    [InlineData(null, 8, null)]
+    public void Inventario_AjusteEContadoMenosSistema(int? contado, int sistema, int? esperado)
+    {
+        Assert.Equal((decimal?)esperado, InventarioCalculos.Ajuste(contado, sistema));
+    }
+}

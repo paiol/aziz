@@ -9,7 +9,7 @@ public static class StockLabelExtensions
 
     public static string ToLabel(this TipoEntradaStock tipo) => tipo switch
     {
-        TipoEntradaStock.PackingListHuawei => "Packing List Huawei",
+        TipoEntradaStock.PackingList => "Packing List",
         TipoEntradaStock.CompraDei => "Compra DEI",
         TipoEntradaStock.Manual => "Manual",
         _ => tipo.ToString()

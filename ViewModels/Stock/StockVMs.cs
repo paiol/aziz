@@ -38,6 +38,8 @@ public class LinhaEntradaManualVM
 public class NovaEntradaVM
 {
     public EntradaStock Entrada { get; set; } = new();
+    // Processo de compra da plataforma (dá o pedido, o projeto Capex e o fornecedor).
+    public int? ProcessoId { get; set; }
     public List<LinhaEntradaManualVM> Linhas { get; set; } = Enumerable.Range(0, 3).Select(_ => new LinhaEntradaManualVM()).ToList();
 }
 

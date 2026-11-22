@@ -96,20 +96,27 @@ public class StockController : Controller
 
     // ---- Entradas ----------------------------------------------------------------------------
 
-    public IActionResult Entradas(AreaDepartamento? area, string? contrato)
+    // processoId: vindo do Processo de compra ("Registar receção de material"), pré-escolhe a compra.
+    public IActionResult Entradas(AreaDepartamento? area, string? contrato, string? fornecedor, int? processoId)
     {
         var entradas = _db.EntradasStock
             .Include(e => e.ProjetoPlano)
+            .Include(e => e.PedidoProposta).ThenInclude(p => p!.Processo)
             .Include(e => e.Movimentos)
-            .Where(e => (area == null || e.Area == area) && (contrato == null || e.Contrato1Mais1 == contrato))
+            .Where(e => (area == null || e.Area == area) && (contrato == null || e.Contrato1Mais1 == contrato)
+                        && (fornecedor == null || e.Fornecedor == fornecedor))
             .OrderByDescending(e => e.Data).ThenByDescending(e => e.Id)
             .AsNoTracking()
             .ToList();
 
-        ViewBag.Area = area;
+        var processo = processoId == null ? null : _db.Processos.Include(p => p.PedidoProposta).AsNoTracking().FirstOrDefault(p => p.Id == processoId);
+        ViewBag.Area = area ?? processo?.PedidoProposta.Area;
         ViewBag.Contrato = contrato;
+        ViewBag.Fornecedor = fornecedor;
+        ViewBag.Processo = processo;
         ViewBag.Contratos = _db.EntradasStock.Where(e => e.Contrato1Mais1 != null).Select(e => e.Contrato1Mais1!).Distinct().OrderByDescending(c => c).ToList();
-        ViewBag.ProjetosCapex = CapexProjetosHelper.ListaProjetos(_db, null);
+        ViewBag.FornecedoresEntradas = _db.EntradasStock.Where(e => e.Fornecedor != null).Select(e => e.Fornecedor!).Distinct().OrderBy(f => f).ToList();
+        CarregarListasCompra(processo?.PedidoProposta.ProjetoPlanoId, processoId);
         return View(entradas);
     }
 
@@ -130,7 +137,8 @@ public class StockController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult ImportarPackingList(IFormFile? ficheiro, AreaDepartamento area, int? projetoPlanoId, string? contrato1Mais1, string? localizacao)
+    public IActionResult ImportarPackingList(IFormFile? ficheiro, AreaDepartamento area, int? projetoPlanoId, string? contrato1Mais1,
+        string? localizacao, string? fornecedor, int? processoId)
     {
         if (ficheiro == null || ficheiro.Length == 0)
         {
@@ -147,7 +155,7 @@ public class StockController : Controller
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erro ao ler o Packing List {Ficheiro}.", ficheiro.FileName);
-            TempData["EmailWarning"] = "Não foi possível ler o ficheiro. Confirme que é o Packing List da Huawei em Excel (.xls ou .xlsx).";
+            TempData["EmailWarning"] = "Não foi possível ler o ficheiro. Confirme que é um Packing List em Excel (.xls ou .xlsx).";
             return RedirectToAction(nameof(Entradas));
         }
 
@@ -157,11 +165,26 @@ public class StockController : Controller
             return RedirectToAction(nameof(Entradas));
         }
 
-        var numero = pl.Numero ?? Path.GetFileNameWithoutExtension(ficheiro.FileName);
-        var existente = _db.EntradasStock.FirstOrDefault(e => e.Numero == numero && e.Tipo == TipoEntradaStock.PackingListHuawei);
+        // Compra feita na plataforma: o Processo dá o pedido, o projeto Capex e o fornecedor vencedor.
+        var compra = ResolverCompra(processoId);
+        if (processoId != null && compra == null)
+        {
+            TempData["EmailWarning"] = "O processo de compra escolhido não existe.";
+            return RedirectToAction(nameof(Entradas));
+        }
+        projetoPlanoId ??= compra?.ProjetoPlanoId;
+        var nomeFornecedor = Limitar(Vazio(fornecedor) ?? compra?.Fornecedor ?? pl.Fornecedor, 150);
+        if (nomeFornecedor == null)
+        {
+            TempData["EmailWarning"] = "Indique o fornecedor do Packing List (ou escolha o processo de compra).";
+            return RedirectToAction(nameof(Entradas), new { processoId });
+        }
+
+        var numero = Limitar(pl.Numero ?? Path.GetFileNameWithoutExtension(ficheiro.FileName), 60)!;
+        var existente = _db.EntradasStock.FirstOrDefault(e => e.Numero == numero && e.Fornecedor == nomeFornecedor && e.Tipo == TipoEntradaStock.PackingList);
         if (existente != null)
         {
-            TempData["EmailWarning"] = $"O Packing List {numero} já foi importado.";
+            TempData["EmailWarning"] = $"O Packing List {numero} de {nomeFornecedor} já foi importado.";
             return RedirectToAction(nameof(Entrada), new { id = existente.Id });
         }
 
@@ -171,28 +194,31 @@ public class StockController : Controller
             if (erroProjeto != null)
             {
                 TempData["EmailWarning"] = erroProjeto;
-                return RedirectToAction(nameof(Entradas));
+                return RedirectToAction(nameof(Entradas), new { processoId });
             }
         }
 
+        // O contrato 1+1 é da Huawei: só se preenche sozinho para a Huawei (ou se o utilizador o escrever).
+        var ehHuawei = nomeFornecedor.Contains("huawei", StringComparison.OrdinalIgnoreCase);
         var entrada = new EntradaStock
         {
-            Tipo = TipoEntradaStock.PackingListHuawei,
+            Tipo = TipoEntradaStock.PackingList,
             Area = area,
             Numero = numero,
             Data = pl.Data ?? DateTime.Today,
-            Fornecedor = pl.Fornecedor ?? "Huawei",
-            Contrato = pl.Contrato,
-            Contrato1Mais1 = Vazio(contrato1Mais1) ?? pl.Contrato1Mais1,
-            Fatura = pl.Fatura,
-            PurchaseOrder = pl.PurchaseOrder,
+            Fornecedor = nomeFornecedor,
+            Contrato = Limitar(pl.Contrato, 60),
+            Contrato1Mais1 = Vazio(contrato1Mais1) ?? (ehHuawei ? pl.Contrato1Mais1 : null),
+            Fatura = Limitar(pl.Fatura, 60),
+            PurchaseOrder = Limitar(pl.PurchaseOrder, 60),
             ProjetoFornecedor = Limitar(pl.ProjetoFornecedor, 200),
             ProjetoPlanoId = projetoPlanoId,
+            PedidoPropostaId = compra?.PedidoPropostaId,
             Localizacao = Vazio(localizacao),
             NomeFicheiro = Limitar(Path.GetFileName(ficheiro.FileName), 200)
         };
 
-        var materiais = ObterMateriais(pl.Linhas.Select(l => (l.Codigo, l.Modelo, l.Descricao, l.Unidade)), "Huawei");
+        var materiais = ObterMateriais(pl.Linhas.Select(l => (l.Codigo, l.Modelo, l.Descricao, l.Unidade)), ehHuawei ? "Huawei" : nomeFornecedor);
         foreach (var l in pl.Linhas)
         {
             entrada.Movimentos.Add(new MovimentoStock
@@ -219,10 +245,15 @@ public class StockController : Controller
         return RedirectToAction(nameof(Entrada), new { id = entrada.Id });
     }
 
-    public IActionResult NovaEntrada(TipoEntradaStock tipo = TipoEntradaStock.CompraDei, int? projetoPlanoId = null)
+    public IActionResult NovaEntrada(TipoEntradaStock tipo = TipoEntradaStock.CompraDei, int? projetoPlanoId = null, int? processoId = null)
     {
-        var vm = new NovaEntradaVM { Entrada = new EntradaStock { Tipo = tipo, ProjetoPlanoId = projetoPlanoId } };
-        CarregarListasEntrada(vm.Entrada);
+        var compra = ResolverCompra(processoId);
+        var vm = new NovaEntradaVM
+        {
+            ProcessoId = compra == null ? null : processoId,
+            Entrada = new EntradaStock { Tipo = tipo, ProjetoPlanoId = projetoPlanoId ?? compra?.ProjetoPlanoId, Fornecedor = compra?.Fornecedor }
+        };
+        CarregarListasEntrada(vm);
         return View(vm);
     }
 
@@ -238,15 +269,21 @@ public class StockController : Controller
             if (l.Quantidade is null or <= 0) ModelState.AddModelError("", $"Linha {i + 1}: a quantidade tem de ser maior que zero.");
         }
         if (vm.Entrada.ProjetoPlanoId != null && ValidarProjeto(vm.Entrada.ProjetoPlanoId) is { } erro) ModelState.AddModelError("Entrada.ProjetoPlanoId", erro);
-        if (vm.Entrada.Tipo == TipoEntradaStock.PackingListHuawei) vm.Entrada.Tipo = TipoEntradaStock.Manual;
+        if (vm.Entrada.Tipo == TipoEntradaStock.PackingList) vm.Entrada.Tipo = TipoEntradaStock.Manual;
 
         if (!ModelState.IsValid)
         {
-            CarregarListasEntrada(vm.Entrada);
+            CarregarListasEntrada(vm);
             return View(vm);
         }
 
         var entrada = vm.Entrada;
+        if (ResolverCompra(vm.ProcessoId) is { } compraEntrada)
+        {
+            entrada.PedidoPropostaId = compraEntrada.PedidoPropostaId;
+            entrada.ProjetoPlanoId ??= compraEntrada.ProjetoPlanoId;
+            entrada.Fornecedor ??= compraEntrada.Fornecedor;
+        }
         var materiais = ObterMateriais(linhas.Select(l => (l.Codigo!.Trim(), (string?)null, string.IsNullOrWhiteSpace(l.Descricao) ? l.Codigo!.Trim() : l.Descricao!.Trim(), Vazio(l.Unidade))), entrada.Fornecedor);
         foreach (var l in linhas)
         {
@@ -440,11 +477,35 @@ public class StockController : Controller
         return p == null || !CapexProjetosHelper.Aceite(p) ? "Só é possível associar a projetos aceites no Capex." : null;
     }
 
-    private void CarregarListasEntrada(EntradaStock entrada)
+    private void CarregarListasEntrada(NovaEntradaVM vm) => CarregarListasCompra(vm.Entrada.ProjetoPlanoId, vm.ProcessoId);
+
+    // Listas comuns às entradas: projetos Capex aceites, processos de compra da plataforma e fornecedores.
+    private void CarregarListasCompra(int? projetoPlanoId, int? processoId)
     {
-        ViewBag.ProjetosCapex = CapexProjetosHelper.ListaProjetos(_db, entrada.ProjetoPlanoId);
-        ViewBag.Pedidos = _db.Pedidos.OrderByDescending(p => p.CriadoEm).AsNoTracking().ToList()
-            .Select(p => new SelectListItem($"{p.TipoProposta} ({p.CriadoEm:dd/MM/yyyy})", p.Id.ToString(), p.Id == entrada.PedidoPropostaId)).ToList();
+        ViewBag.ProjetosCapex = CapexProjetosHelper.ListaProjetos(_db, projetoPlanoId);
+        ViewBag.Processos = _db.Processos
+            .Include(p => p.PedidoProposta)
+            .Where(p => p.Status != StatusProcesso.Cancelado || p.Id == processoId)
+            .OrderByDescending(p => p.CriadoEm)
+            .AsNoTracking().ToList()
+            .Select(p => new SelectListItem(
+                $"{(string.IsNullOrWhiteSpace(p.NumeroProcesso) ? "" : p.NumeroProcesso + " — ")}{p.Nome} ({p.Status.ToLabel()})",
+                p.Id.ToString(), p.Id == processoId))
+            .ToList();
+        ViewBag.Fornecedores = _db.Fornecedores.Where(f => f.Ativo).Select(f => f.Nome).ToList()
+            .Concat(_db.EntradasStock.Where(e => e.Fornecedor != null).Select(e => e.Fornecedor!).Distinct().ToList())
+            .Append("Huawei International Co. Limited")
+            .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(n => n).ToList();
+    }
+
+    private record CompraResolvida(int PedidoPropostaId, int? ProjetoPlanoId, string? Fornecedor);
+
+    // Pedido, projeto Capex e fornecedor vencedor de um Processo de compra.
+    private CompraResolvida? ResolverCompra(int? processoId)
+    {
+        if (processoId == null) return null;
+        var p = _db.Processos.Include(x => x.PedidoProposta).Include(x => x.PropostaVencedora).AsNoTracking().FirstOrDefault(x => x.Id == processoId);
+        return p == null ? null : new CompraResolvida(p.PedidoPropostaId, p.PedidoProposta.ProjetoPlanoId, p.PropostaVencedora?.Fornecedor);
     }
 
     private void CarregarListasSaida(NovaSaidaVM vm)

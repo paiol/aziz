@@ -54,45 +54,55 @@ public class PackingListService : IPackingListService
         return Ler(ds);
     }
 
+    // Nomes de colunas aceites (inglês dos fornecedores e português). Comparação sem maiúsculas;
+    // nomes com 4+ letras também aceitam o cabeçalho que começa por eles (ex.: "QTY (PCS)").
+    internal static readonly string[] ColCodigo = { "part number", "part no", "part no.", "p/n", "código", "codigo", "cód.", "cod.", "referência", "referencia", "ref.", "item code", "material code", "código artigo", "artigo", "sku" };
+    internal static readonly string[] ColDescricao = { "description", "descrição", "descricao", "designação", "designacao" };
+    internal static readonly string[] ColQuantidade = { "qty", "quantity", "quantidade", "qtd", "qtd.", "quant." };
+    internal static readonly string[] ColUnidade = { "uom", "unit", "unidade", "un", "un.", "unid." };
+    internal static readonly string[] ColModelo = { "model", "modelo" };
+    internal static readonly string[] ColCaixa = { "case no", "case no.", "caixa", "nº caixa", "palete", "pallet" };
+    internal static readonly string[] ColNota = { "note", "site", "obs", "observações", "observacoes" };
+    internal static readonly string[] ColEmbalagem = { "box name", "embalagem" };
+    internal static readonly string[] ColSerie = { "hw serial no", "hw serial no.", "serial no", "serial no.", "serial number", "s/n", "sn", "nº série", "nº de série", "n.º série", "número de série", "numero de serie" };
+
     public static PackingListImportado Ler(DataSet ds)
     {
         var r = new PackingListImportado();
         var folhas = ds.Tables.Cast<DataTable>().ToList();
-        var pl = folhas.FirstOrDefault(t => Norm(t.TableName).Contains("packing")) ?? folhas.FirstOrDefault();
-        if (pl == null)
+        if (folhas.Count == 0)
         {
             r.Avisos.Add("O ficheiro não tem folhas.");
             return r;
         }
 
-        var linhaCab = EncontrarCabecalho(pl, "part number");
-        if (linhaCab < 0)
+        // Folha "packing" primeiro; senão a primeira folha com uma linha de cabeçalho reconhecível.
+        var candidatas = folhas.OrderByDescending(t => Norm(t.TableName).Contains("packing")).ToList();
+        DataTable? pl = null;
+        var linhaCab = -1;
+        foreach (var t in candidatas)
         {
-            r.Avisos.Add("Não foi encontrada a linha de cabeçalho com \"PART NUMBER\".");
+            linhaCab = EncontrarCabecalho(t, ColCodigo, ColQuantidade);
+            if (linhaCab >= 0) { pl = t; break; }
+        }
+        if (pl == null)
+        {
+            r.Avisos.Add("Não foi encontrada a linha de cabeçalho (é preciso uma coluna de código — ex.: \"PART NUMBER\" ou \"Código\" — e uma de quantidade).");
             return r;
         }
 
         LerMetadados(pl, linhaCab, r);
 
-        int? Col(DataTable t, int linha, params string[] nomes)
-        {
-            for (var c = 0; c < t.Columns.Count; c++)
-            {
-                var h = Norm(Texto(t, linha, c));
-                if (nomes.Any(n => h == n || h.StartsWith(n))) return c;
-            }
-            return null;
-        }
-
-        var cCaixa = Col(pl, linhaCab, "case no");
-        var cCodigo = Col(pl, linhaCab, "part number")!.Value;
-        var cModelo = Col(pl, linhaCab, "model");
-        var cDesc = Col(pl, linhaCab, "description");
-        var cQtd = Col(pl, linhaCab, "qty", "quantity");
-        var cUom = Col(pl, linhaCab, "uom", "unit");
-        var cNota = Col(pl, linhaCab, "note");
-        var cBox = Col(pl, linhaCab, "box name");
-        var cSerie = Col(pl, linhaCab, "hw serial no");
+        int? Col(string[] nomes) => Coluna(pl, linhaCab, nomes);
+        var cCaixa = Col(ColCaixa);
+        var cCodigo = Col(ColCodigo)!.Value;
+        var cModelo = Col(ColModelo);
+        var cDesc = Col(ColDescricao);
+        var cQtd = Col(ColQuantidade);
+        var cUom = Col(ColUnidade);
+        var cNota = Col(ColNota);
+        var cBox = Col(ColEmbalagem);
+        var cSerie = Col(ColSerie);
 
         string? caixa = null, site = null;
         var seriesDaFolha = new List<SeriePackingList>();
@@ -111,7 +121,7 @@ public class PackingListService : IPackingListService
             var nota = cNota is int cn ? Texto(pl, i, cn) : null;
             if (!string.IsNullOrWhiteSpace(nota)) site = Regex.Replace(nota, @"^\s*site\s*:\s*", "", RegexOptions.IgnoreCase).Trim();
 
-            if (string.IsNullOrWhiteSpace(codigo)) continue;
+            if (string.IsNullOrWhiteSpace(codigo) || Norm(codigo).StartsWith("total")) continue;
 
             r.Linhas.Add(new LinhaPackingList
             {
@@ -130,8 +140,8 @@ public class PackingListService : IPackingListService
                     seriesDaFolha.Add(new SeriePackingList(codigo.Trim(), s.Trim(), caixa));
         }
 
-        // Números de série: a folha "SN LIST" é a fonte mais fiável (a coluna da folha principal pode vir cortada).
-        var sn = folhas.FirstOrDefault(t => Norm(t.TableName).Replace(" ", "").Contains("snlist"));
+        // Números de série: a folha "SN LIST" (Huawei) é a fonte mais fiável; senão a coluna da própria folha.
+        var sn = folhas.FirstOrDefault(t => t != pl && Norm(t.TableName).Replace(" ", "").Contains("snlist"));
         var seriesSn = sn != null ? LerSnList(sn) : new List<SeriePackingList>();
         r.Series = (seriesSn.Count > 0 ? seriesSn : seriesDaFolha)
             .GroupBy(s => (s.Codigo, s.Serie)).Select(g => g.First()).ToList();
@@ -143,18 +153,12 @@ public class PackingListService : IPackingListService
     private static List<SeriePackingList> LerSnList(DataTable t)
     {
         var lista = new List<SeriePackingList>();
-        var cab = EncontrarCabecalho(t, "part number");
+        var cab = EncontrarCabecalho(t, ColCodigo, ColSerie);
         if (cab < 0) return lista;
 
-        int? Col(string nome)
-        {
-            for (var c = 0; c < t.Columns.Count; c++)
-                if (Norm(Texto(t, cab, c)).StartsWith(nome)) return c;
-            return null;
-        }
-        var cCodigo = Col("part number");
-        var cSerie = Col("hw serial no");
-        var cCaixa = Col("case no");
+        var cCodigo = Coluna(t, cab, ColCodigo);
+        var cSerie = Coluna(t, cab, ColSerie);
+        var cCaixa = Coluna(t, cab, ColCaixa);
         if (cCodigo == null || cSerie == null) return lista;
 
         for (var i = cab + 1; i < t.Rows.Count; i++)
@@ -167,6 +171,18 @@ public class PackingListService : IPackingListService
         return lista;
     }
 
+    // Rótulos do cabeçalho do documento (inglês / português), sem ":" final.
+    private static readonly Dictionary<string, string> Rotulos = new()
+    {
+        ["p/l no."] = "numero", ["packing list no."] = "numero", ["packing list nº"] = "numero", ["nº packing list"] = "numero",
+        ["guia de remessa"] = "numero", ["guia nº"] = "numero", ["nº guia"] = "numero",
+        ["contract no."] = "contrato", ["contrato"] = "contrato", ["contrato nº"] = "contrato",
+        ["invoice no."] = "fatura", ["invoice"] = "fatura", ["fatura"] = "fatura", ["factura"] = "fatura", ["fatura nº"] = "fatura",
+        ["p/o no."] = "po", ["po no."] = "po", ["purchase order"] = "po", ["encomenda"] = "po", ["nº encomenda"] = "po",
+        ["project"] = "projeto", ["projeto"] = "projeto", ["projecto"] = "projeto",
+        ["date"] = "data", ["data"] = "data"
+    };
+
     private static void LerMetadados(DataTable t, int ateLinha, PackingListImportado r)
     {
         for (var i = 0; i < ateLinha; i++)
@@ -175,21 +191,21 @@ public class PackingListService : IPackingListService
             {
                 var celula = Texto(t, i, c);
                 if (string.IsNullOrWhiteSpace(celula)) continue;
-                var rotulo = Norm(celula);
+                var rotulo = Norm(celula).TrimEnd(':').Trim();
 
                 if (r.Fornecedor == null && rotulo.Contains("huawei") && !rotulo.StartsWith("to")) r.Fornecedor = celula.Trim();
+                if (!Rotulos.TryGetValue(rotulo, out var campo)) continue;
 
-                string? Valor() => Seguinte(t, i, c);
-                switch (rotulo)
+                var valor = Seguinte(t, i, c);
+                switch (campo)
                 {
-                    case "p/l no.": r.Numero ??= Valor(); break;
-                    case "contract no.": r.Contrato ??= Valor(); break;
-                    case "invoice no.": r.Fatura ??= Valor(); break;
-                    case "p/o no.": r.PurchaseOrder ??= Valor(); break;
-                    case "project": r.ProjetoFornecedor ??= Valor(); break;
-                    case "date":
-                        var d = Valor();
-                        if (d != null && DateTime.TryParse(d.Replace('/', '-'), CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt)) r.Data = dt.Date;
+                    case "numero": r.Numero ??= valor; break;
+                    case "contrato": r.Contrato ??= valor; break;
+                    case "fatura": r.Fatura ??= valor; break;
+                    case "po": r.PurchaseOrder ??= valor; break;
+                    case "projeto": r.ProjetoFornecedor ??= valor; break;
+                    case "data":
+                        if (r.Data == null && valor != null && DateTime.TryParse(valor.Replace('/', '-'), CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt)) r.Data = dt.Date;
                         break;
                 }
             }
@@ -206,12 +222,22 @@ public class PackingListService : IPackingListService
         return ano == null ? "1+1" : $"1+1_{ano}";
     }
 
-    private static int EncontrarCabecalho(DataTable t, string nome)
+    // Primeira linha que tem uma coluna de cada grupo (ex.: código e quantidade).
+    private static int EncontrarCabecalho(DataTable t, params string[][] grupos)
     {
         for (var i = 0; i < t.Rows.Count; i++)
-            for (var c = 0; c < t.Columns.Count; c++)
-                if (Norm(Texto(t, i, c)) == nome) return i;
+            if (grupos.All(g => Coluna(t, i, g) != null)) return i;
         return -1;
+    }
+
+    private static int? Coluna(DataTable t, int linha, string[] nomes)
+    {
+        var cabecalhos = Enumerable.Range(0, t.Columns.Count).Select(c => (c, h: Norm(Texto(t, linha, c)).TrimEnd(':').Trim())).ToList();
+        foreach (var (c, h) in cabecalhos)
+            if (nomes.Contains(h)) return c;
+        foreach (var (c, h) in cabecalhos)
+            if (h.Length > 0 && nomes.Any(n => n.Length >= 4 && h.StartsWith(n))) return c;
+        return null;
     }
 
     private static string? Seguinte(DataTable t, int linha, int coluna)

@@ -5,7 +5,8 @@
 @{
     ViewData["Title"] = "Nova entrada de stock";
     var projetos = (List<SelectListItem>)ViewBag.ProjetosCapex;
-    var pedidos = (List<SelectListItem>)ViewBag.Pedidos;
+    var processos = (List<SelectListItem>)ViewBag.Processos;
+    var fornecedores = (List<string>)ViewBag.Fornecedores;
 }
 
 <h2>Nova entrada de stock</h2>
@@ -36,15 +37,17 @@
             </div>
             <div class="col-md-4">
                 <label asp-for="Entrada.Fornecedor" class="form-label"></label>
-                <input asp-for="Entrada.Fornecedor" class="form-control" />
+                <input asp-for="Entrada.Fornecedor" class="form-control" list="lista-fornecedores" />
+                <datalist id="lista-fornecedores">@foreach (var fn in fornecedores) { <option value="@fn"></option> }</datalist>
             </div>
             <div class="col-md-4">
                 <label asp-for="Entrada.ProjetoPlanoId" class="form-label"></label>
                 <select asp-for="Entrada.ProjetoPlanoId" class="form-select" asp-items="projetos"><option value="">— sem projeto —</option></select>
             </div>
             <div class="col-md-4">
-                <label asp-for="Entrada.PedidoPropostaId" class="form-label"></label>
-                <select asp-for="Entrada.PedidoPropostaId" class="form-select" asp-items="pedidos"><option value="">— nenhum —</option></select>
+                <label asp-for="ProcessoId" class="form-label">Processo de compra (plataforma)</label>
+                <select asp-for="ProcessoId" class="form-select" asp-items="processos"><option value="">— nenhum —</option></select>
+                <div class="form-text">O projeto Capex e o fornecedor vêm do processo, se não forem indicados.</div>
             </div>
             <div class="col-md-4">
                 <label asp-for="Entrada.Localizacao" class="form-label"></label>

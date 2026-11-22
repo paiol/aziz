@@ -478,6 +478,54 @@ namespace ComparacaoPropostas.Migrations
                     b.ToTable("Fornecedores");
                 });
 
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.InventarioStock", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Area")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("Data")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Descricao")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("FechadoEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Localizacao")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("NomeFicheiro")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Responsavel")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("InventariosStock");
+                });
+
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.ItemCcv", b =>
                 {
                     b.Property<int>("Id")
@@ -821,6 +869,55 @@ namespace ComparacaoPropostas.Migrations
                     b.ToTable("ItensPropostaEmpreiteiro");
                 });
 
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.LinhaInventario", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("Descricao")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("InventarioStockId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MaterialStockId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Observacoes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("QuantidadeContada")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal?>("QuantidadeSistema")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<string>("Series")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Unidade")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InventarioStockId");
+
+                    b.HasIndex("MaterialStockId");
+
+                    b.ToTable("LinhasInventario");
+                });
+
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.MaterialStock", b =>
                 {
                     b.Property<int>("Id")
@@ -932,6 +1029,9 @@ namespace ComparacaoPropostas.Migrations
                     b.Property<int?>("EntradaStockId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("InventarioStockId")
+                        .HasColumnType("int");
+
                     b.Property<int>("MaterialStockId")
                         .HasColumnType("int");
 
@@ -961,6 +1061,8 @@ namespace ComparacaoPropostas.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("EntradaStockId");
+
+                    b.HasIndex("InventarioStockId");
 
                     b.HasIndex("ProjetoPlanoId");
 
@@ -2673,6 +2775,24 @@ namespace ComparacaoPropostas.Migrations
                     b.Navigation("PropostaEmpreiteiro");
                 });
 
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.LinhaInventario", b =>
+                {
+                    b.HasOne("ComparacaoPropostas.Models.Entities.InventarioStock", "Inventario")
+                        .WithMany("Linhas")
+                        .HasForeignKey("InventarioStockId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ComparacaoPropostas.Models.Entities.MaterialStock", "Material")
+                        .WithMany()
+                        .HasForeignKey("MaterialStockId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Inventario");
+
+                    b.Navigation("Material");
+                });
+
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.MemoriaCalculoAvaliacao", b =>
                 {
                     b.HasOne("ComparacaoPropostas.Models.Entities.Criterio", "Criterio")
@@ -2699,6 +2819,11 @@ namespace ComparacaoPropostas.Migrations
                         .HasForeignKey("EntradaStockId")
                         .OnDelete(DeleteBehavior.Cascade);
 
+                    b.HasOne("ComparacaoPropostas.Models.Entities.InventarioStock", "Inventario")
+                        .WithMany()
+                        .HasForeignKey("InventarioStockId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("ComparacaoPropostas.Models.Entities.MaterialStock", "Material")
                         .WithMany("Movimentos")
                         .HasForeignKey("MaterialStockId")
@@ -2711,6 +2836,8 @@ namespace ComparacaoPropostas.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Entrada");
+
+                    b.Navigation("Inventario");
 
                     b.Navigation("Material");
 
@@ -2866,6 +2993,11 @@ namespace ComparacaoPropostas.Migrations
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.EntradaStock", b =>
                 {
                     b.Navigation("Movimentos");
+                });
+
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.InventarioStock", b =>
+                {
+                    b.Navigation("Linhas");
                 });
 
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.ItemMQT", b =>

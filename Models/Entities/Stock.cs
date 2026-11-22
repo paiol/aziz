@@ -8,8 +8,8 @@ namespace ComparacaoPropostas.Models.Entities;
 
 public enum TipoEntradaStock
 {
-    [Display(Name = "Packing List Huawei")]
-    PackingListHuawei,
+    [Display(Name = "Packing List")]
+    PackingList,
     [Display(Name = "Compra DEI")]
     CompraDei,
     Manual
@@ -154,6 +154,11 @@ public class MovimentoStock
     [ValidateNever]
     public ProjetoPlano? ProjetoPlano { get; set; }
 
+    // Inventário que originou este movimento (ajuste de contagem).
+    public int? InventarioStockId { get; set; }
+    [ValidateNever]
+    public InventarioStock? Inventario { get; set; }
+
     [StringLength(30), Display(Name = "Caixa")]
     public string? Caixa { get; set; }
 
@@ -204,4 +209,83 @@ public class NumeroSerieStock
     public int? MovimentoSaidaId { get; set; }
     [ValidateNever]
     public MovimentoStock? MovimentoSaida { get; set; }
+}
+
+public enum EstadoInventario
+{
+    Aberto,
+    Fechado
+}
+
+// Inventário (contagem física) de um armazém numa área. Ao fechar, o stock da área passa a ser o
+// contado: a diferença para o saldo da plataforma fica registada como movimento de Ajuste.
+public class InventarioStock
+{
+    public int Id { get; set; }
+
+    [Display(Name = "Área")]
+    public AreaDepartamento Area { get; set; } = AreaDepartamento.DepInf;
+
+    [Display(Name = "Data")]
+    [DataType(DataType.Date)]
+    public DateTime Data { get; set; } = DateTime.Today;
+
+    [StringLength(100), Display(Name = "Armazém / localização")]
+    public string? Localizacao { get; set; }
+
+    [StringLength(200), Display(Name = "Descrição")]
+    public string? Descricao { get; set; }
+
+    [StringLength(100), Display(Name = "Responsável")]
+    public string? Responsavel { get; set; }
+
+    [Display(Name = "Estado")]
+    public EstadoInventario Estado { get; set; } = EstadoInventario.Aberto;
+
+    [StringLength(200)]
+    public string? NomeFicheiro { get; set; }
+
+    public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
+    public DateTime? FechadoEm { get; set; }
+
+    [ValidateNever]
+    public ICollection<LinhaInventario> Linhas { get; set; } = new List<LinhaInventario>();
+}
+
+public class LinhaInventario
+{
+    public int Id { get; set; }
+
+    public int InventarioStockId { get; set; }
+    [ValidateNever]
+    public InventarioStock Inventario { get; set; } = null!;
+
+    // Preenchido quando o código já existe no catálogo (ou ao fechar, quando o material é criado).
+    public int? MaterialStockId { get; set; }
+    [ValidateNever]
+    public MaterialStock? Material { get; set; }
+
+    [Required, StringLength(60), Display(Name = "Código")]
+    public string Codigo { get; set; } = "";
+
+    [Display(Name = "Descrição")]
+    public string? Descricao { get; set; }
+
+    [StringLength(20), Display(Name = "Unidade")]
+    public string? Unidade { get; set; }
+
+    // Vazio = ainda não contado (a linha é ignorada ao fechar).
+    [Display(Name = "Contado")]
+    public decimal? QuantidadeContada { get; set; }
+
+    // Saldo da plataforma no momento em que o inventário foi fechado.
+    [Display(Name = "Sistema")]
+    public decimal? QuantidadeSistema { get; set; }
+
+    // Números de série contados (separados por espaço, vírgula ou mudança de linha).
+    [Display(Name = "Nºs de série")]
+    public string? Series { get; set; }
+
+    [Display(Name = "Observações")]
+    public string? Observacoes { get; set; }
 }
