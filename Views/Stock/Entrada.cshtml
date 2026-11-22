@@ -1,0 +1,108 @@
+@using ComparacaoPropostas.Helper
+@using ComparacaoPropostas.Models.Entities
+@model ComparacaoPropostas.Models.Entities.EntradaStock
+@{
+    ViewData["Title"] = $"Entrada {Model.Numero}";
+    var series = (List<NumeroSerieStock>)ViewBag.Series;
+    var e = Model;
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-1">@e.Tipo.ToLabel() · @e.Numero</h2>
+        <span class="text-body-tertiary">@e.Area.ToLabel() · @e.Data.ToString("dd/MM/yyyy") @(e.Fornecedor != null ? $"· {e.Fornecedor}" : "")</span>
+        <div><a asp-action="Entradas" class="small"><span class="fas fa-arrow-left me-1"></span>Voltar às entradas</a></div>
+    </div>
+    <button type="button" class="btn btn-subtle-danger js-delete-btn" data-url="@Url.Action("ApagarEntrada", new { id = e.Id })" data-id="@e.Id">
+        <i class="fas fa-trash me-1"></i> Apagar entrada
+    </button>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body row g-3 small">
+        <div class="col-md-3"><span class="text-body-tertiary d-block">Contrato 1+1</span>@(e.Contrato1Mais1 ?? "-")</div>
+        <div class="col-md-3"><span class="text-body-tertiary d-block">Contrato</span>@(e.Contrato ?? "-")</div>
+        <div class="col-md-3"><span class="text-body-tertiary d-block">Fatura</span>@(e.Fatura ?? "-")</div>
+        <div class="col-md-3"><span class="text-body-tertiary d-block">P/O</span>@(e.PurchaseOrder ?? "-")</div>
+        <div class="col-md-6"><span class="text-body-tertiary d-block">Projeto do fornecedor</span>@(e.ProjetoFornecedor ?? "-")</div>
+        <div class="col-md-6">
+            <span class="text-body-tertiary d-block">Projeto Capex</span>
+            @if (e.ProjetoPlano != null)
+            {
+                <a asp-controller="ProjetosPlano" asp-action="Details" asp-route-id="@e.ProjetoPlano.Id">@e.ProjetoPlano.Nome</a>
+            }
+            else
+            {
+                <span>-</span>
+            }
+        </div>
+        <div class="col-md-3"><span class="text-body-tertiary d-block">Armazém</span>@(e.Localizacao ?? "-")</div>
+        <div class="col-md-3"><span class="text-body-tertiary d-block">Pedido de compra</span>@(e.PedidoProposta?.TipoProposta ?? "-")</div>
+        <div class="col-md-6"><span class="text-body-tertiary d-block">Ficheiro</span>@(e.NomeFicheiro ?? "-")</div>
+        @if (!string.IsNullOrWhiteSpace(e.Observacoes))
+        {
+            <div class="col-12"><span class="text-body-tertiary d-block">Observações</span>@e.Observacoes</div>
+        }
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">Materiais (@e.Movimentos.Count linha(s))</h5></div>
+    <div class="card-body table-responsive">
+        <table class="table table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>Caixa</th>
+                    <th>Código</th>
+                    <th>Descrição</th>
+                    <th class="text-end">Qtd.</th>
+                    <th>Un.</th>
+                    <th>Site</th>
+                    <th>Embalagem</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var m in e.Movimentos.OrderBy(m => m.Id))
+                {
+                    <tr>
+                        <td>@(m.Caixa ?? "-")</td>
+                        <td class="text-nowrap"><a asp-action="Material" asp-route-id="@m.MaterialStockId">@m.Material.Codigo</a></td>
+                        <td class="small">@m.Material.Descricao</td>
+                        <td class="text-end">@m.Quantidade.ToQtd()</td>
+                        <td>@(m.Material.Unidade ?? "-")</td>
+                        <td class="small">@(m.Site ?? "-")</td>
+                        <td class="small">@(m.Embalagem ?? "-")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h5 class="mb-0">Números de série (@series.Count)</h5></div>
+    <div class="card-body table-responsive">
+        @if (series.Count == 0)
+        {
+            <div class="text-body-tertiary small">Esta entrada não tem números de série.</div>
+        }
+        else
+        {
+            <table class="table table-sm mb-0 data-table">
+                <thead><tr><th>Código</th><th>Descrição</th><th>Nº de série</th><th>Caixa</th><th>Estado</th></tr></thead>
+                <tbody>
+                    @foreach (var s in series)
+                    {
+                        <tr>
+                            <td>@s.Material.Codigo</td>
+                            <td class="small">@s.Material.Descricao</td>
+                            <td class="font-monospace">@s.Serie</td>
+                            <td>@(s.Caixa ?? "-")</td>
+                            <td><span class="badge @(s.Estado == EstadoNumeroSerie.EmArmazem ? "bg-success" : "bg-secondary")">@s.Estado.ToLabel()</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

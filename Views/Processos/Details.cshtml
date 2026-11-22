@@ -168,6 +168,34 @@
 
 <partial name="_OrcamentoCapex" />
 
+@{
+    var rececoes = (List<ComparacaoPropostas.Models.Entities.EntradaStock>)ViewBag.Rececoes;
+}
+<div class="card mb-3">
+    <div class="card-header py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h6 class="mb-0"><i class="fas fa-truck-ramp-box me-1"></i> Receção de material (stock)</h6>
+        <div class="d-flex gap-2">
+            <a class="btn btn-sm btn-subtle-primary" asp-controller="Stock" asp-action="Entradas" asp-route-processoId="@Model.Processo.Id">Importar Packing List</a>
+            <a class="btn btn-sm btn-subtle-secondary" asp-controller="Stock" asp-action="NovaEntrada" asp-route-processoId="@Model.Processo.Id">Registar entrada</a>
+        </div>
+    </div>
+    <div class="card-body py-2">
+        @if (rececoes.Count == 0)
+        {
+            <div class="small text-body-tertiary">Ainda não foi recebido material desta compra.</div>
+        }
+        else
+        {
+            <ul class="list-unstyled small mb-0">
+                @foreach (var r in rececoes)
+                {
+                    <li><a asp-controller="Stock" asp-action="Entrada" asp-route-id="@r.Id">@r.Numero</a> · @r.Data.ToString("dd/MM/yyyy") · @r.Area.ToLabel() · @r.Movimentos.Count linha(s)</li>
+                }
+            </ul>
+        }
+    </div>
+</div>
+
 <div class="row g-3">
     <div class="col-lg-8">
         <div class="card mb-3">

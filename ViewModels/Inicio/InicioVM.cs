@@ -31,4 +31,10 @@ public class InicioVM
     public int NumFornecedores { get; set; }
     public int NumItensMaterial { get; set; }
     public int NumAvaliadores { get; set; }
+
+    // Gestão de Stock
+    public int NumMateriaisStock { get; set; }
+    public decimal ValorStock { get; set; }
+    public int AlarmesStock { get; set; }
+    public int AlarmesStockCriticos { get; set; }
 }

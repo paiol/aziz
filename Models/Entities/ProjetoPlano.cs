@@ -33,6 +33,21 @@ public class ProjetoPlano
     [NotMapped]
     public bool EhObra => PlanoCalculos.EhObra(this);
 
+    // Envio para o Airtable (base SCOPE), depois de o plano estar concluído.
+    // ScopePendente = há alterações por enviar; o ScopeSyncWorker trata-as em segundo plano.
+    [ValidateNever]
+    public bool ScopePendente { get; set; }
+    [ValidateNever]
+    public string? ScopeRecordId { get; set; }
+    [ValidateNever]
+    public DateTime? ScopeEnviadoEm { get; set; }
+    [ValidateNever]
+    public string? ScopeErro { get; set; }
+    [ValidateNever]
+    public int ScopeTentativas { get; set; }
+    [ValidateNever]
+    public DateTime? ScopeProximaTentativa { get; set; }
+
     // Área que propõe o projeto (o plano é feito por áreas).
     [Display(Name = "Área")]
     public AreaDepartamento Area { get; set; } = AreaDepartamento.DepInf;

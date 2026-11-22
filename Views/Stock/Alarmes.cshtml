@@ -1,0 +1,83 @@
+@using ComparacaoPropostas.Helper
+@using ComparacaoPropostas.Models.Entities.Enums
+@using ComparacaoPropostas.Services.Stock
+@model List<ComparacaoPropostas.Services.Stock.AlarmeStock>
+@{
+    ViewData["Title"] = "Alarmes de stock";
+    var area = (AreaDepartamento?)ViewBag.Area;
+    var tipo = (TipoAlarmeStock?)ViewBag.Tipo;
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-1"><i class="fas fa-bell text-danger me-2"></i>Alarmes de stock</h2>
+        <a asp-action="Painel" class="small"><span class="fas fa-arrow-left me-1"></span>Voltar ao painel</a>
+    </div>
+    <form method="get" class="d-flex gap-2 align-items-end flex-wrap">
+        <div>
+            <label for="a-area" class="form-label mb-1 small">Área</label>
+            <select id="a-area" name="area" class="form-select form-select-sm" onchange="this.form.submit()"
+                    asp-items="Enum.GetValues<AreaDepartamento>().Select(a => new SelectListItem(a.ToLabel(), a.ToString(), a == area))">
+                <option value="" selected="@(area == null)">Todas</option>
+            </select>
+        </div>
+        <div>
+            <label for="a-tipo" class="form-label mb-1 small">Tipo</label>
+            <select id="a-tipo" name="tipo" class="form-select form-select-sm" onchange="this.form.submit()"
+                    asp-items="Enum.GetValues<TipoAlarmeStock>().Select(t => new SelectListItem(t.ToLabel(), t.ToString(), t == tipo))">
+                <option value="" selected="@(tipo == null)">Todos</option>
+            </select>
+        </div>
+    </form>
+</div>
+
+<div class="row g-3 mb-3">
+    @foreach (var t in Enum.GetValues<TipoAlarmeStock>())
+    {
+        var n = Model.Count(a => a.Tipo == t);
+        <div class="col-6 col-md-3">
+            <a class="card h-100 text-decoration-none" asp-action="Alarmes" asp-route-area="@area" asp-route-tipo="@t">
+                <div class="card-body py-2">
+                    <span class="text-body-tertiary small d-block">@t.ToLabel()</span>
+                    <span class="fw-semibold @(n > 0 && t is TipoAlarmeStock.SaldoNegativo or TipoAlarmeStock.Esgotado ? "text-danger" : n > 0 && t == TipoAlarmeStock.AbaixoMinimo ? "text-warning" : "")" style="font-size: 1.4rem">@n</span>
+                </div>
+            </a>
+        </div>
+    }
+</div>
+
+<div class="card">
+    <div class="card-body table-responsive">
+        @if (Model.Count == 0)
+        {
+            <div class="alert alert-success mb-0"><i class="fas fa-circle-check me-1"></i> Sem alarmes com estes filtros.</div>
+        }
+        else
+        {
+            <table class="table table-hover table-sm data-table">
+                <thead><tr><th>Severidade</th><th>Alarme</th><th>Código</th><th>Material</th><th>Área</th><th class="text-end">Saldo</th><th>Detalhe</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var a in Model)
+                    {
+                        <tr>
+                            <td data-order="@((int)a.Severidade)"><span class="@a.Severidade.ToBadgeClass()">@(a.Severidade switch { SeveridadeAlarme.Critico => "Crítico", SeveridadeAlarme.Aviso => "Aviso", _ => "Info" })</span></td>
+                            <td>@a.Tipo.ToLabel()</td>
+                            <td><a asp-action="Material" asp-route-id="@a.Material.Id">@a.Material.Codigo</a></td>
+                            <td class="small">@a.Material.Descricao</td>
+                            <td>@(a.Area?.ToLabel() ?? "Todas")</td>
+                            <td class="text-end">@a.Saldo.ToQtd() @a.Material.Unidade</td>
+                            <td class="small">@a.Mensagem</td>
+                            <td class="text-end text-nowrap">
+                                @if (a.Tipo is TipoAlarmeStock.AbaixoMinimo or TipoAlarmeStock.Esgotado)
+                                {
+                                    <a class="btn btn-sm btn-subtle-primary" asp-controller="Pedidos" asp-action="Create" title="Abrir um pedido de compra">Comprar</a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <div class="form-text">Regras: saldo negativo numa área (erro de registo) · esgotado e abaixo do mínimo (quando o material tem stock mínimo) · stock parado sem saídas há mais de @StockAlarmes.DiasParadoPadrao dias (ou o limite definido no material).</div>
+        }
+    </div>
+</div>

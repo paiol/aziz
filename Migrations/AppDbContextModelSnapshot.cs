@@ -354,6 +354,87 @@ namespace ComparacaoPropostas.Migrations
                     b.ToTable("CriteriosObra");
                 });
 
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.EntradaStock", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Area")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Contrato")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("Contrato1Mais1")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("Data")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Fatura")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("Fornecedor")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Localizacao")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("NomeFicheiro")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Numero")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("Observacoes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("PedidoPropostaId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ProjetoFornecedor")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int?>("ProjetoPlanoId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PurchaseOrder")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Contrato1Mais1");
+
+                    b.HasIndex("PedidoPropostaId");
+
+                    b.HasIndex("ProjetoPlanoId");
+
+                    b.ToTable("EntradasStock");
+                });
+
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.Fornecedor", b =>
                 {
                     b.Property<int>("Id")
@@ -395,6 +476,54 @@ namespace ComparacaoPropostas.Migrations
                         .IsUnique();
 
                     b.ToTable("Fornecedores");
+                });
+
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.InventarioStock", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Area")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("Data")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Descricao")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("FechadoEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Localizacao")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("NomeFicheiro")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Responsavel")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("InventariosStock");
                 });
 
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.ItemCcv", b =>
@@ -740,6 +869,103 @@ namespace ComparacaoPropostas.Migrations
                     b.ToTable("ItensPropostaEmpreiteiro");
                 });
 
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.LinhaInventario", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("Descricao")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("InventarioStockId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MaterialStockId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Observacoes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("QuantidadeContada")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal?>("QuantidadeSistema")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<string>("Series")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Unidade")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InventarioStockId");
+
+                    b.HasIndex("MaterialStockId");
+
+                    b.ToTable("LinhasInventario");
+                });
+
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.MaterialStock", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("Descricao")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("DiasParado")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Fabricante")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Modelo")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal?>("PrecoUnitario")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("StockMinimo")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<string>("Unidade")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Codigo")
+                        .IsUnique();
+
+                    b.ToTable("MateriaisStock");
+                });
+
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.MemoriaCalculoAvaliacao", b =>
                 {
                     b.Property<int>("Id")
@@ -774,6 +1000,130 @@ namespace ComparacaoPropostas.Migrations
                         .IsUnique();
 
                     b.ToTable("MemoriaCalculoAvaliacao");
+                });
+
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.MovimentoStock", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Area")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Caixa")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("Data")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Destino")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Embalagem")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<int?>("EntradaStockId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("InventarioStockId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MaterialStockId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Observacoes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("ProjetoPlanoId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Quantidade")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<string>("Responsavel")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Site")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntradaStockId");
+
+                    b.HasIndex("InventarioStockId");
+
+                    b.HasIndex("ProjetoPlanoId");
+
+                    b.HasIndex("MaterialStockId", "Area");
+
+                    b.ToTable("MovimentosStock");
+                });
+
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.NumeroSerieStock", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Area")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Caixa")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int?>("EntradaStockId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("MaterialStockId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MovimentoSaidaId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Serie")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntradaStockId");
+
+                    b.HasIndex("MovimentoSaidaId");
+
+                    b.HasIndex("MaterialStockId", "Serie")
+                        .IsUnique();
+
+                    b.ToTable("NumerosSerieStock");
                 });
 
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.PedidoProposta", b =>
@@ -841,6 +1191,9 @@ namespace ComparacaoPropostas.Migrations
                         .HasPrecision(9, 2)
                         .HasColumnType("decimal(9,2)");
 
+                    b.Property<DateTime?>("ConcluidoEm")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("CriadoEm")
                         .HasColumnType("datetime2");
 
@@ -856,6 +1209,9 @@ namespace ComparacaoPropostas.Migrations
                     b.Property<string>("Designacao")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -1219,6 +1575,24 @@ namespace ComparacaoPropostas.Migrations
                     b.Property<decimal?>("PropostasSemAdjudicacao")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("ScopeEnviadoEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ScopeErro")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("ScopePendente")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ScopeProximaTentativa")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ScopeRecordId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ScopeTentativas")
+                        .HasColumnType("int");
 
                     b.Property<string>("SeguimentoOrcamento")
                         .HasColumnType("nvarchar(max)");
@@ -2314,6 +2688,23 @@ namespace ComparacaoPropostas.Migrations
                     b.Navigation("ProjetoObra");
                 });
 
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.EntradaStock", b =>
+                {
+                    b.HasOne("ComparacaoPropostas.Models.Entities.PedidoProposta", "PedidoProposta")
+                        .WithMany()
+                        .HasForeignKey("PedidoPropostaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("ComparacaoPropostas.Models.Entities.ProjetoPlano", "ProjetoPlano")
+                        .WithMany()
+                        .HasForeignKey("ProjetoPlanoId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("PedidoProposta");
+
+                    b.Navigation("ProjetoPlano");
+                });
+
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.ItemMQT", b =>
                 {
                     b.HasOne("ComparacaoPropostas.Models.Entities.ProjetoObra", "ProjetoObra")
@@ -2391,6 +2782,24 @@ namespace ComparacaoPropostas.Migrations
                     b.Navigation("PropostaEmpreiteiro");
                 });
 
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.LinhaInventario", b =>
+                {
+                    b.HasOne("ComparacaoPropostas.Models.Entities.InventarioStock", "Inventario")
+                        .WithMany("Linhas")
+                        .HasForeignKey("InventarioStockId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ComparacaoPropostas.Models.Entities.MaterialStock", "Material")
+                        .WithMany()
+                        .HasForeignKey("MaterialStockId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Inventario");
+
+                    b.Navigation("Material");
+                });
+
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.MemoriaCalculoAvaliacao", b =>
                 {
                     b.HasOne("ComparacaoPropostas.Models.Entities.Criterio", "Criterio")
@@ -2408,6 +2817,63 @@ namespace ComparacaoPropostas.Migrations
                     b.Navigation("Criterio");
 
                     b.Navigation("Proposta");
+                });
+
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.MovimentoStock", b =>
+                {
+                    b.HasOne("ComparacaoPropostas.Models.Entities.EntradaStock", "Entrada")
+                        .WithMany("Movimentos")
+                        .HasForeignKey("EntradaStockId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("ComparacaoPropostas.Models.Entities.InventarioStock", "Inventario")
+                        .WithMany()
+                        .HasForeignKey("InventarioStockId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("ComparacaoPropostas.Models.Entities.MaterialStock", "Material")
+                        .WithMany("Movimentos")
+                        .HasForeignKey("MaterialStockId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ComparacaoPropostas.Models.Entities.ProjetoPlano", "ProjetoPlano")
+                        .WithMany()
+                        .HasForeignKey("ProjetoPlanoId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Entrada");
+
+                    b.Navigation("Inventario");
+
+                    b.Navigation("Material");
+
+                    b.Navigation("ProjetoPlano");
+                });
+
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.NumeroSerieStock", b =>
+                {
+                    b.HasOne("ComparacaoPropostas.Models.Entities.EntradaStock", "Entrada")
+                        .WithMany()
+                        .HasForeignKey("EntradaStockId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("ComparacaoPropostas.Models.Entities.MaterialStock", "Material")
+                        .WithMany("NumerosSerie")
+                        .HasForeignKey("MaterialStockId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ComparacaoPropostas.Models.Entities.MovimentoStock", "MovimentoSaida")
+                        .WithMany()
+                        .HasForeignKey("MovimentoSaidaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Entrada");
+
+                    b.Navigation("Material");
+
+                    b.Navigation("MovimentoSaida");
                 });
 
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.PedidoProposta", b =>
@@ -2531,6 +2997,16 @@ namespace ComparacaoPropostas.Migrations
                     b.Navigation("Avaliacoes");
                 });
 
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.EntradaStock", b =>
+                {
+                    b.Navigation("Movimentos");
+                });
+
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.InventarioStock", b =>
+                {
+                    b.Navigation("Linhas");
+                });
+
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.ItemMQT", b =>
                 {
                     b.Navigation("ItensProposta");
@@ -2541,6 +3017,13 @@ namespace ComparacaoPropostas.Migrations
                     b.Navigation("ItensProposta");
 
                     b.Navigation("SubItens");
+                });
+
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.MaterialStock", b =>
+                {
+                    b.Navigation("Movimentos");
+
+                    b.Navigation("NumerosSerie");
                 });
 
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.PedidoProposta", b =>

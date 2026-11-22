@@ -28,6 +28,16 @@ public enum CaixaPlano
     SemSituacao
 }
 
+// Estado do plano: enquanto está em preparação as áreas propõem e decide-se;
+// depois de concluído, os projetos aceites são enviados para o Airtable (SCOPE).
+public enum EstadoPlano
+{
+    [Display(Name = "Em preparação")]
+    EmPreparacao,
+    [Display(Name = "Concluído")]
+    Concluido
+}
+
 // Decisão sobre o projeto proposto: só os Aceites formam o Capex e podem ter compras.
 public enum EstadoAprovacaoProjeto
 {

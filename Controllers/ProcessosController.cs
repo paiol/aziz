@@ -125,6 +125,8 @@ public class ProcessosController : Controller
         }
 
         CarregarOrcamentoCapex(processo, excluirEste: false);
+        ViewBag.Rececoes = _db.EntradasStock.Include(e => e.Movimentos).Where(e => e.PedidoPropostaId == processo.PedidoPropostaId)
+            .OrderByDescending(e => e.Data).AsNoTracking().ToList();
         return View(vm);
     }
 

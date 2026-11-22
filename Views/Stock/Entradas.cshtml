@@ -1,0 +1,161 @@
+@using ComparacaoPropostas.Helper
+@using ComparacaoPropostas.Models.Entities
+@using ComparacaoPropostas.Models.Entities.Enums
+@model List<ComparacaoPropostas.Models.Entities.EntradaStock>
+@{
+    ViewData["Title"] = "Entradas de stock";
+    var area = (AreaDepartamento?)ViewBag.Area;
+    var contrato = (string?)ViewBag.Contrato;
+    var fornecedorFiltro = (string?)ViewBag.Fornecedor;
+    var contratos = (List<string>)ViewBag.Contratos;
+    var fornecedoresEntradas = (List<string>)ViewBag.FornecedoresEntradas;
+    var projetos = (List<SelectListItem>)ViewBag.ProjetosCapex;
+    var processos = (List<SelectListItem>)ViewBag.Processos;
+    var fornecedores = (List<string>)ViewBag.Fornecedores;
+    var processo = ViewBag.Processo as Processo;
+    var areas = Enum.GetValues<AreaDepartamento>();
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-1">Entradas de stock</h2>
+        <a asp-action="Index" class="small"><span class="fas fa-arrow-left me-1"></span>Voltar ao stock</a>
+    </div>
+    <a class="btn btn-subtle-primary" asp-action="NovaEntrada" asp-route-processoId="@processo?.Id"><span class="fas fa-plus me-1"></span> Compra DEI / entrada manual</a>
+</div>
+
+@if (processo != null)
+{
+    <div class="alert alert-subtle-info small">
+        Receção de material da compra <strong>@(string.IsNullOrWhiteSpace(processo.NumeroProcesso) ? processo.Nome : $"{processo.NumeroProcesso} — {processo.Nome}")</strong>:
+        o processo, o projeto Capex e o fornecedor vencedor ficam ligados à entrada.
+    </div>
+}
+
+<datalist id="lista-fornecedores">
+    @foreach (var f in fornecedores)
+    {
+        <option value="@f"></option>
+    }
+</datalist>
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0"><i class="fas fa-file-import me-1"></i> Importar Packing List</h5><span class="small text-body-tertiary">De qualquer fornecedor (Huawei ou outros).</span></div>
+    <div class="card-body">
+        <form asp-action="ImportarPackingList" method="post" enctype="multipart/form-data" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label for="ficheiro" class="form-label mb-1">Ficheiro (.xls ou .xlsx)</label>
+                <input id="ficheiro" type="file" name="ficheiro" accept=".xls,.xlsx" class="form-control" required />
+            </div>
+            <div class="col-md-4">
+                <label for="processo-pl" class="form-label mb-1">Processo de compra (plataforma)</label>
+                <select id="processo-pl" name="processoId" class="form-select" asp-items="processos">
+                    <option value="">— sem processo —</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="fornecedor-pl" class="form-label mb-1">Fornecedor</label>
+                <input id="fornecedor-pl" name="fornecedor" class="form-control" list="lista-fornecedores" maxlength="150" placeholder="automático (processo ou ficheiro)" />
+            </div>
+            <div class="col-md-2">
+                <label for="area-pl" class="form-label mb-1">Área</label>
+                <select id="area-pl" name="area" class="form-select" asp-items="areas.Select(a => new SelectListItem(a.ToLabel(), a.ToString(), a == (area ?? AreaDepartamento.DepInf)))"></select>
+            </div>
+            <div class="col-md-4">
+                <label for="projeto-pl" class="form-label mb-1">Projeto Capex</label>
+                <select id="projeto-pl" name="projetoPlanoId" class="form-select" asp-items="projetos">
+                    <option value="">— do processo / sem projeto —</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="contrato-pl" class="form-label mb-1">Contrato 1+1</label>
+                <input id="contrato-pl" name="contrato1Mais1" class="form-control" placeholder="Huawei: automático" maxlength="30" />
+            </div>
+            <div class="col-md-4">
+                <label for="local-pl" class="form-label mb-1">Armazém / localização</label>
+                <input id="local-pl" name="localizacao" class="form-control" maxlength="100" placeholder="ex.: Armazém Praia" />
+            </div>
+            <div class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="form-text mt-0">
+                    Reconhece colunas em inglês ou português: código / part number, descrição, quantidade, unidade, nº de série, caixa, site.
+                    Huawei: lê também a folha "SN LIST" e o contrato 1+1 do projeto (ex.: "CVT 2026-2027 1+1 Package" → 1+1_2026).
+                </div>
+                <button type="submit" class="btn btn-primary"><span class="fas fa-upload me-1"></span> Importar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<form method="get" class="d-flex gap-2 flex-wrap align-items-end mb-3">
+    <div>
+        <label for="f-area" class="form-label mb-1 small">Área</label>
+        <select id="f-area" name="area" class="form-select form-select-sm" onchange="this.form.submit()"
+                asp-items="areas.Select(a => new SelectListItem(a.ToLabel(), a.ToString(), a == area))">
+            <option value="" selected="@(area == null)">Todas</option>
+        </select>
+    </div>
+    <div>
+        <label for="f-contrato" class="form-label mb-1 small">Contrato 1+1</label>
+        <select id="f-contrato" name="contrato" class="form-select form-select-sm" onchange="this.form.submit()"
+                asp-items="contratos.Select(c => new SelectListItem(c, c, c == contrato))">
+            <option value="" selected="@(contrato == null)">Todos</option>
+        </select>
+    </div>
+    <div>
+        <label for="f-fornecedor" class="form-label mb-1 small">Fornecedor</label>
+        <select id="f-fornecedor" name="fornecedor" class="form-select form-select-sm" onchange="this.form.submit()"
+                asp-items="fornecedoresEntradas.Select(f => new SelectListItem(f, f, f == fornecedorFiltro))">
+            <option value="" selected="@(fornecedorFiltro == null)">Todos</option>
+        </select>
+    </div>
+</form>
+
+<div class="card">
+    <div class="card-body table-responsive">
+        @if (Model.Count == 0)
+        {
+            <div class="alert alert-info mb-0">Ainda não há entradas com estes filtros.</div>
+        }
+        else
+        {
+            <table class="table table-hover table-sm data-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Documento</th>
+                        <th>Tipo</th>
+                        <th>Área</th>
+                        <th>Contrato 1+1</th>
+                        <th>Projeto Capex</th>
+                        <th>Processo de compra</th>
+                        <th class="text-end">Linhas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var e in Model)
+                    {
+                        <tr>
+                            <td data-order="@e.Data.ToString("yyyy-MM-dd")">@e.Data.ToString("dd/MM/yyyy")</td>
+                            <td><a asp-action="Entrada" asp-route-id="@e.Id">@e.Numero</a><div class="small text-body-tertiary">@(e.Fornecedor ?? "")</div></td>
+                            <td>@e.Tipo.ToLabel()</td>
+                            <td>@e.Area.ToLabel()</td>
+                            <td>@(e.Contrato1Mais1 ?? "-")</td>
+                            <td class="small">@(e.ProjetoPlano?.Nome ?? "-")</td>
+                            <td class="small">
+                                @if (e.PedidoProposta?.Processo is { } proc)
+                                {
+                                    <a asp-controller="Processos" asp-action="Details" asp-route-id="@proc.Id">@(string.IsNullOrWhiteSpace(proc.NumeroProcesso) ? proc.Nome : proc.NumeroProcesso)</a>
+                                }
+                                else
+                                {
+                                    <span>@(e.PedidoProposta?.TipoProposta ?? "-")</span>
+                                }
+                            </td>
+                            <td class="text-end">@e.Movimentos.Count</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

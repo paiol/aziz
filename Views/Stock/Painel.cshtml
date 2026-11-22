@@ -1,0 +1,278 @@
+@using ComparacaoPropostas.Helper
+@using ComparacaoPropostas.Models.Entities
+@using ComparacaoPropostas.Models.Entities.Enums
+@using ComparacaoPropostas.Services.Stock
+@model ComparacaoPropostas.ViewModels.Stock.PainelStockVM
+@{
+    ViewData["Title"] = "Painel de Stock";
+    var m = Model.Material;
+    var areas = Enum.GetValues<AreaDepartamento>();
+    var criticos = Model.Alarmes.Count(a => a.Severidade == SeveridadeAlarme.Critico);
+    var avisos = Model.Alarmes.Count(a => a.Severidade == SeveridadeAlarme.Aviso);
+    var cve = new System.Globalization.CultureInfo("pt-PT");
+    string Cve(decimal v) => v.ToString("N0", cve) + " CVE";
+    var opcoesMaterial = Model.Materiais.Select(x => new SelectListItem(x.Descricao + " (" + x.Codigo + ")", x.Id.ToString(), x.Id == m?.Id)).ToList();
+}
+
+@section Styles {
+    <style>
+        .tile { display: flex; align-items: center; gap: 1rem; padding: 1.1rem 1.25rem; border-radius: .6rem; background: var(--phoenix-emphasis-bg, #fff);
+                border: 1px solid var(--phoenix-border-color, #e3e6ed); text-decoration: none; color: inherit; height: 100%; transition: box-shadow .15s, transform .15s; }
+        .tile:hover, .tile:focus-visible { box-shadow: 0 4px 14px rgba(0,0,0,.08); transform: translateY(-1px); color: inherit; }
+        .tile-icon { width: 3rem; height: 3rem; border-radius: .75rem; display: grid; place-items: center; font-size: 1.35rem; flex: none; }
+        .tile small { display: block; color: var(--phoenix-tertiary-color, #6e7891); font-size: .8rem; }
+        .tile strong { font-size: 1.05rem; }
+        .kpi { display: flex; align-items: center; gap: .9rem; }
+        .kpi-icon { width: 2.8rem; height: 2.8rem; border-radius: 50%; display: grid; place-items: center; font-size: 1.2rem; font-weight: 700; flex: none; }
+        .kpi-valor { font-size: clamp(1rem, 1.5vw, 1.45rem); font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    </style>
+}
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <div>
+        <h2 class="mb-1">Gestão de Stock</h2>
+        <span class="text-body-tertiary">O que se passa no armazém da DEI neste momento@(Model.Area != null ? $" · {Model.Area.Value.ToLabel()}" : "").</span>
+    </div>
+    <form method="get" class="d-flex gap-2 align-items-end">
+        <div>
+            <label for="p-area" class="form-label mb-1 small">Área</label>
+            <select id="p-area" name="area" class="form-select form-select-sm" onchange="this.form.submit()"
+                    asp-items="areas.Select(a => new SelectListItem(a.ToLabel(), a.ToString(), a == Model.Area))">
+                <option value="" selected="@(Model.Area == null)">Todas as áreas</option>
+            </select>
+        </div>
+    </form>
+</div>
+
+@* ---- Atalhos ---- *@
+<div class="row g-3 mb-4">
+    @foreach (var (acao, controlador, rotulo, titulo, icone, cor, fundo) in new[]
+    {
+        ("Index", "Stock", "Lista", "Materiais", "fa-clipboard-list", "#3874ff", "#e5edff"),
+        ("Entradas", "Stock", "Entrada", "Packing List", "fa-truck-ramp-box", "#e5780b", "#fff0de"),
+        ("NovaEntrada", "Stock", "Registo", "Entrada / Compra", "fa-file-circle-plus", "#25b003", "#e2f7dc"),
+        ("NovaSaida", "Stock", "Registo", "Saída", "fa-dolly", "#d48800", "#fff6d6"),
+        ("Saidas", "Stock", "Lista", "Saídas", "fa-list-check", "#6e7891", "#eef0f4"),
+        ("Index", "Inventario", "Armazém", "Inventário", "fa-clipboard-check", "#0097eb", "#ddf3ff"),
+        ("Alarmes", "Stock", "Alertas", "Alarmes", "fa-bell", "#ec1f00", "#ffe3de"),
+        ("Index", "Capex", "Capex", "Projetos", "fa-sack-dollar", "#a43fbf", "#f6e6fa")
+    })
+    {
+        <div class="col-6 col-md-4 col-xl-3">
+            <a class="tile" asp-controller="@controlador" asp-action="@acao" asp-route-area="@(controlador == "Stock" ? Model.Area : null)">
+                <span class="tile-icon" style="color: @cor; background: @fundo"><i class="fas @icone"></i></span>
+                <span><small>@rotulo</small><strong>@titulo</strong>
+                    @if (acao == "Alarmes" && Model.Alarmes.Count > 0)
+                    {
+                        <span class="badge bg-danger ms-1">@Model.Alarmes.Count</span>
+                    }
+                </span>
+            </a>
+        </div>
+    }
+</div>
+
+@* ---- Indicadores ---- *@
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-4">
+            <div class="col-md-3 kpi">
+                <span class="kpi-icon" style="background:#fff0de;color:#e5780b">+</span>
+                <div><div class="kpi-valor">@Cve(Model.ValorEntradas)</div><span class="text-body-tertiary small">Entradas · @Model.NumEntradas movimento(s)</span></div>
+            </div>
+            <div class="col-md-3 kpi">
+                <span class="kpi-icon" style="background:#e5edff;color:#3874ff">−</span>
+                <div><div class="kpi-valor">@Cve(Model.ValorSaidas)</div><span class="text-body-tertiary small">Saídas · @Model.NumSaidas movimento(s)</span></div>
+            </div>
+            <div class="col-md-3 kpi">
+                <span class="kpi-icon" style="background:#e2f7dc;color:#25b003">=</span>
+                <div><div class="kpi-valor">@Cve(Model.ValorStock)</div><span class="text-body-tertiary small">Stock · @Model.NumMateriaisComStock material(is)</span></div>
+            </div>
+            <div class="col-md-3 kpi">
+                <span class="kpi-icon" style="background:#ffe3de;color:#ec1f00"><i class="fas fa-bell"></i></span>
+                <div>
+                    <div class="kpi-valor">@Model.Alarmes.Count</div>
+                    <span class="small"><span class="text-danger">@criticos crítico(s)</span> · <span class="text-warning">@avisos aviso(s)</span></span>
+                </div>
+            </div>
+        </div>
+        @if (Model.MateriaisSemPreco > 0)
+        {
+            <div class="small text-body-tertiary mt-3">@Model.MateriaisSemPreco material(is) sem preço unitário não entram nos valores em CVE (defina o preço na ficha do material).</div>
+        }
+    </div>
+</div>
+
+@* ---- Material escolhido ---- *@
+@if (m != null)
+{
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h4 class="mb-0"><a asp-action="Material" asp-route-id="@m.Id" class="text-reset">@m.Descricao</a></h4>
+                <span class="text-body-tertiary small">@m.Codigo @(m.Modelo != null ? "· " + m.Modelo : "") @(m.Fabricante != null ? "· " + m.Fabricante : "")</span>
+            </div>
+            <form method="get" style="min-width: 18rem">
+                <input type="hidden" name="area" value="@Model.Area" />
+                <select name="materialId" class="form-select" onchange="this.form.submit()" aria-label="Material"
+                        asp-items="opcoesMaterial"></select>
+            </form>
+        </div>
+        <div class="card-body">
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <div class="d-flex justify-content-between"><h6>Quantidades (@(m.Unidade ?? "un."))</h6><span class="small">Stock: <strong>@Model.QtdStock.ToQtd()</strong></span></div>
+                    <table class="table table-sm mb-2">
+                        <tr><td><span class="badge" style="background:#e5780b">&nbsp;</span> Entradas</td><td class="text-end">@Model.QtdEntradas.ToQtd()</td></tr>
+                        <tr><td><span class="badge" style="background:#3874ff">&nbsp;</span> Saídas</td><td class="text-end">@Model.QtdSaidas.ToQtd()</td></tr>
+                        @if (Model.QtdAjustes != 0)
+                        {
+                            <tr><td><span class="badge bg-secondary">&nbsp;</span> Ajustes (inventário)</td><td class="text-end">@Model.QtdAjustes.ToQtd()</td></tr>
+                        }
+                        <tr class="fw-semibold"><td><span class="badge" style="background:#25b003">&nbsp;</span> Stock</td><td class="text-end">@Model.QtdStock.ToQtd()</td></tr>
+                    </table>
+                    <div style="height: 220px">
+                        <canvas class="js-grafico" data-grafico="@GraficoHelper.Circular(new[] { "Saídas", "Stock" }, new[] { Model.QtdSaidas, Math.Max(0, Model.QtdStock) })"></canvas>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="d-flex justify-content-between"><h6>Valores (CVE)</h6><span class="small">Preço: @(m.PrecoUnitario is decimal pu ? Cve(pu) : "sem preço")</span></div>
+                    @if (m.PrecoUnitario is decimal preco)
+                    {
+                        <table class="table table-sm mb-2">
+                            <tr><td>Entradas</td><td class="text-end">@Cve(Model.QtdEntradas * preco)</td></tr>
+                            <tr><td>Saídas</td><td class="text-end">@Cve(Model.QtdSaidas * preco)</td></tr>
+                            <tr class="fw-semibold"><td>Stock</td><td class="text-end">@Cve(Model.QtdStock * preco)</td></tr>
+                        </table>
+                        <div style="height: 220px">
+                            <canvas class="js-grafico" data-moeda="cve" data-grafico="@GraficoHelper.Circular(new[] { "Saídas", "Stock" }, new[] { Model.QtdSaidas * preco, Math.Max(0, Model.QtdStock * preco) })"></canvas>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-subtle-secondary small">Defina o preço unitário na <a asp-action="Material" asp-route-id="@m.Id">ficha do material</a> para ver os valores.</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-info">Ainda não há movimentos de stock@(Model.Area != null ? " nesta área" : ""). Comece por importar um Packing List ou fazer o inventário do armazém.</div>
+}
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header py-2"><h6 class="mb-0">Entradas e saídas por mês (CVE)</h6></div>
+            <div class="card-body" style="height: 260px">
+                <canvas class="js-grafico" data-moeda="cve" data-grafico="@GraficoHelper.Barras(Model.ValorPorMes.Select(x => x.Mes), new[] {
+                    new GraficoHelper.Serie("Entradas", Model.ValorPorMes.Select(x => x.Entradas)),
+                    new GraficoHelper.Serie("Saídas", Model.ValorPorMes.Select(x => x.Saidas)) })"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header py-2"><h6 class="mb-0">Stock por área</h6></div>
+            <div class="card-body table-responsive">
+                <table class="table table-sm mb-2">
+                    <thead><tr><th>Área</th><th class="text-end">Materiais</th><th class="text-end">Valor</th></tr></thead>
+                    <tbody>
+                        @foreach (var a in Model.PorArea)
+                        {
+                            <tr><td>@a.Area</td><td class="text-end">@a.Materiais</td><td class="text-end">@Cve(a.Valor)</td></tr>
+                        }
+                    </tbody>
+                </table>
+                <div style="height: 150px">
+                    <canvas class="js-grafico" data-moeda="cve" data-grafico="@GraficoHelper.Barras(Model.PorArea.Select(a => a.Area), "Valor em stock", Model.PorArea.Select(a => a.Valor), horizontal: true)"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="fas fa-bell text-danger me-1"></i> Alarmes</h6>
+                <a asp-action="Alarmes" asp-route-area="@Model.Area" class="small">Ver todos (@Model.Alarmes.Count)</a>
+            </div>
+            <div class="card-body table-responsive">
+                @if (Model.Alarmes.Count == 0)
+                {
+                    <div class="text-success small"><i class="fas fa-circle-check me-1"></i> Sem alarmes.</div>
+                }
+                else
+                {
+                    <table class="table table-sm mb-0">
+                        <tbody>
+                            @foreach (var a in Model.Alarmes.Take(8))
+                            {
+                                <tr>
+                                    <td><span class="@a.Severidade.ToBadgeClass()">@a.Tipo.ToLabel()</span></td>
+                                    <td><a asp-action="Material" asp-route-id="@a.Material.Id">@a.Material.Codigo</a><div class="small text-body-tertiary">@a.Material.Descricao</div></td>
+                                    <td class="small">@a.Mensagem</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header py-2"><h6 class="mb-0">Consumo por projeto (saídas)</h6></div>
+            <div class="card-body table-responsive">
+                @if (Model.ConsumoPorProjeto.Count == 0)
+                {
+                    <div class="text-body-tertiary small">Ainda não há saídas.</div>
+                }
+                else
+                {
+                    <table class="table table-sm mb-0">
+                        <thead><tr><th>Projeto</th><th class="text-end">Saídas</th><th class="text-end">Valor</th></tr></thead>
+                        <tbody>
+                            @foreach (var c in Model.ConsumoPorProjeto.Take(10))
+                            {
+                                <tr>
+                                    <td class="small">@if (c.ProjetoId != null) { <a asp-controller="ProjetosPlano" asp-action="Details" asp-route-id="@c.ProjetoId">@c.Projeto</a> } else { @c.Projeto }</td>
+                                    <td class="text-end">@c.Saidas</td>
+                                    <td class="text-end">@Cve(c.Valor)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header py-2"><h6 class="mb-0">Últimos movimentos</h6></div>
+            <div class="card-body table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>Data</th><th>Tipo</th><th>Área</th><th>Material</th><th class="text-end">Qtd.</th><th>Projeto / site</th></tr></thead>
+                    <tbody>
+                        @foreach (var mv in Model.UltimosMovimentos)
+                        {
+                            var mat = Model.Materiais.FirstOrDefault(x => x.Id == mv.MaterialStockId);
+                            <tr>
+                                <td>@mv.Data.ToString("dd/MM/yyyy")</td>
+                                <td><span class="@mv.Tipo.ToBadgeClass()">@mv.Tipo.ToLabel()</span></td>
+                                <td>@mv.Area.ToLabel()</td>
+                                <td><a asp-action="Material" asp-route-id="@mv.MaterialStockId">@(mat?.Codigo)</a> <span class="small text-body-tertiary">@(mat?.Descricao)</span></td>
+                                <td class="text-end">@StockCalculos.Efeito(mv).ToQtd()</td>
+                                <td class="small">@(mv.ProjetoPlano?.Nome ?? mv.Site ?? "-")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

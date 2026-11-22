@@ -1,0 +1,95 @@
+@using ComparacaoPropostas.Helper
+@using ComparacaoPropostas.Models.Entities
+@using ComparacaoPropostas.Models.Entities.Enums
+@model ComparacaoPropostas.ViewModels.Stock.NovaSaidaVM
+@{
+    ViewData["Title"] = "Registar saída";
+    var materiais = (List<SelectListItem>)ViewBag.Materiais;
+    var series = (List<NumeroSerieStock>)ViewBag.SeriesDisponiveis;
+    var projetos = (List<SelectListItem>)ViewBag.ProjetosCapex;
+    var saldo = (decimal)(ViewBag.Saldo ?? 0m);
+}
+
+<h2>Registar saída de stock</h2>
+<p class="text-body-tertiary">Material que sai do armazém para um projeto ou site. Escolha primeiro a área e o material.</p>
+
+@* Escolher área / material recarrega a página com o saldo e os números de série disponíveis *@
+<form method="get" class="card mb-3">
+    <div class="card-body row g-3 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label" for="g-area">Área</label>
+            <select id="g-area" name="area" class="form-select" onchange="this.form.submit()"
+                    asp-items="Enum.GetValues<AreaDepartamento>().Select(a => new SelectListItem(a.ToLabel(), a.ToString(), a == Model.Area))"></select>
+        </div>
+        <div class="col-md-9">
+            <label class="form-label" for="g-material">Material (com stock na área)</label>
+            <select id="g-material" name="materialStockId" class="form-select" onchange="this.form.submit()" asp-items="materiais">
+                <option value="">— escolha —</option>
+            </select>
+        </div>
+        <input type="hidden" name="projetoPlanoId" value="@Model.ProjetoPlanoId" />
+    </div>
+</form>
+
+@if (Model.MaterialStockId != null)
+{
+    <form asp-action="NovaSaida" method="post">
+        <input type="hidden" asp-for="MaterialStockId" />
+        <input type="hidden" asp-for="Area" />
+        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+        <div class="card mb-3">
+            <div class="card-body row g-3">
+                <div class="col-md-2">
+                    <label asp-for="Quantidade" class="form-label"></label>
+                    <input asp-for="Quantidade" class="form-control" type="text" inputmode="decimal" />
+                    <div class="form-text">Em stock: @saldo.ToQtd()</div>
+                </div>
+                <div class="col-md-2">
+                    <label asp-for="Data" class="form-label"></label>
+                    <input asp-for="Data" class="form-control" type="date" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="ProjetoPlanoId" class="form-label"></label>
+                    <select asp-for="ProjetoPlanoId" class="form-select" asp-items="projetos"><option value="">— sem projeto —</option></select>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Site" class="form-label"></label>
+                    <input asp-for="Site" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Destino" class="form-label"></label>
+                    <input asp-for="Destino" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Responsavel" class="form-label"></label>
+                    <input asp-for="Responsavel" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Observacoes" class="form-label"></label>
+                    <input asp-for="Observacoes" class="form-control" />
+                </div>
+            </div>
+        </div>
+
+        @if (series.Count > 0)
+        {
+            <div class="card mb-3">
+                <div class="card-header"><h5 class="mb-0">Números de série a sair</h5><span class="small text-body-tertiary">Escolha um número de série por unidade (@series.Count em armazém nesta área).</span></div>
+                <div class="card-body d-flex flex-wrap gap-3">
+                    @foreach (var s in series)
+                    {
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="SeriesEscolhidas" value="@s.Id" id="s-@s.Id" checked="@Model.SeriesEscolhidas.Contains(s.Id)" />
+                            <label class="form-check-label font-monospace small" for="s-@s.Id">@s.Serie @(s.Caixa != null ? $"(caixa {s.Caixa})" : "")</label>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <div class="mb-4">
+            <button type="submit" class="btn btn-warning"><span class="fas fa-dolly me-1"></span> Registar saída</button>
+            <a asp-action="Index" class="btn btn-subtle-secondary">Cancelar</a>
+        </div>
+    </form>
+}

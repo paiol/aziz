@@ -1,0 +1,45 @@
+@using ComparacaoPropostas.Helper
+@using ComparacaoPropostas.Models.Entities
+@model List<ComparacaoPropostas.Models.Entities.InventarioStock>
+@{
+    ViewData["Title"] = "Inventários";
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-1">Inventários do armazém</h2>
+        <span class="text-body-tertiary">Contagens físicas por área. Ao fechar um inventário, o stock da área passa a ser o contado.</span>
+    </div>
+    <a class="btn btn-primary" asp-action="Create"><span class="fas fa-plus me-1"></span> Novo inventário</a>
+</div>
+
+<div class="card">
+    <div class="card-body table-responsive">
+        @if (Model.Count == 0)
+        {
+            <div class="alert alert-info mb-0">Ainda não há inventários. Crie um e importe o Excel da contagem do armazém.</div>
+        }
+        else
+        {
+            <table class="table table-hover table-sm data-table">
+                <thead>
+                    <tr><th>Data</th><th>Área</th><th>Armazém</th><th>Descrição</th><th>Estado</th><th class="text-end">Linhas</th><th class="text-end">Contadas</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var i in Model)
+                    {
+                        <tr>
+                            <td data-order="@i.Data.ToString("yyyy-MM-dd")"><a asp-action="Details" asp-route-id="@i.Id">@i.Data.ToString("dd/MM/yyyy")</a></td>
+                            <td>@i.Area.ToLabel()</td>
+                            <td>@(i.Localizacao ?? "-")</td>
+                            <td class="small">@(i.Descricao ?? "-")</td>
+                            <td><span class="badge @(i.Estado == EstadoInventario.Fechado ? "bg-success" : "bg-warning text-dark")">@(i.Estado == EstadoInventario.Fechado ? "Fechado" : "Aberto")</span></td>
+                            <td class="text-end">@i.Linhas.Count</td>
+                            <td class="text-end">@i.Linhas.Count(l => l.QuantidadeContada != null)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
