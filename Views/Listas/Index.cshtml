@@ -97,17 +97,20 @@
                                             }
                                         </td>
                                         <td class="text-end text-nowrap">
-                                            <form id="@formId" asp-action="Editar" asp-route-id="@v.Id" method="post" class="d-inline">
-                                                <button type="submit" class="btn btn-sm btn-subtle-primary" title="Guardar alterações (renomear atualiza os projetos)">Guardar</button>
-                                            </form>
-                                            <form asp-action="Alternar" asp-route-id="@v.Id" method="post" class="d-inline">
-                                                <button type="submit" class="btn btn-sm btn-subtle-secondary">@(v.Ativo ? "Desativar" : "Ativar")</button>
-                                            </form>
-                                            @if (l.Usos == 0)
-                                            {
-                                                <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
-                                                        data-url="@Url.Action("Delete", new { id = v.Id })" data-id="@v.Id" title="Apagar"><i class="fas fa-trash"></i></button>
-                                            }
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-subtle-secondary btn-menu-acoes" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Opções"><i class="fas fa-ellipsis"></i></button>
+                                                <ul class="dropdown-menu dropdown-menu-end">
+                                                    <li><button type="submit" form="@formId" class="dropdown-item"><i class="fas fa-floppy-disk me-2"></i>Guardar alterações</button></li>
+                                                    <li><button type="submit" form="alt-@v.Id" class="dropdown-item"><i class="fas @(v.Ativo ? "fa-eye-slash" : "fa-eye") me-2"></i>@(v.Ativo ? "Desativar" : "Ativar")</button></li>
+                                                    @if (l.Usos == 0)
+                                                    {
+                                                        <li><hr class="dropdown-divider" /></li>
+                                                        <li><button type="button" class="dropdown-item text-danger js-delete-btn" data-url="@Url.Action("Delete", new { id = v.Id })" data-id="@v.Id"><i class="fas fa-trash me-2"></i>Apagar</button></li>
+                                                    }
+                                                </ul>
+                                            </div>
+                                            <form id="@formId" asp-action="Editar" asp-route-id="@v.Id" method="post" class="d-none"></form>
+                                            <form id="alt-@v.Id" asp-action="Alternar" asp-route-id="@v.Id" method="post" class="d-none"></form>
                                         </td>
                                     </tr>
                                 }

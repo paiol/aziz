@@ -79,20 +79,17 @@
                             }
                         </td>
                         <td class="text-end">
-                            <div class="d-inline-flex flex-column gap-1">
-                                <a class="btn btn-sm btn-subtle-secondary" asp-action="Edit" asp-route-id="@p.Id" title="Editar">
-                                    <i class="fas fa-edit me-1"></i> Editar
-                                </a>
-                                <a class="btn btn-sm btn-subtle-secondary" asp-controller="ItensPedido" asp-action="Index" asp-route-pedidoId="@p.Id" title="Gerir Itens">
-                                    <i class="fas fa-list me-1"></i> Gerir Itens
-                                </a>
-                                @if (p.Processo == null)
-                                {
-                                    <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
-                                            data-url="@Url.Action("Delete", new { id = p.Id })" data-id="@p.Id" title="Apagar">
-                                        <i class="fas fa-trash me-1"></i> Apagar
-                                    </button>
-                                }
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-subtle-secondary btn-menu-acoes" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Opções"><i class="fas fa-ellipsis"></i></button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" asp-action="Edit" asp-route-id="@p.Id"><i class="fas fa-pen me-2"></i>Editar</a></li>
+                                    <li><a class="dropdown-item" asp-controller="ItensPedido" asp-action="Index" asp-route-pedidoId="@p.Id"><i class="fas fa-list me-2"></i>Gerir itens</a></li>
+                                    @if (p.Processo == null)
+                                    {
+                                        <li><hr class="dropdown-divider" /></li>
+                                        <li><button type="button" class="dropdown-item text-danger js-delete-btn" data-url="@Url.Action("Delete", new { id = p.Id })" data-id="@p.Id"><i class="fas fa-trash me-2"></i>Apagar</button></li>
+                                    }
+                                </ul>
                             </div>
                         </td>
                     </tr>
