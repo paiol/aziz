@@ -54,6 +54,7 @@ public class AppDbContext : DbContext
     public DbSet<NumeroSerieStock> NumerosSerieStock => Set<NumeroSerieStock>();
     public DbSet<InventarioStock> InventariosStock => Set<InventarioStock>();
     public DbSet<LinhaInventario> LinhasInventario => Set<LinhaInventario>();
+    public DbSet<DivergenciaNomeMaterial> DivergenciasNomeMaterial => Set<DivergenciaNomeMaterial>();
 
     // Integração App → Airtable (ver Services/Airtable).
     public DbSet<AirtableLink> AirtableLinks => Set<AirtableLink>();
@@ -371,6 +372,16 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<MovimentoStock>()
             .HasOne(x => x.Inventario).WithMany().HasForeignKey(x => x.InventarioStockId).OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<DivergenciaNomeMaterial>(e =>
+        {
+            e.Property(x => x.Origem).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Estado).HasConversion<string>().HasMaxLength(20);
+            e.HasIndex(x => new { x.MaterialStockId, x.Estado });
+            e.HasOne(x => x.Material).WithMany(m => m.DivergenciasNome).HasForeignKey(x => x.MaterialStockId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Entrada).WithMany().HasForeignKey(x => x.EntradaStockId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Inventario).WithMany().HasForeignKey(x => x.InventarioStockId).OnDelete(DeleteBehavior.SetNull);
+        });
 
         // Módulo Plano — listas de escolha (valores iniciais da folha "Listas" do ficheiro SCOPE)
         modelBuilder.Entity<ValorLista>(e =>

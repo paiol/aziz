@@ -8,6 +8,7 @@
     var aberto = inv.Estado == EstadoInventario.Aberto;
     decimal Sistema(LinhaInventario l) => aberto ? saldos.GetValueOrDefault(l.Codigo) : l.QuantidadeSistema ?? 0m;
     var linhas = inv.Linhas.OrderBy(l => l.Descricao ?? l.Codigo).ToList();
+    var nomesCatalogo = (Dictionary<string, string>)ViewBag.NomesCatalogo;
     var comDiferenca = linhas.Count(l => l.QuantidadeContada != null && l.QuantidadeContada != Sistema(l));
 }
 
@@ -67,7 +68,14 @@
                         var dif = l.QuantidadeContada is decimal c ? c - sistema : (decimal?)null;
                         <tr class="@(dif is decimal d && d != 0 ? "table-warning" : "")">
                             <td class="text-nowrap">@if (l.MaterialStockId != null) { <a asp-controller="Stock" asp-action="Material" asp-route-id="@l.MaterialStockId">@l.Codigo</a> } else { @l.Codigo <span class="badge bg-info text-dark ms-1" title="Material novo: é criado ao fechar">novo</span> }</td>
-                            <td class="small">@(l.Descricao ?? "-")</td>
+                            <td class="small">
+                                @(l.Descricao ?? "-")
+                                @if (nomesCatalogo.TryGetValue(l.Codigo, out var nomeCat) && ComparacaoPropostas.Services.Stock.NomesMaterial.Diferem(l.Descricao, nomeCat))
+                                {
+                                    <span class="badge bg-warning text-dark ms-1" title="Mesmo código, nome diferente no catálogo: @nomeCat"><i class="fas fa-triangle-exclamation me-1"></i>nome diferente</span>
+                                    <span class="d-block text-body-tertiary">Catálogo: @nomeCat</span>
+                                }
+                            </td>
                             <td>@(l.Unidade ?? "-")</td>
                             <td class="text-end">@sistema.ToQtd()</td>
                             <td class="text-end">

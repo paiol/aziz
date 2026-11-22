@@ -35,11 +35,11 @@
     @foreach (var t in Enum.GetValues<TipoAlarmeStock>())
     {
         var n = Model.Count(a => a.Tipo == t);
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md">
             <a class="card h-100 text-decoration-none" asp-action="Alarmes" asp-route-area="@area" asp-route-tipo="@t">
                 <div class="card-body py-2">
                     <span class="text-body-tertiary small d-block">@t.ToLabel()</span>
-                    <span class="fw-semibold @(n > 0 && t is TipoAlarmeStock.SaldoNegativo or TipoAlarmeStock.Esgotado ? "text-danger" : n > 0 && t == TipoAlarmeStock.AbaixoMinimo ? "text-warning" : "")" style="font-size: 1.4rem">@n</span>
+                    <span class="fw-semibold @(n > 0 && t is TipoAlarmeStock.SaldoNegativo or TipoAlarmeStock.Esgotado ? "text-danger" : n > 0 && t is TipoAlarmeStock.AbaixoMinimo or TipoAlarmeStock.NomeDiferente ? "text-warning" : "")" style="font-size: 1.4rem">@n</span>
                 </div>
             </a>
         </div>
@@ -55,7 +55,7 @@
         else
         {
             <table class="table table-hover table-sm data-table">
-                <thead><tr><th>Severidade</th><th>Alarme</th><th>Código</th><th>Material</th><th>Área</th><th class="text-end">Saldo</th><th>Detalhe</th><th></th></tr></thead>
+                <thead><tr><th>Severidade</th><th>Alarme</th><th>Código</th><th>Material</th><th>Área</th><th class="text-end">Saldo</th><th>Detalhe</th><th style="width: 1%"></th></tr></thead>
                 <tbody>
                     @foreach (var a in Model)
                     {
@@ -63,21 +63,43 @@
                             <td data-order="@((int)a.Severidade)"><span class="@a.Severidade.ToBadgeClass()">@(a.Severidade switch { SeveridadeAlarme.Critico => "Crítico", SeveridadeAlarme.Aviso => "Aviso", _ => "Info" })</span></td>
                             <td>@a.Tipo.ToLabel()</td>
                             <td><a asp-action="Material" asp-route-id="@a.Material.Id">@a.Material.Codigo</a></td>
-                            <td class="small">@a.Material.Descricao</td>
+                            <td class="small">@a.Material.Descricao@if (a.Divergencia != null) { <span class="d-block text-body-tertiary">no catálogo</span> }</td>
                             <td>@(a.Area?.ToLabel() ?? "Todas")</td>
                             <td class="text-end">@a.Saldo.ToQtd() @a.Material.Unidade</td>
                             <td class="small">@a.Mensagem</td>
-                            <td class="text-end text-nowrap">
-                                @if (a.Tipo is TipoAlarmeStock.AbaixoMinimo or TipoAlarmeStock.Esgotado)
+                            <td class="text-end">
+                                @if (a.Tipo is TipoAlarmeStock.AbaixoMinimo or TipoAlarmeStock.Esgotado or TipoAlarmeStock.NomeDiferente)
                                 {
-                                    <a class="btn btn-sm btn-subtle-primary" asp-controller="Pedidos" asp-action="Create" title="Abrir um pedido de compra">Comprar</a>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-subtle-secondary btn-menu-acoes" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Opções"><i class="fas fa-ellipsis"></i></button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            @if (a.Divergencia is { } d)
+                                            {
+                                                <li><h6 class="dropdown-header">Código @a.Material.Codigo · alerta #@d.Id</h6></li>
+                                                <li><button type="submit" form="nome-@d.Id" name="usarRecebido" value="false" class="dropdown-item"><i class="fas fa-check me-2"></i>Manter nome do catálogo</button></li>
+                                                <li><button type="submit" form="nome-@d.Id" name="usarRecebido" value="true" class="dropdown-item"><i class="fas fa-pen-to-square me-2"></i>Usar "@d.NomeRecebido"</button></li>
+                                                <li><hr class="dropdown-divider" /></li>
+                                            }
+                                            else
+                                            {
+                                                <li><a class="dropdown-item" asp-controller="Pedidos" asp-action="Create"><i class="fas fa-cart-plus me-2"></i>Abrir pedido de compra</a></li>
+                                            }
+                                            <li><a class="dropdown-item" asp-action="Material" asp-route-id="@a.Material.Id"><i class="fas fa-eye me-2"></i>Ver material</a></li>
+                                        </ul>
+                                    </div>
+                                    @if (a.Divergencia is { } dv)
+                                    {
+                                        <form id="nome-@dv.Id" asp-action="ResolverNome" asp-route-id="@dv.Id" method="post" class="d-none">
+                                            <input type="hidden" name="voltarPara" value="@(Context.Request.Path + Context.Request.QueryString)" />
+                                        </form>
+                                    }
                                 }
                             </td>
                         </tr>
                     }
                 </tbody>
             </table>
-            <div class="form-text">Regras: saldo negativo numa área (erro de registo) · esgotado e abaixo do mínimo (quando o material tem stock mínimo) · stock parado sem saídas há mais de @StockAlarmes.DiasParadoPadrao dias (ou o limite definido no material).</div>
+            <div class="form-text">Regras: saldo negativo numa área (erro de registo) · esgotado e abaixo do mínimo (quando o material tem stock mínimo) · stock parado sem saídas há mais de @StockAlarmes.DiasParadoPadrao dias (ou o limite definido no material) · nome diferente: o mesmo código (ID) chegou do armazém, de um Packing List ou de uma entrada com outro nome.</div>
         }
     </div>
 </div>

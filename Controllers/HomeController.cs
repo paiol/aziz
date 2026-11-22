@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ComparacaoPropostas.Data;
 using ComparacaoPropostas.Models;
+using ComparacaoPropostas.Models.Entities;
 using ComparacaoPropostas.Models.Entities.Enums;
 using ComparacaoPropostas.Services;
 using ComparacaoPropostas.ViewModels.Inicio;
@@ -80,7 +81,7 @@ public class HomeController : Controller
         vm.NumItensMaterial = _db.ItensMaterial.Count();
         vm.NumAvaliadores = _db.Avaliadores.Count();
 
-        var materiais = _db.MateriaisStock.Include(m => m.Movimentos).AsNoTracking().ToList();
+        var materiais = _db.MateriaisStock.Include(m => m.Movimentos).Include(m => m.DivergenciasNome.Where(d => d.Estado == EstadoDivergenciaNome.Pendente)).AsNoTracking().ToList();
         var alarmes = ComparacaoPropostas.Services.Stock.StockAlarmes.Calcular(materiais, DateTime.Today);
         vm.NumMateriaisStock = materiais.Count(m => ComparacaoPropostas.Services.Stock.StockCalculos.Saldo(m.Movimentos) > 0);
         vm.ValorStock = materiais.Sum(m => (m.PrecoUnitario ?? 0m) * ComparacaoPropostas.Services.Stock.StockCalculos.Saldo(m.Movimentos));

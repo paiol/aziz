@@ -249,3 +249,60 @@ public class StockAlarmesTests
         Assert.Equal(TipoAlarmeStock.AbaixoMinimo, Assert.Single(StockAlarmes.Calcular(new[] { m }, Hoje, AreaDepartamento.DepSaf)).Tipo);
     }
 }
+
+public class NomesMaterialTests
+{
+    private static MaterialStock Material() => new() { Id = 7, Codigo = "02312ABC", Descricao = "Cabo de fibra óptica 24F" };
+
+    [Theory]
+    [InlineData("Cabo de fibra óptica 24F", "CABO DE FIBRA OPTICA 24F")]
+    [InlineData("Cabo de fibra óptica 24F", "  cabo  de fibra-óptica, 24F ")]
+    public void MesmoNomeComAcentosOuPontuacaoDiferentesNaoDifere(string a, string b) =>
+        Assert.False(NomesMaterial.Diferem(a, b));
+
+    [Fact]
+    public void NomesDiferentesDiferem()
+    {
+        Assert.True(NomesMaterial.Diferem("Cabo de fibra óptica 24F", "Cabo FO 24 fibras"));
+        Assert.False(NomesMaterial.Diferem("Cabo", null));
+    }
+
+    [Fact]
+    public void AlertaSoParaNomeNovo()
+    {
+        var m = Material();
+        Assert.True(NomesMaterial.PrecisaAlerta(m, "Cabo FO 24 fibras", []));
+        Assert.False(NomesMaterial.PrecisaAlerta(m, "cabo de fibra optica 24f", []));
+        Assert.False(NomesMaterial.PrecisaAlerta(m, "02312abc", []));   // vem só o código
+        Assert.False(NomesMaterial.PrecisaAlerta(m, "", []));
+    }
+
+    [Fact]
+    public void NomeJaVistoOuDecididoNaoRepeteAlerta()
+    {
+        var m = Material();
+        var pendente = new DivergenciaNomeMaterial { NomeCatalogo = m.Descricao, NomeRecebido = "Cabo FO 24 fibras" };
+        Assert.False(NomesMaterial.PrecisaAlerta(m, "CABO FO 24 FIBRAS", [pendente]));
+
+        // Catálogo atualizado para o nome do armazém: o nome antigo continua conhecido.
+        m.Descricao = "Cabo FO 24 fibras";
+        var decidida = new DivergenciaNomeMaterial { NomeCatalogo = "Cabo de fibra óptica 24F", NomeRecebido = "Cabo FO 24 fibras", Estado = EstadoDivergenciaNome.NomeAtualizado };
+        Assert.False(NomesMaterial.PrecisaAlerta(m, "Cabo de fibra óptica 24F", [decidida]));
+        Assert.True(NomesMaterial.PrecisaAlerta(m, "Fibra 24", [decidida]));
+    }
+
+    [Fact]
+    public void AlertaPendenteApareceNosAlarmes()
+    {
+        var m = Material();
+        m.DivergenciasNome.Add(new DivergenciaNomeMaterial { Id = 3, NomeCatalogo = m.Descricao, NomeRecebido = "Cabo FO 24 fibras", Origem = OrigemNomeMaterial.Inventario, Referencia = "Inventário #1" });
+        m.DivergenciasNome.Add(new DivergenciaNomeMaterial { Id = 4, NomeCatalogo = m.Descricao, NomeRecebido = "Outro", Estado = EstadoDivergenciaNome.MantidoCatalogo });
+
+        var alarmes = StockAlarmes.Calcular([m], DateTime.Today);
+
+        var a = Assert.Single(alarmes);
+        Assert.Equal(TipoAlarmeStock.NomeDiferente, a.Tipo);
+        Assert.Equal(3, a.Divergencia!.Id);
+        Assert.Contains("Cabo FO 24 fibras", a.Mensagem);
+    }
+}

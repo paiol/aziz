@@ -32,6 +32,22 @@ public static class StockLabelExtensions
 
     public static string ToLabel(this EstadoNumeroSerie estado) => estado == EstadoNumeroSerie.EmArmazem ? "Em armazém" : "Saiu";
 
+    public static string ToLabel(this OrigemNomeMaterial origem) => origem switch
+    {
+        OrigemNomeMaterial.Inventario => "Inventário do armazém",
+        OrigemNomeMaterial.PackingList => "Packing List",
+        OrigemNomeMaterial.Entrada => "Entrada / compra DEI",
+        _ => origem.ToString()
+    };
+
+    public static string ToLabel(this EstadoDivergenciaNome estado) => estado switch
+    {
+        EstadoDivergenciaNome.Pendente => "Por decidir",
+        EstadoDivergenciaNome.MantidoCatalogo => "Mantido o nome do catálogo",
+        EstadoDivergenciaNome.NomeAtualizado => "Catálogo atualizado",
+        _ => estado.ToString()
+    };
+
     // Quantidades de stock: sem casas decimais desnecessárias (metros podem ter decimais).
     public static string ToQtd(this decimal valor) => valor.ToString("#,##0.###", PtPT);
 }
