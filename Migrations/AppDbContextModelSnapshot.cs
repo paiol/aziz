@@ -354,6 +354,62 @@ namespace ComparacaoPropostas.Migrations
                     b.ToTable("CriteriosObra");
                 });
 
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.DivergenciaNomeMaterial", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("EntradaStockId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int?>("InventarioStockId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MaterialStockId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NomeCatalogo")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NomeRecebido")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Origem")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Referencia")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime?>("ResolvidoEm")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntradaStockId");
+
+                    b.HasIndex("InventarioStockId");
+
+                    b.HasIndex("MaterialStockId", "Estado");
+
+                    b.ToTable("DivergenciasNomeMaterial");
+                });
+
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.EntradaStock", b =>
                 {
                     b.Property<int>("Id")
@@ -2688,6 +2744,31 @@ namespace ComparacaoPropostas.Migrations
                     b.Navigation("ProjetoObra");
                 });
 
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.DivergenciaNomeMaterial", b =>
+                {
+                    b.HasOne("ComparacaoPropostas.Models.Entities.EntradaStock", "Entrada")
+                        .WithMany()
+                        .HasForeignKey("EntradaStockId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("ComparacaoPropostas.Models.Entities.InventarioStock", "Inventario")
+                        .WithMany()
+                        .HasForeignKey("InventarioStockId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("ComparacaoPropostas.Models.Entities.MaterialStock", "Material")
+                        .WithMany("DivergenciasNome")
+                        .HasForeignKey("MaterialStockId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Entrada");
+
+                    b.Navigation("Inventario");
+
+                    b.Navigation("Material");
+                });
+
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.EntradaStock", b =>
                 {
                     b.HasOne("ComparacaoPropostas.Models.Entities.PedidoProposta", "PedidoProposta")
@@ -3021,6 +3102,8 @@ namespace ComparacaoPropostas.Migrations
 
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.MaterialStock", b =>
                 {
+                    b.Navigation("DivergenciasNome");
+
                     b.Navigation("Movimentos");
 
                     b.Navigation("NumerosSerie");

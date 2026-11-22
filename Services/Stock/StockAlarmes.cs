@@ -1,3 +1,4 @@
+using ComparacaoPropostas.Helper;
 using ComparacaoPropostas.Models.Entities;
 using ComparacaoPropostas.Models.Entities.Enums;
 
@@ -8,7 +9,8 @@ public enum TipoAlarmeStock
     SaldoNegativo,
     Esgotado,
     AbaixoMinimo,
-    Parado
+    Parado,
+    NomeDiferente
 }
 
 public enum SeveridadeAlarme
@@ -18,13 +20,16 @@ public enum SeveridadeAlarme
     Info
 }
 
-public record AlarmeStock(TipoAlarmeStock Tipo, SeveridadeAlarme Severidade, MaterialStock Material, AreaDepartamento? Area, decimal Saldo, string Mensagem);
+public record AlarmeStock(TipoAlarmeStock Tipo, SeveridadeAlarme Severidade, MaterialStock Material, AreaDepartamento? Area, decimal Saldo, string Mensagem,
+    DivergenciaNomeMaterial? Divergencia = null);
 
 // Alarmes do stock, calculados a partir dos movimentos (nada fica guardado):
 //  - Saldo negativo numa área (saiu mais do que entrou: erro de registo)          → crítico
 //  - Esgotado: o material tem stock mínimo definido e o saldo total chegou a 0     → crítico
 //  - Abaixo do mínimo: saldo total abaixo do stock mínimo                          → aviso
 //  - Parado: há stock mas não sai nada há mais de N dias (por omissão 180)         → info
+//  - Nome diferente: o mesmo código chegou com outro nome (armazém / Packing List)   → aviso
+//    (vem dos alertas DivergenciaNomeMaterial por decidir; incluir m.DivergenciasNome para os ver)
 public static class StockAlarmes
 {
     public const int DiasParadoPadrao = 180;
@@ -34,6 +39,10 @@ public static class StockAlarmes
         var alarmes = new List<AlarmeStock>();
         foreach (var m in materiais)
         {
+            foreach (var d in m.DivergenciasNome.Where(d => d.Estado == EstadoDivergenciaNome.Pendente))
+                alarmes.Add(new AlarmeStock(TipoAlarmeStock.NomeDiferente, SeveridadeAlarme.Aviso, m, null, StockCalculos.Saldo(m.Movimentos),
+                    $"{d.Origem.ToLabel()}{(d.Referencia != null ? $" ({d.Referencia})" : "")} chama-lhe \"{d.NomeRecebido}\".", d));
+
             var movs = m.Movimentos.Where(x => area == null || x.Area == area).ToList();
             if (movs.Count == 0) continue;
 
@@ -73,6 +82,7 @@ public static class StockAlarmes
         TipoAlarmeStock.Esgotado => "Esgotado",
         TipoAlarmeStock.AbaixoMinimo => "Abaixo do mínimo",
         TipoAlarmeStock.Parado => "Stock parado",
+        TipoAlarmeStock.NomeDiferente => "Nome diferente",
         _ => t.ToString()
     };
 

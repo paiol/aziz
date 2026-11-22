@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ComparacaoPropostas.Data;
+using ComparacaoPropostas.Helper;
 using ComparacaoPropostas.Models.Entities;
 using ComparacaoPropostas.Models.Entities.Enums;
 using ComparacaoPropostas.Services.Stock;
@@ -63,6 +64,8 @@ public class InventarioController : Controller
         var codigos = inventario.Linhas.Select(l => l.Codigo).ToList();
         ViewBag.Saldos = _db.MateriaisStock.Where(m => codigos.Contains(m.Codigo)).Include(m => m.Movimentos).AsNoTracking().ToList()
             .ToDictionary(m => m.Codigo, m => StockCalculos.Saldo(m.Movimentos, inventario.Area), StringComparer.OrdinalIgnoreCase);
+        ViewBag.NomesCatalogo = _db.MateriaisStock.Where(m => codigos.Contains(m.Codigo)).AsNoTracking()
+            .ToDictionary(m => m.Codigo, m => m.Descricao, StringComparer.OrdinalIgnoreCase);
         return View(inventario);
     }
 
@@ -114,16 +117,21 @@ public class InventarioController : Controller
 
             materiais.TryGetValue(l.Codigo, out var material);
             existente.MaterialStockId = material?.Id ?? existente.MaterialStockId;
-            existente.Descricao ??= l.Descricao ?? material?.Descricao;
+            // O nome usado pelo armazém prevalece na linha; se for diferente do catálogo fica um alerta.
+            if (!string.IsNullOrWhiteSpace(l.Descricao)) existente.Descricao = l.Descricao.Trim();
+            existente.Descricao ??= material?.Descricao;
+            if (material != null) NomesMaterial.Registar(_db, material, l.Descricao, OrigemNomeMaterial.Inventario, RefInventario(inventario), inventarioId: inventario.Id);
             existente.Unidade ??= Limitar(l.Unidade, 20) ?? material?.Unidade;
             if (l.Quantidade != null) existente.QuantidadeContada = l.Quantidade;
             if (l.Series.Count > 0)
                 existente.Series = string.Join(" ", InventarioCalculos.SepararSeries(existente.Series).Concat(l.Series).Distinct(StringComparer.OrdinalIgnoreCase));
         }
         inventario.NomeFicheiro = Limitar(Path.GetFileName(ficheiro.FileName), 200);
+        var nomesDiferentes = _db.ChangeTracker.Entries<DivergenciaNomeMaterial>().Count(e => e.State == EntityState.Added);
         _db.SaveChanges();
 
-        TempData["Sucesso"] = $"Inventário importado: {novas} linha(s) nova(s), {atualizadas} atualizada(s).";
+        TempData["Sucesso"] = $"Inventário importado: {novas} linha(s) nova(s), {atualizadas} atualizada(s)."
+            + (nomesDiferentes > 0 ? $" Atenção: {nomesDiferentes} material(is) têm no armazém um nome diferente do catálogo (mesmo código) — veja em Alarmes." : "");
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -177,6 +185,8 @@ public class InventarioController : Controller
                 Unidade = string.IsNullOrWhiteSpace(unidade) ? material?.Unidade : Limitar(unidade.Trim(), 20),
                 QuantidadeContada = contado
             });
+            if (material != null && !string.IsNullOrWhiteSpace(descricao))
+                NomesMaterial.Registar(_db, material, descricao, OrigemNomeMaterial.Inventario, RefInventario(inventario), inventarioId: inventario.Id);
             _db.SaveChanges();
             TempData["Sucesso"] = $"{codigo} acrescentado.";
         }
@@ -305,4 +315,7 @@ public class InventarioController : Controller
     }
 
     private static string? Limitar(string? s, int max) => s == null ? null : s.Length > max ? s[..max] : s;
+
+    private static string RefInventario(InventarioStock i) =>
+        $"Inventário #{i.Id} · {i.Area.ToLabel()} · {i.Data:dd/MM/yyyy}";
 }

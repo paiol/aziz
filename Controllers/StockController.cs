@@ -72,6 +72,7 @@ public class StockController : Controller
             .Include(m => m.Movimentos).ThenInclude(mv => mv.Entrada)
             .Include(m => m.Movimentos).ThenInclude(mv => mv.ProjetoPlano)
             .Include(m => m.NumerosSerie).ThenInclude(s => s.MovimentoSaida)
+            .Include(m => m.DivergenciasNome)
             .AsNoTracking()
             .FirstOrDefault(m => m.Id == id);
         if (material == null) return NotFound();
@@ -104,6 +105,7 @@ public class StockController : Controller
     {
         var materiais = _db.MateriaisStock
             .Include(m => m.Movimentos).ThenInclude(mv => mv.ProjetoPlano)
+            .Include(m => m.DivergenciasNome.Where(d => d.Estado == EstadoDivergenciaNome.Pendente))
             .AsNoTracking().ToList();
         var movs = materiais.SelectMany(m => m.Movimentos.Select(mv => (m, mv))).Where(x => area == null || x.mv.Area == area).ToList();
         decimal Valor(MaterialStock m, decimal q) => (m.PrecoUnitario ?? 0m) * q;
@@ -153,11 +155,36 @@ public class StockController : Controller
 
     public IActionResult Alarmes(AreaDepartamento? area, TipoAlarmeStock? tipo)
     {
-        var materiais = _db.MateriaisStock.Include(m => m.Movimentos).AsNoTracking().ToList();
+        var materiais = _db.MateriaisStock.Include(m => m.Movimentos).Include(m => m.DivergenciasNome.Where(d => d.Estado == EstadoDivergenciaNome.Pendente)).AsNoTracking().ToList();
         var alarmes = StockAlarmes.Calcular(materiais, DateTime.Today, area).Where(a => tipo == null || a.Tipo == tipo).ToList();
         ViewBag.Area = area;
         ViewBag.Tipo = tipo;
         return View(alarmes);
+    }
+
+    // Decide um alerta de "nome diferente": manter o nome do catálogo (o recebido fica conhecido como
+    // outro nome do mesmo material) ou passar a usar o nome recebido no catálogo.
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult ResolverNome(int id, bool usarRecebido, string? voltarPara)
+    {
+        var d = _db.DivergenciasNomeMaterial.Include(x => x.Material).FirstOrDefault(x => x.Id == id);
+        if (d == null) return NotFound();
+        if (d.Estado == EstadoDivergenciaNome.Pendente)
+        {
+            if (usarRecebido)
+            {
+                d.Material.Descricao = d.NomeRecebido;
+                d.Estado = EstadoDivergenciaNome.NomeAtualizado;
+            }
+            else d.Estado = EstadoDivergenciaNome.MantidoCatalogo;
+            d.ResolvidoEm = DateTime.UtcNow;
+            _db.SaveChanges();
+            TempData["Sucesso"] = usarRecebido
+                ? $"{d.Material.Codigo}: o catálogo passa a chamar-lhe \"{d.NomeRecebido}\"."
+                : $"{d.Material.Codigo}: mantém-se \"{d.Material.Descricao}\"; \"{d.NomeRecebido}\" fica como outro nome do mesmo material.";
+        }
+        return Url.IsLocalUrl(voltarPara) ? LocalRedirect(voltarPara!) : RedirectToAction(nameof(Alarmes), new { tipo = TipoAlarmeStock.NomeDiferente });
     }
 
     // ---- Entradas ----------------------------------------------------------------------------
@@ -284,7 +311,7 @@ public class StockController : Controller
             NomeFicheiro = Limitar(Path.GetFileName(ficheiro.FileName), 200)
         };
 
-        var materiais = ObterMateriais(pl.Linhas.Select(l => (l.Codigo, l.Modelo, l.Descricao, l.Unidade)), ehHuawei ? "Huawei" : nomeFornecedor);
+        var materiais = ObterMateriais(pl.Linhas.Select(l => (l.Codigo, l.Modelo, l.Descricao, l.Unidade)), ehHuawei ? "Huawei" : nomeFornecedor, OrigemNomeMaterial.PackingList, entrada);
         foreach (var l in pl.Linhas)
         {
             entrada.Movimentos.Add(new MovimentoStock
@@ -303,11 +330,13 @@ public class StockController : Controller
         _db.EntradasStock.Add(entrada);
 
         var avisosSeries = AdicionarSeries(entrada, pl.Series.Select(s => (s.Codigo, s.Serie, s.Caixa)), materiais);
+        var nomesDiferentes = NomesNovosDiferentes();
         _db.SaveChanges();
 
         TempData["Sucesso"] = $"Packing List {numero} importado: {pl.Linhas.Count} linha(s), {pl.Series.Count - avisosSeries} nº(s) de série."
             + (entrada.Contrato1Mais1 != null ? $" Contrato {entrada.Contrato1Mais1}." : "")
-            + (avisosSeries > 0 ? $" {avisosSeries} nº(s) de série já existiam e foram ignorados." : "");
+            + (avisosSeries > 0 ? $" {avisosSeries} nº(s) de série já existiam e foram ignorados." : "")
+            + AvisoNomes(nomesDiferentes);
         return RedirectToAction(nameof(Entrada), new { id = entrada.Id });
     }
 
@@ -350,7 +379,7 @@ public class StockController : Controller
             entrada.ProjetoPlanoId ??= compraEntrada.ProjetoPlanoId;
             entrada.Fornecedor ??= compraEntrada.Fornecedor;
         }
-        var materiais = ObterMateriais(linhas.Select(l => (l.Codigo!.Trim(), (string?)null, string.IsNullOrWhiteSpace(l.Descricao) ? l.Codigo!.Trim() : l.Descricao!.Trim(), Vazio(l.Unidade))), entrada.Fornecedor);
+        var materiais = ObterMateriais(linhas.Select(l => (l.Codigo!.Trim(), (string?)null, string.IsNullOrWhiteSpace(l.Descricao) ? l.Codigo!.Trim() : l.Descricao!.Trim(), Vazio(l.Unidade))), entrada.Fornecedor, OrigemNomeMaterial.Entrada, entrada);
         foreach (var l in linhas)
         {
             entrada.Movimentos.Add(new MovimentoStock
@@ -367,9 +396,10 @@ public class StockController : Controller
         var series = linhas.SelectMany(l => (l.Series ?? "").Split(new[] { ' ', ',', ';', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries)
             .Select(s => (l.Codigo!.Trim(), s.Trim(), (string?)null)));
         var ignorados = AdicionarSeries(entrada, series, materiais);
+        var nomesDiferentes = NomesNovosDiferentes();
         _db.SaveChanges();
 
-        TempData["Sucesso"] = "Entrada registada." + (ignorados > 0 ? $" {ignorados} nº(s) de série já existiam e foram ignorados." : "");
+        TempData["Sucesso"] = "Entrada registada." + (ignorados > 0 ? $" {ignorados} nº(s) de série já existiam e foram ignorados." : "") + AvisoNomes(nomesDiferentes);
         return RedirectToAction(nameof(Entrada), new { id = entrada.Id });
     }
 
@@ -482,8 +512,15 @@ public class StockController : Controller
 
     // ---- Auxiliares --------------------------------------------------------------------------
 
+    private int NomesNovosDiferentes() =>
+        _db.ChangeTracker.Entries<DivergenciaNomeMaterial>().Count(e => e.State == EntityState.Added);
+
+    private static string AvisoNomes(int n) =>
+        n > 0 ? $" Atenção: {n} material(is) chegaram com um nome diferente do catálogo (mesmo código) — veja em Alarmes." : "";
+
     // Devolve (criando se preciso) os materiais do catálogo pelos códigos indicados.
-    private Dictionary<string, MaterialStock> ObterMateriais(IEnumerable<(string Codigo, string? Modelo, string Descricao, string? Unidade)> linhas, string? fabricante)
+    private Dictionary<string, MaterialStock> ObterMateriais(IEnumerable<(string Codigo, string? Modelo, string Descricao, string? Unidade)> linhas, string? fabricante,
+        OrigemNomeMaterial origem, EntradaStock entrada)
     {
         var lista = linhas.GroupBy(l => l.Codigo, StringComparer.OrdinalIgnoreCase).Select(g => g.First()).ToList();
         var codigos = lista.Select(l => l.Codigo).ToList();
@@ -503,6 +540,9 @@ public class StockController : Controller
             _db.MateriaisStock.Add(m);
             existentes[l.Codigo] = m;
         }
+        // Material que já existe e chegou com outro nome: fica um alerta (identificado pelo código).
+        foreach (var l in lista)
+            NomesMaterial.Registar(_db, existentes[l.Codigo], l.Descricao, origem, $"{entrada.Tipo.ToLabel()} {entrada.Numero}", entrada);
         return existentes;
     }
 

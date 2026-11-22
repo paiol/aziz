@@ -66,6 +66,7 @@ public class MaterialStock
 
     public ICollection<MovimentoStock> Movimentos { get; set; } = new List<MovimentoStock>();
     public ICollection<NumeroSerieStock> NumerosSerie { get; set; } = new List<NumeroSerieStock>();
+    public ICollection<DivergenciaNomeMaterial> DivergenciasNome { get; set; } = new List<DivergenciaNomeMaterial>();
 }
 
 // Uma receção de material: um Packing List da Huawei, uma compra da DEI ou uma entrada manual.
@@ -296,4 +297,63 @@ public class LinhaInventario
 
     [Display(Name = "Observações")]
     public string? Observacoes { get; set; }
+}
+
+public enum OrigemNomeMaterial
+{
+    [Display(Name = "Inventário do armazém")]
+    Inventario,
+    [Display(Name = "Packing List")]
+    PackingList,
+    [Display(Name = "Entrada / compra DEI")]
+    Entrada
+}
+
+public enum EstadoDivergenciaNome
+{
+    Pendente,
+    [Display(Name = "Mantido o nome do catálogo")]
+    MantidoCatalogo,
+    [Display(Name = "Catálogo atualizado")]
+    NomeAtualizado
+}
+
+// O mesmo material (mesmo código = ID) chegou com outro nome: no inventário do armazém, num Packing List
+// ou numa entrada. Fica como alerta até alguém decidir qual o nome certo. Depois de decidido, o nome
+// recebido passa a ser conhecido para este material e não volta a gerar alerta.
+public class DivergenciaNomeMaterial
+{
+    public int Id { get; set; }
+
+    public int MaterialStockId { get; set; }
+    [ValidateNever]
+    public MaterialStock Material { get; set; } = null!;
+
+    // Nome no catálogo da plataforma quando a diferença foi detetada.
+    [Required, Display(Name = "Nome no catálogo")]
+    public string NomeCatalogo { get; set; } = "";
+
+    [Required, Display(Name = "Nome recebido")]
+    public string NomeRecebido { get; set; } = "";
+
+    [Display(Name = "Origem")]
+    public OrigemNomeMaterial Origem { get; set; }
+
+    // Documento onde apareceu (nº do Packing List / entrada, ou inventário).
+    [StringLength(150), Display(Name = "Documento")]
+    public string? Referencia { get; set; }
+
+    public int? EntradaStockId { get; set; }
+    [ValidateNever]
+    public EntradaStock? Entrada { get; set; }
+
+    public int? InventarioStockId { get; set; }
+    [ValidateNever]
+    public InventarioStock? Inventario { get; set; }
+
+    [Display(Name = "Estado")]
+    public EstadoDivergenciaNome Estado { get; set; } = EstadoDivergenciaNome.Pendente;
+
+    public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
+    public DateTime? ResolvidoEm { get; set; }
 }

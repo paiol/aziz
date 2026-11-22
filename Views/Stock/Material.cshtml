@@ -31,6 +31,59 @@
     }
 </div>
 
+@if (m.DivergenciasNome.Count > 0)
+{
+    var pendentes = m.DivergenciasNome.Where(d => d.Estado == EstadoDivergenciaNome.Pendente).ToList();
+    <div class="card mb-3 @(pendentes.Count > 0 ? "border-warning" : "")">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                @if (pendentes.Count > 0) { <i class="fas fa-triangle-exclamation text-warning me-1"></i> }
+                Outros nomes deste material
+            </h5>
+            <span class="small text-body-tertiary">Mesmo código (ID) <strong>@m.Codigo</strong> — o catálogo chama-lhe "@m.Descricao"</span>
+        </div>
+        <div class="card-body table-responsive">
+            <table class="table table-sm mb-0">
+                <thead><tr><th>Alerta</th><th>Nome recebido</th><th>Origem</th><th>Nome no catálogo na altura</th><th>Data</th><th>Estado</th><th style="width: 1%"></th></tr></thead>
+                <tbody>
+                    @foreach (var d in m.DivergenciasNome.OrderBy(d => d.Estado != EstadoDivergenciaNome.Pendente).ThenByDescending(d => d.CriadoEm))
+                    {
+                        <tr class="@(d.Estado == EstadoDivergenciaNome.Pendente ? "table-warning" : "")">
+                            <td>#@d.Id</td>
+                            <td class="fw-semibold">@d.NomeRecebido</td>
+                            <td class="small">
+                                @d.Origem.ToLabel()
+                                @if (d.EntradaStockId != null) { <a class="d-block" asp-action="Entrada" asp-route-id="@d.EntradaStockId">@d.Referencia</a> }
+                                else if (d.InventarioStockId != null) { <a class="d-block" asp-controller="Inventario" asp-action="Details" asp-route-id="@d.InventarioStockId">@d.Referencia</a> }
+                                else if (d.Referencia != null) { <span class="d-block text-body-tertiary">@d.Referencia</span> }
+                            </td>
+                            <td class="small">@d.NomeCatalogo</td>
+                            <td class="small">@d.CriadoEm.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                            <td><span class="badge @(d.Estado == EstadoDivergenciaNome.Pendente ? "bg-warning text-dark" : "bg-secondary")">@d.Estado.ToLabel()</span></td>
+                            <td class="text-end">
+                                @if (d.Estado == EstadoDivergenciaNome.Pendente)
+                                {
+                                    <form id="nome-@d.Id" asp-action="ResolverNome" asp-route-id="@d.Id" method="post" class="d-none">
+                                        <input type="hidden" name="voltarPara" value="@(Context.Request.Path + Context.Request.QueryString)" />
+                                    </form>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-subtle-secondary btn-menu-acoes" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Opções"><i class="fas fa-ellipsis"></i></button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><button type="submit" form="nome-@d.Id" name="usarRecebido" value="false" class="dropdown-item"><i class="fas fa-check me-2"></i>Manter nome do catálogo</button></li>
+                                            <li><button type="submit" form="nome-@d.Id" name="usarRecebido" value="true" class="dropdown-item"><i class="fas fa-pen-to-square me-2"></i>Usar este nome no catálogo</button></li>
+                                        </ul>
+                                    </div>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <div class="form-text">Os nomes já decididos ficam conhecidos para este código e não voltam a gerar alerta.</div>
+        </div>
+    </div>
+}
+
 <div class="card mb-3">
     <div class="card-header"><h5 class="mb-0">Dados do material</h5></div>
     <div class="card-body">
