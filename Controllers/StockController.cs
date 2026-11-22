@@ -80,7 +80,8 @@ public class StockController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult EditarMaterial(int id, string? modelo, string descricao, string? unidade, string? fabricante, decimal? stockMinimo)
+    public IActionResult EditarMaterial(int id, string? modelo, string descricao, string? unidade, string? fabricante, decimal? stockMinimo,
+        decimal? precoUnitario, int? diasParado)
     {
         var m = _db.MateriaisStock.Find(id);
         if (m == null) return NotFound();
@@ -89,9 +90,74 @@ public class StockController : Controller
         m.Unidade = Vazio(unidade);
         m.Fabricante = Vazio(fabricante);
         m.StockMinimo = stockMinimo;
+        m.PrecoUnitario = precoUnitario;
+        m.DiasParado = diasParado is > 0 ? diasParado : null;
         _db.SaveChanges();
         TempData["Sucesso"] = "Material atualizado.";
         return RedirectToAction(nameof(Material), new { id });
+    }
+
+    // ---- Painel e alarmes --------------------------------------------------------------------
+
+    // Página principal da Gestão de Stock: atalhos, indicadores, material escolhido, alarmes e consumos.
+    public IActionResult Painel(AreaDepartamento? area, int? materialId)
+    {
+        var materiais = _db.MateriaisStock
+            .Include(m => m.Movimentos).ThenInclude(mv => mv.ProjetoPlano)
+            .AsNoTracking().ToList();
+        var movs = materiais.SelectMany(m => m.Movimentos.Select(mv => (m, mv))).Where(x => area == null || x.mv.Area == area).ToList();
+        decimal Valor(MaterialStock m, decimal q) => (m.PrecoUnitario ?? 0m) * q;
+
+        var comMovimento = materiais.Where(m => m.Movimentos.Any(mv => area == null || mv.Area == area)).OrderBy(m => m.Descricao).ToList();
+        var material = comMovimento.FirstOrDefault(m => m.Id == materialId)
+                       ?? comMovimento.OrderByDescending(m => m.Movimentos.Count).FirstOrDefault();
+        var movsMaterial = material?.Movimentos.Where(mv => area == null || mv.Area == area).ToList() ?? new();
+
+        var inicio = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(-11);
+        var vm = new PainelStockVM
+        {
+            Area = area,
+            NumMateriaisComStock = comMovimento.Count(m => StockCalculos.Saldo(m.Movimentos.Where(mv => area == null || mv.Area == area)) > 0),
+            NumEntradas = movs.Count(x => x.mv.Tipo == TipoMovimentoStock.Entrada),
+            NumSaidas = movs.Count(x => x.mv.Tipo == TipoMovimentoStock.Saida),
+            ValorEntradas = movs.Where(x => x.mv.Tipo == TipoMovimentoStock.Entrada).Sum(x => Valor(x.m, x.mv.Quantidade)),
+            ValorSaidas = movs.Where(x => x.mv.Tipo == TipoMovimentoStock.Saida).Sum(x => Valor(x.m, x.mv.Quantidade)),
+            ValorStock = comMovimento.Sum(m => Valor(m, StockCalculos.Saldo(m.Movimentos.Where(mv => area == null || mv.Area == area)))),
+            MateriaisSemPreco = comMovimento.Count(m => m.PrecoUnitario == null),
+            Alarmes = StockAlarmes.Calcular(materiais, DateTime.Today, area),
+            Materiais = comMovimento,
+            Material = material,
+            QtdEntradas = movsMaterial.Where(x => x.Tipo == TipoMovimentoStock.Entrada).Sum(x => x.Quantidade),
+            QtdSaidas = movsMaterial.Where(x => x.Tipo == TipoMovimentoStock.Saida).Sum(x => x.Quantidade),
+            QtdAjustes = movsMaterial.Where(x => x.Tipo == TipoMovimentoStock.Ajuste).Sum(x => x.Quantidade),
+            QtdStock = StockCalculos.Saldo(movsMaterial),
+            PorArea = Enum.GetValues<AreaDepartamento>().Where(a => area == null || a == area)
+                .Select(a => (a.ToLabel(),
+                    materiais.Sum(m => Valor(m, StockCalculos.Saldo(m.Movimentos, a))),
+                    materiais.Count(m => StockCalculos.Saldo(m.Movimentos, a) > 0)))
+                .ToList(),
+            ValorPorMes = Enumerable.Range(0, 12).Select(i => inicio.AddMonths(i)).Select(mes => (
+                mes.ToString("MM/yy"),
+                movs.Where(x => x.mv.Tipo == TipoMovimentoStock.Entrada && x.mv.Data.Year == mes.Year && x.mv.Data.Month == mes.Month).Sum(x => Valor(x.m, x.mv.Quantidade)),
+                movs.Where(x => x.mv.Tipo == TipoMovimentoStock.Saida && x.mv.Data.Year == mes.Year && x.mv.Data.Month == mes.Month).Sum(x => Valor(x.m, x.mv.Quantidade))))
+                .ToList(),
+            ConsumoPorProjeto = movs.Where(x => x.mv.Tipo == TipoMovimentoStock.Saida)
+                .GroupBy(x => x.mv.ProjetoPlanoId)
+                .Select(g => (g.Key, g.First().mv.ProjetoPlano?.Nome ?? "(sem projeto)", g.Count(), g.Sum(x => Valor(x.m, x.mv.Quantidade))))
+                .OrderByDescending(x => x.Item4).ThenByDescending(x => x.Item3)
+                .ToList(),
+            UltimosMovimentos = movs.Select(x => x.mv).OrderByDescending(mv => mv.Data).ThenByDescending(mv => mv.Id).Take(10).ToList()
+        };
+        return View(vm);
+    }
+
+    public IActionResult Alarmes(AreaDepartamento? area, TipoAlarmeStock? tipo)
+    {
+        var materiais = _db.MateriaisStock.Include(m => m.Movimentos).AsNoTracking().ToList();
+        var alarmes = StockAlarmes.Calcular(materiais, DateTime.Today, area).Where(a => tipo == null || a.Tipo == tipo).ToList();
+        ViewBag.Area = area;
+        ViewBag.Tipo = tipo;
+        return View(alarmes);
     }
 
     // ---- Entradas ----------------------------------------------------------------------------

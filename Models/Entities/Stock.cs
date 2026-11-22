@@ -52,6 +52,14 @@ public class MaterialStock
     [StringLength(100), Display(Name = "Fabricante")]
     public string? Fabricante { get; set; }
 
+    // Custo unitário em CVE (para os valores do stock). Opcional.
+    [Display(Name = "Preço unitário (CVE)")]
+    public decimal? PrecoUnitario { get; set; }
+
+    // Dias sem saídas a partir dos quais o stock é considerado parado (vazio = regra geral, 180 dias).
+    [Display(Name = "Alarme de stock parado (dias)")]
+    public int? DiasParado { get; set; }
+
     // Aviso quando o saldo (total de todas as áreas) fica abaixo deste valor.
     [Display(Name = "Stock mínimo")]
     public decimal? StockMinimo { get; set; }

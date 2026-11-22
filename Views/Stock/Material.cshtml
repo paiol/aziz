@@ -39,7 +39,10 @@
             <div class="col-md-2"><label class="form-label" for="modelo">Modelo</label><input id="modelo" name="modelo" class="form-control" value="@m.Modelo" maxlength="100" /></div>
             <div class="col-md-1"><label class="form-label" for="unidade">Unidade</label><input id="unidade" name="unidade" class="form-control" value="@m.Unidade" maxlength="20" /></div>
             <div class="col-md-2"><label class="form-label" for="fabricante">Fabricante</label><input id="fabricante" name="fabricante" class="form-control" value="@m.Fabricante" maxlength="100" /></div>
-            <div class="col-md-1"><label class="form-label" for="stockMinimo">Mínimo</label><input id="stockMinimo" name="stockMinimo" class="form-control" value="@m.StockMinimo?.ToString("0.###")" inputmode="decimal" /></div>
+            <div class="col-md-1"><label class="form-label" for="stockMinimo">Mínimo</label><input id="stockMinimo" name="stockMinimo" class="form-control" value="@m.StockMinimo?.ToString("0.###", new System.Globalization.CultureInfo("pt-PT"))" inputmode="decimal" /></div>
+            <div class="col-md-3"><label class="form-label" for="precoUnitario">Preço unitário (CVE)</label><input id="precoUnitario" name="precoUnitario" class="form-control" value="@m.PrecoUnitario?.ToString("0.##", new System.Globalization.CultureInfo("pt-PT"))" inputmode="decimal" /></div>
+            <div class="col-md-3"><label class="form-label" for="diasParado">Alarme de stock parado (dias)</label><input id="diasParado" name="diasParado" type="number" min="1" class="form-control" value="@m.DiasParado" placeholder="180" /></div>
+            <div class="col-md-6 form-text align-self-end">O preço dá os valores em CVE no Painel de Stock. Os alarmes avisam quando o stock fica abaixo do mínimo, esgota ou fica parado (sem saídas) mais do que estes dias.</div>
             <div class="col-12"><button type="submit" class="btn btn-sm btn-subtle-primary">Guardar</button></div>
         </form>
     </div>

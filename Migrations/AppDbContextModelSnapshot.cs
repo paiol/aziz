@@ -935,6 +935,9 @@ namespace ComparacaoPropostas.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("DiasParado")
+                        .HasColumnType("int");
+
                     b.Property<string>("Fabricante")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -942,6 +945,10 @@ namespace ComparacaoPropostas.Migrations
                     b.Property<string>("Modelo")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal?>("PrecoUnitario")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("StockMinimo")
                         .HasPrecision(18, 3)

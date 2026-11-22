@@ -322,6 +322,7 @@ public class AppDbContext : DbContext
         {
             e.HasIndex(m => m.Codigo).IsUnique();
             e.Property(m => m.StockMinimo).HasPrecision(18, 3);
+            e.Property(m => m.PrecoUnitario).HasPrecision(18, 2);
         });
 
         modelBuilder.Entity<EntradaStock>(e =>

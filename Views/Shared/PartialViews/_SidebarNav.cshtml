@@ -117,6 +117,15 @@
                     <hr class="navbar-vertical-line" />
 
                     <div class="nav-item-wrapper">
+                        <a class="nav-link label-1 @(controller == "Stock" && new[] { "Painel", "Alarmes" }.Contains(ViewContext.RouteData.Values["action"]?.ToString()) ? "active" : "")" asp-controller="Stock" asp-action="Painel">
+                            <div class="d-flex align-items-center">
+                                <span class="nav-link-icon"><span class="fas fa-gauge-high"></span></span>
+                                <span class="nav-link-text-wrapper"><span class="nav-link-text">Painel e alarmes</span></span>
+                            </div>
+                        </a>
+                    </div>
+
+                    <div class="nav-item-wrapper">
                         <a class="nav-link label-1 @(controller == "Stock" && new[] { "Index", "Material" }.Contains(ViewContext.RouteData.Values["action"]?.ToString()) ? "active" : "")" asp-controller="Stock" asp-action="Index">
                             <div class="d-flex align-items-center">
                                 <span class="nav-link-icon"><span class="fas fa-warehouse"></span></span>

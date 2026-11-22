@@ -12,6 +12,7 @@
         <span class="text-body-tertiary">Materiais comprados pela DEI em armazém, por área.</span>
     </div>
     <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-subtle-success" asp-action="Painel" asp-route-area="@Model.Area"><span class="fas fa-gauge-high me-1"></span> Painel e alarmes</a>
         <a class="btn btn-primary" asp-action="Entradas"><span class="fas fa-truck-ramp-box me-1"></span> Entradas / Packing List</a>
         <a class="btn btn-subtle-warning" asp-action="NovaSaida" asp-route-area="@Model.Area"><span class="fas fa-dolly me-1"></span> Registar saída</a>
         <a class="btn btn-subtle-secondary" asp-action="Saidas"><span class="fas fa-list me-1"></span> Saídas</a>

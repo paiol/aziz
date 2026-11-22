@@ -201,3 +201,51 @@ public class PackingListGenericoTests
         Assert.Equal((decimal?)esperado, InventarioCalculos.Ajuste(contado, sistema));
     }
 }
+
+public class StockAlarmesTests
+{
+    private static readonly DateTime Hoje = new(2026, 11, 22);
+
+    private static MaterialStock Material(decimal? minimo, int? diasParado, params (TipoMovimentoStock Tipo, decimal Qtd, AreaDepartamento Area, int DiasAtras)[] movs)
+    {
+        var m = new MaterialStock { Id = 1, Codigo = "X", Descricao = "Material X", StockMinimo = minimo, DiasParado = diasParado };
+        foreach (var (t, q, a, d) in movs)
+            m.Movimentos.Add(new MovimentoStock { Tipo = t, Quantidade = q, Area = a, Data = Hoje.AddDays(-d) });
+        return m;
+    }
+
+    [Fact]
+    public void AbaixoDoMinimo_EsgotadoE_SaldoNegativo()
+    {
+        var abaixo = Material(10, null, (TipoMovimentoStock.Entrada, 12, AreaDepartamento.DepInf, 5), (TipoMovimentoStock.Saida, 5, AreaDepartamento.DepInf, 1));
+        var esgotado = Material(2, null, (TipoMovimentoStock.Entrada, 3, AreaDepartamento.DepInf, 5), (TipoMovimentoStock.Saida, 3, AreaDepartamento.DepInf, 1));
+        var negativo = Material(null, null, (TipoMovimentoStock.Entrada, 3, AreaDepartamento.DepInf, 5), (TipoMovimentoStock.Saida, 4, AreaDepartamento.DepSaf, 1));
+
+        Assert.Equal(TipoAlarmeStock.AbaixoMinimo, Assert.Single(StockAlarmes.Calcular(new[] { abaixo }, Hoje)).Tipo);
+        Assert.Equal(TipoAlarmeStock.Esgotado, Assert.Single(StockAlarmes.Calcular(new[] { esgotado }, Hoje)).Tipo);
+        var n = Assert.Single(StockAlarmes.Calcular(new[] { negativo }, Hoje));
+        Assert.Equal((TipoAlarmeStock.SaldoNegativo, SeveridadeAlarme.Critico, (AreaDepartamento?)AreaDepartamento.DepSaf), (n.Tipo, n.Severidade, n.Area));
+    }
+
+    [Fact]
+    public void StockParado_PelaUltimaSaidaOuPelaEntrada()
+    {
+        var semSaidas = Material(null, null, (TipoMovimentoStock.Entrada, 5, AreaDepartamento.DepInf, 200));
+        var saidaRecente = Material(null, null, (TipoMovimentoStock.Entrada, 5, AreaDepartamento.DepInf, 400), (TipoMovimentoStock.Saida, 1, AreaDepartamento.DepInf, 10));
+        var limiteProprio = Material(null, 30, (TipoMovimentoStock.Entrada, 5, AreaDepartamento.DepInf, 40));
+        var vazio = Material(null, null, (TipoMovimentoStock.Entrada, 5, AreaDepartamento.DepInf, 400), (TipoMovimentoStock.Saida, 5, AreaDepartamento.DepInf, 300));
+
+        Assert.Equal(TipoAlarmeStock.Parado, Assert.Single(StockAlarmes.Calcular(new[] { semSaidas }, Hoje)).Tipo);
+        Assert.Empty(StockAlarmes.Calcular(new[] { saidaRecente }, Hoje));
+        Assert.Equal(TipoAlarmeStock.Parado, Assert.Single(StockAlarmes.Calcular(new[] { limiteProprio }, Hoje)).Tipo);
+        Assert.Empty(StockAlarmes.Calcular(new[] { vazio }, Hoje));
+    }
+
+    [Fact]
+    public void FiltroPorArea_SoConsideraMovimentosDaArea()
+    {
+        var m = Material(10, null, (TipoMovimentoStock.Entrada, 20, AreaDepartamento.DepInf, 5), (TipoMovimentoStock.Entrada, 2, AreaDepartamento.DepSaf, 5));
+        Assert.Empty(StockAlarmes.Calcular(new[] { m }, Hoje));
+        Assert.Equal(TipoAlarmeStock.AbaixoMinimo, Assert.Single(StockAlarmes.Calcular(new[] { m }, Hoje, AreaDepartamento.DepSaf)).Tipo);
+    }
+}
