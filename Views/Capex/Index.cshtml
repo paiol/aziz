@@ -100,13 +100,16 @@
                             <td class="text-end @(e.Saldo < 0 ? "text-danger fw-semibold" : "")" data-order="@e.Saldo">@e.Saldo.ToCve()</td>
                             <td class="text-end" data-order="@(e.PercentagemExecutada ?? 0)">@e.PercentagemExecutada.ToPercent()</td>
                             <td class="text-end">@e.NumCompras / @e.NumObras</td>
-                            <td class="text-end text-nowrap">
-                                <a class="btn btn-sm btn-subtle-primary" asp-controller="Pedidos" asp-action="Create" asp-route-projetoPlanoId="@l.Projeto.Id" title="Nova compra para este projeto">
-                                    <i class="fas fa-cart-plus"></i>
-                                </a>
-                                <a class="btn btn-sm @(l.Projeto.EhObra ? "btn-subtle-info" : "btn-subtle-secondary")" asp-controller="ProjetosObra" asp-action="Create" asp-route-projetoPlanoId="@l.Projeto.Id" title="Nova obra para este projeto">
-                                    <i class="fas fa-helmet-safety"></i>
-                                </a>
+                            <td class="text-end">
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-subtle-secondary btn-menu-acoes" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Opções"><i class="fas fa-ellipsis"></i></button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" asp-controller="ProjetosPlano" asp-action="Details" asp-route-id="@l.Projeto.Id"><i class="fas fa-eye me-2"></i>Ver projeto</a></li>
+                                        <li><hr class="dropdown-divider" /></li>
+                                        <li><a class="dropdown-item" asp-controller="Pedidos" asp-action="Create" asp-route-projetoPlanoId="@l.Projeto.Id"><i class="fas fa-cart-plus me-2"></i>Nova compra</a></li>
+                                        <li><a class="dropdown-item" asp-controller="ProjetosObra" asp-action="Create" asp-route-projetoPlanoId="@l.Projeto.Id"><i class="fas fa-helmet-safety me-2"></i>Nova obra</a></li>
+                                    </ul>
+                                </div>
                             </td>
                         </tr>
                     }

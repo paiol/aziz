@@ -77,7 +77,6 @@
                         <th class="text-end">Novo</th>
                         <th class="text-end">TOTAL ORC.</th>
                         <th class="text-end">Δ vs @(plano.Ano - 1)</th>
-                        <th>Decisão</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -107,29 +106,34 @@
                             <td class="text-end" data-order="@p.ValorNovo">@p.ValorNovo.ToCve()</td>
                             <td class="text-end fw-semibold" data-order="@p.TotalOrcamento">@p.TotalOrcamento.ToCve()</td>
                             <td class="text-end @(p.DeltaAnoAnterior < 0 ? "text-danger" : "")" data-order="@p.DeltaAnoAnterior">@p.DeltaAnoAnterior.ToCve()</td>
-                            <td class="text-nowrap">
-                                <form asp-action="Decidir" asp-route-id="@p.Id" method="post" class="d-inline-flex gap-1">
+                            <td class="text-end">
+                                <form id="decidir-@p.Id" asp-action="Decidir" asp-route-id="@p.Id" method="post" class="d-none">
                                     <input type="hidden" name="voltarPara" value="@voltar" />
-                                    @if (p.EstadoAprovacao != EstadoAprovacaoProjeto.Aceite)
-                                    {
-                                        <button type="submit" name="estado" value="@EstadoAprovacaoProjeto.Aceite" class="btn btn-sm btn-subtle-success" title="Aceitar"><i class="fas fa-check"></i></button>
-                                    }
-                                    @if (p.EstadoAprovacao != EstadoAprovacaoProjeto.Rejeitado)
-                                    {
-                                        <button type="submit" name="estado" value="@EstadoAprovacaoProjeto.Rejeitado" class="btn btn-sm btn-subtle-danger" title="Rejeitar"
-                                                onclick="var m = prompt('Motivo da rejeição (opcional):'); if (m === null) return false; this.form.querySelector('[name=motivo]').value = m;"><i class="fas fa-xmark"></i></button>
-                                    }
-                                    @if (p.EstadoAprovacao != EstadoAprovacaoProjeto.Proposto)
-                                    {
-                                        <button type="submit" name="estado" value="@EstadoAprovacaoProjeto.Proposto" class="btn btn-sm btn-subtle-secondary" title="Voltar a proposto"><i class="fas fa-rotate-left"></i></button>
-                                    }
                                     <input type="hidden" name="motivo" />
                                 </form>
-                            </td>
-                            <td class="text-end text-nowrap">
-                                <a class="btn btn-sm btn-subtle-secondary" asp-action="Edit" asp-route-id="@p.Id">Editar</a>
-                                <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
-                                        data-url="@Url.Action("Delete", new { id = p.Id })" data-id="@p.Id">Apagar</button>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-subtle-secondary btn-menu-acoes" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Opções"><i class="fas fa-ellipsis"></i></button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        @if (p.EstadoAprovacao != EstadoAprovacaoProjeto.Aceite)
+                                        {
+                                            <li><button type="submit" form="decidir-@p.Id" name="estado" value="@EstadoAprovacaoProjeto.Aceite" class="dropdown-item text-success"><i class="fas fa-check me-2"></i>Aceitar</button></li>
+                                        }
+                                        @if (p.EstadoAprovacao != EstadoAprovacaoProjeto.Rejeitado)
+                                        {
+                                            <li><button type="submit" form="decidir-@p.Id" name="estado" value="@EstadoAprovacaoProjeto.Rejeitado" class="dropdown-item text-warning"
+                                                        onclick="var m = prompt('Motivo da rejeição (opcional):'); if (m === null) return false; document.querySelector('#decidir-@p.Id [name=motivo]').value = m;"><i class="fas fa-xmark me-2"></i>Rejeitar</button></li>
+                                        }
+                                        @if (p.EstadoAprovacao != EstadoAprovacaoProjeto.Proposto)
+                                        {
+                                            <li><button type="submit" form="decidir-@p.Id" name="estado" value="@EstadoAprovacaoProjeto.Proposto" class="dropdown-item"><i class="fas fa-rotate-left me-2"></i>Voltar a proposto</button></li>
+                                        }
+                                        <li><hr class="dropdown-divider" /></li>
+                                        <li><a class="dropdown-item" asp-action="Details" asp-route-id="@p.Id"><i class="fas fa-eye me-2"></i>Ver detalhes</a></li>
+                                        <li><a class="dropdown-item" asp-action="Edit" asp-route-id="@p.Id"><i class="fas fa-pen me-2"></i>Editar</a></li>
+                                        <li><hr class="dropdown-divider" /></li>
+                                        <li><button type="button" class="dropdown-item text-danger js-delete-btn" data-url="@Url.Action("Delete", new { id = p.Id })" data-id="@p.Id"><i class="fas fa-trash me-2"></i>Apagar</button></li>
+                                    </ul>
+                                </div>
                             </td>
                         </tr>
                     }
@@ -142,7 +146,7 @@
                         <td class="text-end">@contam.Sum(p => p.ValorNovo ?? 0).ToCve()</td>
                         <td class="text-end">@contam.Sum(p => p.TotalOrcamento).ToCve()</td>
                         <td class="text-end">@contam.Sum(p => p.DeltaAnoAnterior).ToCve()</td>
-                        <td colspan="2"></td>
+                        <td></td>
                     </tr>
                 </tfoot>
             </table>

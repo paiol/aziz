@@ -156,21 +156,16 @@
                                         <td><strong>@pr.PontuacaoPonderada.ToString("0.00")</strong> / 5.00</td>
                                         <td><span class="@pr.Status.ToBadgeClass()">@pr.Status.ToLabel()</span></td>
                                         <td class="text-end">
-                                            <div class="d-inline-flex flex-column gap-1">
-                                                <a class="btn btn-sm btn-subtle-primary" asp-controller="AvaliacoesObra" asp-action="Editar" asp-route-propostaEmpreiteiroId="@pr.Id">
-                                                    <i class="fas fa-star me-1"></i> Avaliar
-                                                </a>
-                                                <a class="btn btn-sm btn-subtle-secondary" asp-controller="ItensPropostaEmpreiteiro" asp-action="Index" asp-route-propostaEmpreiteiroId="@pr.Id">
-                                                    <i class="fas fa-list me-1"></i> Itens
-                                                </a>
-                                                <a class="btn btn-sm btn-subtle-secondary" asp-controller="PropostasEmpreiteiro" asp-action="Edit" asp-route-id="@pr.Id">
-                                                    <i class="fas fa-edit me-1"></i> Editar
-                                                </a>
-                                                <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
-                                                        data-url="@Url.Action("Delete", "PropostasEmpreiteiro", new { id = pr.Id })" data-id="@pr.Id">
-                                                    <i class="fas fa-trash me-1"></i> Apagar
-                                                </button>
-                                            </div>
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-subtle-secondary btn-menu-acoes" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Opções"><i class="fas fa-ellipsis"></i></button>
+                                                <ul class="dropdown-menu dropdown-menu-end">
+                                                    <li><a class="dropdown-item" asp-controller="AvaliacoesObra" asp-action="Editar" asp-route-propostaEmpreiteiroId="@pr.Id"><i class="fas fa-star me-2"></i>Avaliar</a></li>
+                                                    <li><a class="dropdown-item" asp-controller="ItensPropostaEmpreiteiro" asp-action="Index" asp-route-propostaEmpreiteiroId="@pr.Id"><i class="fas fa-list me-2"></i>Itens</a></li>
+                                                    <li><a class="dropdown-item" asp-controller="PropostasEmpreiteiro" asp-action="Edit" asp-route-id="@pr.Id"><i class="fas fa-pen me-2"></i>Editar</a></li>
+                                                    <li><hr class="dropdown-divider" /></li>
+                                                    <li><button type="button" class="dropdown-item text-danger js-delete-btn" data-url="@Url.Action("Delete", "PropostasEmpreiteiro", new { id = pr.Id })" data-id="@pr.Id"><i class="fas fa-trash me-2"></i>Apagar</button></li>
+                                                </ul>
+                                                </div>
                                         </td>
                                     </tr>
                                 }

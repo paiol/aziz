@@ -86,8 +86,12 @@ else
                             <td>@item.QuantidadeSolicitada</td>
                             <td>@item.Observacao</td>
                             <td class="text-end">
-                                <button type="button" class="btn btn-sm btn-subtle-danger js-delete-btn"
-                                        data-url="@Url.Action("Delete", new { id = item.Id })" data-id="@item.Id">Apagar</button>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-subtle-secondary btn-menu-acoes" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Opções"><i class="fas fa-ellipsis"></i></button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><button type="button" class="dropdown-item text-danger js-delete-btn" data-url="@Url.Action("Delete", new { id = item.Id })" data-id="@item.Id"><i class="fas fa-trash me-2"></i>Apagar</button></li>
+                                    </ul>
+                                </div>
                             </td>
                         </tr>
                     }
