@@ -38,7 +38,7 @@ public class LinhaEntradaManualVM
 public class NovaEntradaVM
 {
     public EntradaStock Entrada { get; set; } = new();
-    public List<LinhaEntradaManualVM> Linhas { get; set; } = Enumerable.Range(0, 8).Select(_ => new LinhaEntradaManualVM()).ToList();
+    public List<LinhaEntradaManualVM> Linhas { get; set; } = Enumerable.Range(0, 3).Select(_ => new LinhaEntradaManualVM()).ToList();
 }
 
 public class NovaSaidaVM

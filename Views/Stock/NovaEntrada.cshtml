@@ -61,20 +61,24 @@
         <div class="card-header"><h5 class="mb-0">Materiais</h5><span class="small text-body-tertiary">Se o código já existir no stock, usa-se esse material. Números de série: separados por espaço ou vírgula.</span></div>
         <div class="card-body table-responsive">
             <table class="table table-sm align-middle mb-0">
-                <thead><tr><th style="width:14%">Código</th><th>Descrição</th><th style="width:8%">Un.</th><th style="width:10%">Qtd.</th><th style="width:28%">Nºs de série</th></tr></thead>
-                <tbody>
+                <thead><tr><th style="width:14%">Código</th><th>Descrição</th><th style="width:8%; min-width:5rem">Un.</th><th style="width:10%">Qtd.</th><th style="width:28%">Nºs de série</th><th style="width:3rem"></th></tr></thead>
+                <tbody id="linhas-entrada">
                     @for (var i = 0; i < Model.Linhas.Count; i++)
                     {
                         <tr>
-                            <td><input asp-for="Linhas[i].Codigo" class="form-control form-control-sm" /></td>
-                            <td><input asp-for="Linhas[i].Descricao" class="form-control form-control-sm" /></td>
-                            <td><input asp-for="Linhas[i].Unidade" class="form-control form-control-sm" placeholder="PCS" /></td>
-                            <td><input asp-for="Linhas[i].Quantidade" class="form-control form-control-sm text-end" type="text" inputmode="decimal" /></td>
-                            <td><input asp-for="Linhas[i].Series" class="form-control form-control-sm" /></td>
+                            <td><input asp-for="Linhas[i].Codigo" class="form-control form-control-sm" aria-label="Código" /></td>
+                            <td><input asp-for="Linhas[i].Descricao" class="form-control form-control-sm" aria-label="Descrição" /></td>
+                            <td><input asp-for="Linhas[i].Unidade" class="form-control form-control-sm" placeholder="PCS" aria-label="Unidade" /></td>
+                            <td><input asp-for="Linhas[i].Quantidade" class="form-control form-control-sm text-end" type="text" inputmode="decimal" aria-label="Quantidade" /></td>
+                            <td><input asp-for="Linhas[i].Series" class="form-control form-control-sm" aria-label="Números de série" /></td>
+                            <td class="text-end">
+                                <button type="button" class="btn btn-sm btn-subtle-danger js-remover-linha" title="Remover linha" aria-label="Remover linha"><i class="fas fa-xmark"></i></button>
+                            </td>
                         </tr>
                     }
                 </tbody>
             </table>
+            <button type="button" id="adicionar-linha" class="btn btn-sm btn-subtle-primary mt-2"><span class="fas fa-plus me-1"></span> Adicionar linha</button>
         </div>
     </div>
 
@@ -83,3 +87,42 @@
         <a asp-action="Entradas" class="btn btn-subtle-secondary">Cancelar</a>
     </div>
 </form>
+
+@section Scripts {
+    <script>
+        // "+ Adicionar linha" copia a última linha (vazia) e renumera os campos Linhas[i].* para o servidor os ler em sequência.
+        (function () {
+            var corpo = document.getElementById('linhas-entrada');
+
+            function renumerar() {
+                corpo.querySelectorAll('tr').forEach(function (tr, i) {
+                    tr.querySelectorAll('input').forEach(function (inp) {
+                        inp.name = inp.name.replace(/Linhas\[\d+\]/, 'Linhas[' + i + ']');
+                        inp.id = inp.id.replace(/Linhas_\d+__/, 'Linhas_' + i + '__');
+                    });
+                });
+            }
+
+            document.getElementById('adicionar-linha').addEventListener('click', function () {
+                var modelo = corpo.querySelector('tr:last-child');
+                var nova = modelo.cloneNode(true);
+                nova.querySelectorAll('input').forEach(function (inp) { inp.value = ''; });
+                corpo.appendChild(nova);
+                renumerar();
+                nova.querySelector('input').focus();
+            });
+
+            corpo.addEventListener('click', function (e) {
+                var botao = e.target.closest('.js-remover-linha');
+                if (!botao) return;
+                var tr = botao.closest('tr');
+                if (corpo.querySelectorAll('tr').length > 1) {
+                    tr.remove();
+                    renumerar();
+                } else {
+                    tr.querySelectorAll('input').forEach(function (inp) { inp.value = ''; }); // a última linha fica, só limpa
+                }
+            });
+        })();
+    </script>
+}
