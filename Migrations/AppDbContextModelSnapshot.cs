@@ -841,6 +841,9 @@ namespace ComparacaoPropostas.Migrations
                         .HasPrecision(9, 2)
                         .HasColumnType("decimal(9,2)");
 
+                    b.Property<DateTime?>("ConcluidoEm")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("CriadoEm")
                         .HasColumnType("datetime2");
 
@@ -856,6 +859,9 @@ namespace ComparacaoPropostas.Migrations
                     b.Property<string>("Designacao")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -1219,6 +1225,24 @@ namespace ComparacaoPropostas.Migrations
                     b.Property<decimal?>("PropostasSemAdjudicacao")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("ScopeEnviadoEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ScopeErro")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("ScopePendente")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ScopeProximaTentativa")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ScopeRecordId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ScopeTentativas")
+                        .HasColumnType("int");
 
                     b.Property<string>("SeguimentoOrcamento")
                         .HasColumnType("nvarchar(max)");

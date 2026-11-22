@@ -14,6 +14,7 @@
 <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
     <div>
         <h2 class="mb-1">@p.Designacao</h2>
+        <span class="@(p.Estado == EstadoPlano.Concluido ? "badge bg-success" : "badge bg-warning text-dark") me-1">@(p.Estado == EstadoPlano.Concluido ? "Concluído" : "Em preparação")</span>
         <span class="text-body-tertiary">Ano @p.Ano @(string.IsNullOrWhiteSpace(p.Departamento) ? "" : $"— {p.Departamento}")</span>
         @if (!string.IsNullOrWhiteSpace(p.Descricao))
         {
@@ -34,6 +35,67 @@
         <a class="btn btn-subtle-warning" asp-action="CriarSeguinte" asp-route-id="@p.Id">
             <span class="fas fa-forward me-1"></span> Preparar plano @(p.Ano + 1)
         </a>
+    </div>
+</div>
+
+@{
+    var porDecidir = p.Projetos.Count(x => x.EstadoAprovacao == EstadoAprovacaoProjeto.Proposto);
+    var noScope = p.Projetos.Where(ComparacaoPropostas.Services.Airtable.Scope.ScopeMapper.DeveEstarNoScope).ToList();
+    var enviados = p.Projetos.Count(x => !x.ScopePendente && x.ScopeRecordId != null);
+    var emFila = p.Projetos.Count(x => x.ScopePendente && x.ScopeErro == null);
+    var comErro = p.Projetos.Where(x => x.ScopePendente && x.ScopeErro != null).ToList();
+    var ultimoEnvio = p.Projetos.Max(x => x.ScopeEnviadoEm);
+}
+<div class="card mb-3 @(p.Estado == EstadoPlano.Concluido ? "border-success" : "")">
+    <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
+        @if (p.Estado == EstadoPlano.EmPreparacao)
+        {
+            <div>
+                <h6 class="mb-1"><i class="fas fa-flag-checkered me-1"></i> Concluir o plano</h6>
+                <div class="small text-body-tertiary">
+                    Quando todos os projetos estiverem decididos, conclua o plano: os @noScope.Count projeto(s) aceite(s) são enviados automaticamente para o Airtable (SCOPE).
+                    @if (porDecidir > 0)
+                    {
+                        <span class="text-warning fw-semibold">Faltam decidir @porDecidir projeto(s).</span>
+                    }
+                </div>
+            </div>
+            <form asp-action="Concluir" asp-route-id="@p.Id" method="post" onsubmit="return confirm('Concluir o plano e enviar os projetos aceites para o Airtable?');">
+                <button type="submit" class="btn btn-success" disabled="@(porDecidir > 0)"><span class="fas fa-flag-checkered me-1"></span> Concluir plano</button>
+            </form>
+        }
+        else
+        {
+            <div>
+                <h6 class="mb-1"><i class="fas fa-cloud-arrow-up me-1"></i> Airtable (SCOPE)</h6>
+                <div class="small">
+                    Concluído em @(p.ConcluidoEm?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "-") ·
+                    <span class="text-success">@enviados enviado(s)</span> ·
+                    <span>@emFila em fila</span>
+                    @if (comErro.Count > 0)
+                    {
+                        <span> · </span><span class="text-danger fw-semibold">@comErro.Count com erro</span>
+                    }
+                    @if (ultimoEnvio.HasValue)
+                    {
+                        <span class="text-body-tertiary"> · último envio @ultimoEnvio.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                    }
+                </div>
+                @if (comErro.Count > 0)
+                {
+                    <div class="small text-danger mt-1" title="@comErro[0].ScopeErro">Último erro: @(comErro[0].ScopeErro!.Length > 160 ? comErro[0].ScopeErro![..160] + "…" : comErro[0].ScopeErro)</div>
+                }
+                <div class="small text-body-tertiary mt-1">As alterações aos projetos deste plano são reenviadas automaticamente; projetos rejeitados são retirados do Airtable.</div>
+            </div>
+            <div class="d-flex gap-2">
+                <form asp-action="ReenviarScope" asp-route-id="@p.Id" method="post">
+                    <button type="submit" class="btn btn-subtle-primary"><span class="fas fa-rotate me-1"></span> Reenviar tudo</button>
+                </form>
+                <form asp-action="Reabrir" asp-route-id="@p.Id" method="post" onsubmit="return confirm('Reabrir o plano? As alterações deixam de ser enviadas para o Airtable até voltar a concluir.');">
+                    <button type="submit" class="btn btn-subtle-secondary"><span class="fas fa-lock-open me-1"></span> Reabrir</button>
+                </form>
+            </div>
+        }
     </div>
 </div>
 

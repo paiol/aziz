@@ -31,6 +31,12 @@ public class Plano
 
     public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
 
+    [Display(Name = "Estado")]
+    public Enums.EstadoPlano Estado { get; set; } = Enums.EstadoPlano.EmPreparacao;
+
+    [Display(Name = "Concluído em")]
+    public DateTime? ConcluidoEm { get; set; }
+
     public ICollection<ProjetoPlano> Projetos { get; set; } = new List<ProjetoPlano>();
     public ICollection<AcaoFormacaoPlano> AcoesFormacao { get; set; } = new List<AcaoFormacaoPlano>();
 }

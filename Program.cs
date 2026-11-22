@@ -21,9 +21,17 @@ builder.Services.AddHttpClient<IAirtableClient, AirtableClient>(c => c.Timeout =
 builder.Services.AddScoped<IAirtableSyncService, AirtableSyncService>();
 builder.Services.AddHostedService<AirtableSyncWorker>();
 
+// Plano Capex → Airtable (base SCOPE): projetos aceites dos planos concluídos. Ver Services/Airtable/Scope.
+builder.Services.Configure<ComparacaoPropostas.Services.Airtable.Scope.ScopeOptions>(builder.Configuration.GetSection(ComparacaoPropostas.Services.Airtable.Scope.ScopeOptions.Secao));
+builder.Services.AddSingleton<ComparacaoPropostas.Services.Airtable.Scope.ScopePendenteInterceptor>();
+builder.Services.AddHttpClient<ComparacaoPropostas.Services.Airtable.Scope.IScopeClient, ComparacaoPropostas.Services.Airtable.Scope.ScopeClient>(c => c.Timeout = TimeSpan.FromSeconds(60));
+builder.Services.AddScoped<ComparacaoPropostas.Services.Airtable.Scope.ScopeSyncService>();
+builder.Services.AddHostedService<ComparacaoPropostas.Services.Airtable.Scope.ScopeSyncWorker>();
+
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
-        .AddInterceptors(sp.GetRequiredService<AirtableSyncInterceptor>()));
+        .AddInterceptors(sp.GetRequiredService<AirtableSyncInterceptor>(),
+            sp.GetRequiredService<ComparacaoPropostas.Services.Airtable.Scope.ScopePendenteInterceptor>()));
 
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
 builder.Services.AddScoped<IScoringService, ScoringService>();

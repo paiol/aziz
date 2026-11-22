@@ -14,12 +14,15 @@ public class PlanosController : Controller
     private readonly AppDbContext _db;
     private readonly IPlanoExcelService _planoExcelService;
     private readonly ILogger<PlanosController> _logger;
+    private readonly Microsoft.Extensions.Options.IOptionsMonitor<Services.Airtable.Scope.ScopeOptions> _scope;
 
-    public PlanosController(AppDbContext db, IPlanoExcelService planoExcelService, ILogger<PlanosController> logger)
+    public PlanosController(AppDbContext db, IPlanoExcelService planoExcelService, ILogger<PlanosController> logger,
+        Microsoft.Extensions.Options.IOptionsMonitor<Services.Airtable.Scope.ScopeOptions> scope)
     {
         _db = db;
         _planoExcelService = planoExcelService;
         _logger = logger;
+        _scope = scope;
     }
 
     public IActionResult Index()
@@ -159,6 +162,11 @@ public class PlanosController : Controller
             .Include(p => p.AcoesFormacao)
             .FirstOrDefault(p => p.Id == id);
         if (plano == null) return NotFound();
+        if (plano.Estado == EstadoPlano.Concluido)
+        {
+            TempData["EmailWarning"] = "O plano está concluído: reabra-o antes de recarregar os projetos de uma área.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
 
         var daArea = plano.Projetos.Where(p => p.Area == area).ToList();
         var idsDaArea = daArea.Select(p => p.Id).ToList();
@@ -190,6 +198,69 @@ public class PlanosController : Controller
         _db.SaveChanges();
 
         TempData["Sucesso"] = MensagemImportacao(importado, area) + (novosValores > 0 ? $" {novosValores} valor(es) novo(s) acrescentado(s) às listas do plano." : "");
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    // ---- Concluir o plano e enviar para o Airtable (SCOPE) ----------------------------------
+
+    // Conclui o plano: só é possível quando todos os projetos estão decididos (aceites ou rejeitados).
+    // A partir daqui os projetos aceites são enviados para o Airtable e qualquer alteração é reenviada.
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult Concluir(int id)
+    {
+        var plano = _db.Planos.Find(id);
+        if (plano == null) return NotFound();
+
+        var porDecidir = _db.ProjetosPlano.Count(p => p.PlanoId == id && p.EstadoAprovacao == EstadoAprovacaoProjeto.Proposto);
+        if (porDecidir > 0)
+        {
+            TempData["EmailWarning"] = $"Ainda há {porDecidir} projeto(s) por decidir. Aceite ou rejeite todos antes de concluir o plano.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        plano.Estado = EstadoPlano.Concluido;
+        plano.ConcluidoEm = DateTime.UtcNow;
+        var marcados = Services.Airtable.Scope.ScopeSyncService.MarcarPlanoAsync(_db, id).GetAwaiter().GetResult();
+        _db.SaveChanges();
+
+        TempData["Sucesso"] = $"Plano concluído. {marcados} projeto(s) aceite(s) ficam em fila para envio ao Airtable (SCOPE)."
+            + (_scope.CurrentValue.Enabled ? "" : " O envio para o Airtable está desligado nesta instalação (AirtableScope:Enabled).");
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    // Volta a pôr o plano em preparação: deixa de enviar alterações (o que já está no Airtable fica).
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult Reabrir(int id)
+    {
+        var plano = _db.Planos.Find(id);
+        if (plano == null) return NotFound();
+
+        plano.Estado = EstadoPlano.EmPreparacao;
+        plano.ConcluidoEm = null;
+        _db.SaveChanges();
+
+        TempData["Sucesso"] = "Plano reaberto. As alterações deixam de ser enviadas para o Airtable até voltar a concluir.";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    // Volta a enviar todos os projetos aceites (ex.: depois de corrigir um erro no Airtable).
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult ReenviarScope(int id)
+    {
+        var plano = _db.Planos.Find(id);
+        if (plano == null) return NotFound();
+        if (plano.Estado != EstadoPlano.Concluido)
+        {
+            TempData["EmailWarning"] = "Só os planos concluídos são enviados para o Airtable.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var marcados = Services.Airtable.Scope.ScopeSyncService.MarcarPlanoAsync(_db, id).GetAwaiter().GetResult();
+        _db.SaveChanges();
+        TempData["Sucesso"] = $"{marcados} projeto(s) em fila para reenvio ao Airtable.";
         return RedirectToAction(nameof(Details), new { id });
     }
 

@@ -114,6 +114,13 @@ public class ProjetosPlanoController : Controller
         if (existente == null) return NotFound();
         projeto.PlanoId = existente.PlanoId;
         projeto.ProjetoOrigemId = existente.ProjetoOrigemId;
+        // Estado do envio para o Airtable: não vem no formulário.
+        projeto.ScopePendente = existente.ScopePendente;
+        projeto.ScopeRecordId = existente.ScopeRecordId;
+        projeto.ScopeEnviadoEm = existente.ScopeEnviadoEm;
+        projeto.ScopeErro = existente.ScopeErro;
+        projeto.ScopeTentativas = existente.ScopeTentativas;
+        projeto.ScopeProximaTentativa = existente.ScopeProximaTentativa;
         projeto.DataDecisao = projeto.EstadoAprovacao == existente.EstadoAprovacao ? existente.DataDecisao
             : projeto.EstadoAprovacao == EstadoAprovacaoProjeto.Proposto ? null : DateTime.UtcNow;
 
@@ -188,6 +195,11 @@ public class ProjetosPlanoController : Controller
         if (projeto == null) return NotFound();
 
         var planoId = projeto.PlanoId;
+        if (_db.Planos.Any(p => p.Id == planoId && p.Estado == EstadoPlano.Concluido))
+        {
+            TempData["EmailWarning"] = "O plano está concluído: para retirar o projeto, rejeite-o (é retirado também do Airtable) ou reabra o plano.";
+            return RedirectToAction(nameof(Index), new { planoId });
+        }
         if (TemComprasOuObras(id))
         {
             TempData["EmailWarning"] = "Não é possível remover: o projeto tem compras ou obras associadas.";
