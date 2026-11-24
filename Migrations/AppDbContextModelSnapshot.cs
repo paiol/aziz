@@ -315,6 +315,49 @@ namespace ComparacaoPropostas.Migrations
                     b.ToTable("Avaliadores");
                 });
 
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.CodigoFornecedorMaterial", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Descricao")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Fornecedor")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("MaterialStockId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Modelo")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Codigo");
+
+                    b.HasIndex("MaterialStockId");
+
+                    b.HasIndex("Fornecedor", "Codigo")
+                        .IsUnique();
+
+                    b.ToTable("CodigosFornecedorMaterial");
+                });
+
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.Criterio", b =>
                 {
                     b.Property<int>("Id")
@@ -1035,6 +1078,9 @@ namespace ComparacaoPropostas.Migrations
                         .IsRequired()
                         .HasMaxLength(60)
                         .HasColumnType("nvarchar(60)");
+
+                    b.Property<bool>("CodigoProvisorio")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Descricao")
                         .IsRequired()
@@ -2777,6 +2823,17 @@ namespace ComparacaoPropostas.Migrations
                     b.Navigation("PropostaEmpreiteiro");
                 });
 
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.CodigoFornecedorMaterial", b =>
+                {
+                    b.HasOne("ComparacaoPropostas.Models.Entities.MaterialStock", "Material")
+                        .WithMany("CodigosFornecedor")
+                        .HasForeignKey("MaterialStockId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Material");
+                });
+
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.Criterio", b =>
                 {
                     b.HasOne("ComparacaoPropostas.Models.Entities.Processo", "Processo")
@@ -3157,6 +3214,8 @@ namespace ComparacaoPropostas.Migrations
 
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.MaterialStock", b =>
                 {
+                    b.Navigation("CodigosFornecedor");
+
                     b.Navigation("DivergenciasNome");
 
                     b.Navigation("Movimentos");

@@ -10,7 +10,8 @@ public enum TipoAlarmeStock
     Esgotado,
     AbaixoMinimo,
     Parado,
-    NomeDiferente
+    NomeDiferente,
+    SemCodigoSap
 }
 
 public enum SeveridadeAlarme
@@ -29,6 +30,7 @@ public record AlarmeStock(TipoAlarmeStock Tipo, SeveridadeAlarme Severidade, Mat
 //  - Abaixo do mínimo: saldo total abaixo do stock mínimo                          → aviso
 //  - Parado: há stock mas não sai nada há mais de N dias (por omissão 180)         → info
 //  - Nome diferente: o mesmo código chegou com outro nome (armazém / Packing List)   → aviso
+//  - Sem código SAP: material que chegou só com o código do fornecedor               → aviso
 //    (vem dos alertas DivergenciaNomeMaterial por decidir; incluir m.DivergenciasNome para os ver)
 public static class StockAlarmes
 {
@@ -51,6 +53,9 @@ public static class StockAlarmes
                     $"Saldo negativo em {a.ToLabel()} ({saldoArea:0.###}): há saídas sem a entrada correspondente."));
 
             var saldo = StockCalculos.Saldo(movs);
+            if (m.CodigoProvisorio && saldo != 0)
+                alarmes.Add(new AlarmeStock(TipoAlarmeStock.SemCodigoSap, SeveridadeAlarme.Aviso, m, area, saldo,
+                    $"Chegou só com o código do fornecedor ({m.Fabricante ?? "fornecedor não indicado"}): associe-o ao código SAP."));
             if (m.StockMinimo is decimal minimo && minimo > 0)
             {
                 if (saldo <= 0)
@@ -83,6 +88,7 @@ public static class StockAlarmes
         TipoAlarmeStock.AbaixoMinimo => "Abaixo do mínimo",
         TipoAlarmeStock.Parado => "Stock parado",
         TipoAlarmeStock.NomeDiferente => "Nome diferente",
+        TipoAlarmeStock.SemCodigoSap => "Sem código SAP",
         _ => t.ToString()
     };
 

@@ -165,7 +165,7 @@ flowchart TD
     E --> S[("Stock por material<br/>área DEP × armazém × área técnica")]
     AJ --> S
     S --> SA["Saída<br/>(projeto Capex, site, nº de série)"]
-    S --> AL["Alarmes<br/>saldo negativo · esgotado · abaixo do mínimo · parado · nome diferente"]
+    S --> AL["Alarmes<br/>saldo negativo · esgotado · abaixo do mínimo · parado · nome diferente · sem código SAP"]
 ```
 
 ### Armazéns (Centro / Depósito do SAP)
@@ -203,6 +203,17 @@ A área técnica fica no material (dentro da área DEP, ex.: DEP-INF) e pode ser
 | outras DEI (DEI, DEI PROJETO, DEI_RAM…) | DEI (outros) |
 | armazém de Projeto sem área no ficheiro | DEI (outros) |
 
+### Código SAP e códigos de fornecedor
+
+O **código SAP** (coluna `Material` do ficheiro do armazém, ex.: 20076) é o **ID oficial** do material. Os fornecedores usam os seus próprios códigos (ex.: Part Number da Huawei `01076667`) e a DEI controla essa correspondência:
+
+- Cada material tem a lista **Códigos de fornecedor** (fornecedor, código do fornecedor, modelo, descrição do fornecedor), na ficha do material.
+- **Packing List**: o código da linha é do fornecedor. Se já estiver associado a um código SAP, a entrada vai **diretamente** para esse material. Se não, o material fica **provisório — "sem código SAP"** (alarme *Sem código SAP*).
+- **Associar ao código SAP** (ficha do material): se o código SAP já existe no stock, os dois **juntam-se** (stock, movimentos, nºs de série, contagens e códigos passam para o material SAP); se não existe, o material passa a ter esse código SAP. O código do fornecedor fica registado e as próximas entradas com ele vão diretas.
+- Compras DEI e entradas manuais usam o código SAP.
+- A pesquisa do stock encontra o material pelo código SAP ou por qualquer código de fornecedor.
+- O mesmo código SAP genérico (ex.: "Poste") pode ter vários códigos de fornecedor / modelos associados.
+
 ### Regras do inventário
 
 - **Importar o ficheiro SAP** (Inventário → "Importar o ficheiro do SAP do armazém") cria **um inventário aberto por armazém**, com a área DEP e a data escolhidas.
@@ -219,6 +230,7 @@ erDiagram
     MateriaisStock ||--o{ MovimentosStock : "movimentos"
     MateriaisStock ||--o{ NumerosSerieStock : "nºs de série"
     MateriaisStock ||--o{ DivergenciasNomeMaterial : "outros nomes"
+    MateriaisStock ||--o{ CodigosFornecedorMaterial : "códigos de fornecedor"
     EntradasStock ||--o{ MovimentosStock : "entrada"
     InventariosStock ||--o{ LinhasInventario : "contagem"
     InventariosStock |o..o{ MovimentosStock : "ajustes"
@@ -229,7 +241,8 @@ erDiagram
 
     MateriaisStock {
         int Id PK
-        string Codigo "único (Material do SAP / Part Number)"
+        string Codigo "código SAP (único)"
+        bool CodigoProvisorio "true = só código do fornecedor"
         string Descricao
         string Unidade
         string AreaTecnica "MBB, FBB, INF ENR, DEI (outros)"
@@ -278,6 +291,14 @@ erDiagram
         string Armazem
         string Numero
         string Contrato1Mais1
+    }
+    CodigosFornecedorMaterial {
+        int Id PK
+        int MaterialStockId FK
+        string Fornecedor
+        string Codigo "código do fornecedor"
+        string Modelo
+        string Descricao
     }
     DivergenciasNomeMaterial {
         int Id PK

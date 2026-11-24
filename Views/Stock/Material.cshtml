@@ -11,7 +11,7 @@
 
 <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
     <div>
-        <h2 class="mb-1">@m.Codigo <span class="text-body-tertiary fw-normal" style="font-size: 1rem">@m.Modelo</span>@if (m.AreaTecnica != null) { <span class="badge bg-primary ms-2" style="font-size: .8rem">@m.AreaTecnica</span> }</h2>
+        <h2 class="mb-1">@m.Codigo <span class="text-body-tertiary fw-normal" style="font-size: 1rem">@m.Modelo</span>@if (m.AreaTecnica != null) { <span class="badge bg-primary ms-2" style="font-size: .8rem">@m.AreaTecnica</span> }@if (m.CodigoProvisorio) { <a href="#codigos" class="badge bg-warning text-dark ms-2" style="font-size: .8rem">sem código SAP</a> }</h2>
         <span class="text-body-tertiary">@m.Descricao</span>
         <div><a asp-action="Index" class="small"><span class="fas fa-arrow-left me-1"></span>Voltar ao stock</a></div>
     </div>
@@ -29,6 +29,72 @@
             </div></div>
         </div>
     }
+</div>
+
+<div class="card mb-3 @(m.CodigoProvisorio ? "border-warning" : "")" id="codigos">
+    <div class="card-header py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h6 class="mb-0"><i class="fas fa-barcode me-1"></i> Código SAP e códigos de fornecedor</h6>
+        @if (m.CodigoProvisorio)
+        {
+            <span class="badge bg-warning text-dark"><i class="fas fa-triangle-exclamation me-1"></i>Sem código SAP — @m.Codigo é o código do fornecedor</span>
+        }
+        else
+        {
+            <span class="small">Código SAP <strong>@m.Codigo</strong></span>
+        }
+    </div>
+    <div class="card-body">
+        @if (m.CodigoProvisorio)
+        {
+            <form asp-action="AssociarSap" asp-route-id="@m.Id" method="post" class="row g-2 align-items-end mb-3">
+                <div class="col-md-4">
+                    <label class="form-label mb-1" for="codigoSap">Código SAP deste material</label>
+                    <input id="codigoSap" name="codigoSap" class="form-control form-control-sm" placeholder="ex.: 20076" required maxlength="60" />
+                </div>
+                <div class="col-md-3"><button type="submit" class="btn btn-sm btn-warning"><i class="fas fa-link me-1"></i> Associar ao código SAP</button></div>
+                <div class="col-12 form-text">Se o código SAP já existir no stock, os dois juntam-se: o stock, os movimentos e os nºs de série passam para o material SAP. O código @m.Codigo fica registado como código do fornecedor e as próximas entradas com ele vão diretas para o código SAP.</div>
+            </form>
+        }
+        @if (m.CodigosFornecedor.Count > 0)
+        {
+            <table class="table table-sm mb-2">
+                <thead><tr><th>Fornecedor</th><th>Código do fornecedor</th><th>Modelo</th><th>Descrição do fornecedor</th><th style="width: 1%"></th></tr></thead>
+                <tbody>
+                    @foreach (var c in m.CodigosFornecedor.OrderBy(c => c.Fornecedor).ThenBy(c => c.Codigo))
+                    {
+                        <tr>
+                            <td>@c.Fornecedor</td>
+                            <td class="font-monospace">@c.Codigo</td>
+                            <td class="small">@(c.Modelo ?? "-")</td>
+                            <td class="small">@(c.Descricao ?? "-")</td>
+                            <td class="text-end">
+                                <form id="rem-cod-@c.Id" asp-action="RemoverCodigoFornecedor" asp-route-id="@m.Id" method="post" class="d-none"><input type="hidden" name="codigoId" value="@c.Id" /></form>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-subtle-secondary btn-menu-acoes" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Opções"><i class="fas fa-ellipsis"></i></button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><button type="submit" form="rem-cod-@c.Id" class="dropdown-item text-danger" onclick="return confirm('Remover o código @c.Codigo de @c.Fornecedor?');"><i class="fas fa-link-slash me-2"></i>Remover associação</button></li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p class="text-body-tertiary small mb-2">Ainda não há códigos de fornecedor associados.</p>
+        }
+        <form asp-action="AdicionarCodigoFornecedor" asp-route-id="@m.Id" method="post" class="row g-2 align-items-end">
+            <div class="col-md-4"><label class="form-label mb-1 small" for="cf-fornecedor">Fornecedor</label><input id="cf-fornecedor" name="fornecedor" class="form-control form-control-sm" maxlength="150" required list="lista-fornecedores-material" /></div>
+            <div class="col-md-3"><label class="form-label mb-1 small" for="cf-codigo">Código do fornecedor</label><input id="cf-codigo" name="codigo" class="form-control form-control-sm" maxlength="60" required /></div>
+            <div class="col-md-3"><label class="form-label mb-1 small" for="cf-modelo">Modelo</label><input id="cf-modelo" name="modelo" class="form-control form-control-sm" maxlength="100" /></div>
+            <div class="col-md-2"><button type="submit" class="btn btn-sm btn-subtle-primary w-100"><i class="fas fa-plus me-1"></i> Associar</button></div>
+            <datalist id="lista-fornecedores-material">
+                @foreach (var nome in (List<string>)ViewBag.FornecedoresMaterial) { <option value="@nome"></option> }
+            </datalist>
+        </form>
+    </div>
 </div>
 
 @{

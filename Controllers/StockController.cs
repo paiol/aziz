@@ -29,7 +29,7 @@ public class StockController : Controller
 
     public IActionResult Index(AreaDepartamento? area, string? q, bool soComStock = true, string? at = null, string? arm = null)
     {
-        var materiais = _db.MateriaisStock.Include(m => m.Movimentos).Include(m => m.NumerosSerie).AsNoTracking().ToList();
+        var materiais = _db.MateriaisStock.Include(m => m.Movimentos).Include(m => m.NumerosSerie).Include(m => m.CodigosFornecedor).AsNoTracking().ToList();
         var linhas = materiais
             .Select(m => new LinhaSaldoVM
             {
@@ -40,7 +40,8 @@ public class StockController : Controller
             .Where(l => string.IsNullOrWhiteSpace(q)
                         || l.Material.Codigo.Contains(q, StringComparison.OrdinalIgnoreCase)
                         || l.Material.Descricao.Contains(q, StringComparison.OrdinalIgnoreCase)
-                        || (l.Material.Modelo ?? "").Contains(q, StringComparison.OrdinalIgnoreCase))
+                        || (l.Material.Modelo ?? "").Contains(q, StringComparison.OrdinalIgnoreCase)
+                        || l.Material.CodigosFornecedor.Any(c => c.Codigo.Contains(q, StringComparison.OrdinalIgnoreCase)))
             .Where(l => !soComStock || (area == null ? l.Total != 0 : l.PorArea.GetValueOrDefault(area.Value) != 0))
             .Where(l => at == null || (at == "sem" ? l.Material.AreaTecnica == null : l.Material.AreaTecnica == at))
             .OrderBy(l => l.Material.Descricao)
@@ -77,10 +78,15 @@ public class StockController : Controller
             .Include(m => m.Movimentos).ThenInclude(mv => mv.ProjetoPlano)
             .Include(m => m.NumerosSerie).ThenInclude(s => s.MovimentoSaida)
             .Include(m => m.DivergenciasNome)
+            .Include(m => m.CodigosFornecedor)
             .AsNoTracking()
             .FirstOrDefault(m => m.Id == id);
         if (material == null) return NotFound();
         ViewBag.NomesArmazens = _db.ArmazensStock.AsNoTracking().ToList().ToDictionary(a => a.Codigo, a => a.Rotulo, StringComparer.OrdinalIgnoreCase);
+        ViewBag.FornecedoresMaterial = _db.Fornecedores.Where(f => f.Ativo).Select(f => f.Nome).ToList()
+            .Concat(_db.EntradasStock.Where(e => e.Fornecedor != null).Select(e => e.Fornecedor!).Distinct().ToList())
+            .Concat(_db.CodigosFornecedorMaterial.Select(c => c.Fornecedor).Distinct().ToList())
+            .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(n => n).ToList();
         return View(material);
     }
 
@@ -166,6 +172,123 @@ public class StockController : Controller
         ViewBag.Area = area;
         ViewBag.Tipo = tipo;
         return View(alarmes);
+    }
+
+    // ---- Código SAP e códigos de fornecedor ----------------------------------------------------
+
+    // Associa um material provisório (que chegou só com o código do fornecedor) ao código SAP.
+    // Se o código SAP já existe no catálogo, os dois juntam-se: movimentos, nºs de série, contagens e
+    // códigos de fornecedor passam para o material SAP e o provisório desaparece.
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult AssociarSap(int id, string? codigoSap)
+    {
+        var prov = _db.MateriaisStock.Include(m => m.CodigosFornecedor).Include(m => m.NumerosSerie).Include(m => m.DivergenciasNome)
+            .FirstOrDefault(m => m.Id == id);
+        if (prov == null) return NotFound();
+        codigoSap = codigoSap?.Trim();
+        if (string.IsNullOrEmpty(codigoSap))
+        {
+            TempData["EmailWarning"] = "Indique o código SAP.";
+            return RedirectToAction(nameof(Material), new { id });
+        }
+
+        // O código atual (do fornecedor) fica registado como código de fornecedor.
+        if (prov.CodigoProvisorio && !prov.Codigo.Equals(codigoSap, StringComparison.OrdinalIgnoreCase))
+            GarantirCodigoFornecedor(prov, prov.Fabricante, prov.Codigo, prov.Modelo, prov.Descricao);
+
+        var alvo = _db.MateriaisStock.Include(m => m.CodigosFornecedor).Include(m => m.NumerosSerie)
+            .FirstOrDefault(m => m.Codigo == codigoSap && m.Id != id);
+        if (alvo == null)
+        {
+            prov.Codigo = Limitar(codigoSap, 60)!;
+            prov.CodigoProvisorio = false;
+            _db.SaveChanges();
+            TempData["Sucesso"] = $"Material passou a ter o código SAP {prov.Codigo}.";
+            return RedirectToAction(nameof(Material), new { id });
+        }
+
+        using var tx = _db.Database.BeginTransaction();
+        _db.MovimentosStock.Where(mv => mv.MaterialStockId == prov.Id).ExecuteUpdate(s => s.SetProperty(mv => mv.MaterialStockId, alvo.Id));
+        _db.LinhasInventario.Where(l => l.MaterialStockId == prov.Id).ExecuteUpdate(s => s.SetProperty(l => l.MaterialStockId, alvo.Id));
+        foreach (var s in prov.NumerosSerie.ToList())
+        {
+            if (alvo.NumerosSerie.Any(x => x.Serie.Equals(s.Serie, StringComparison.OrdinalIgnoreCase))) _db.NumerosSerieStock.Remove(s);
+            else s.MaterialStockId = alvo.Id;
+        }
+        foreach (var d in prov.DivergenciasNome.ToList()) d.MaterialStockId = alvo.Id;
+        foreach (var c in prov.CodigosFornecedor.ToList())
+        {
+            if (alvo.CodigosFornecedor.Any(x => x.Fornecedor == c.Fornecedor && x.Codigo == c.Codigo)) _db.CodigosFornecedorMaterial.Remove(c);
+            else c.MaterialStockId = alvo.Id;
+        }
+        alvo.Modelo ??= prov.Modelo;
+        alvo.Fabricante ??= prov.Fabricante;
+        alvo.Unidade ??= prov.Unidade;
+        alvo.AreaTecnica ??= prov.AreaTecnica;
+        alvo.PrecoUnitario ??= prov.PrecoUnitario;
+        alvo.StockMinimo ??= prov.StockMinimo;
+        _db.SaveChanges();
+        _db.MateriaisStock.Remove(prov);
+        _db.SaveChanges();
+        tx.Commit();
+
+        TempData["Sucesso"] = $"{prov.Codigo} associado ao código SAP {alvo.Codigo}: o stock e o histórico passaram para esse material.";
+        return RedirectToAction(nameof(Material), new { id = alvo.Id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult AdicionarCodigoFornecedor(int id, string? fornecedor, string? codigo, string? modelo)
+    {
+        var m = _db.MateriaisStock.Include(x => x.CodigosFornecedor).FirstOrDefault(x => x.Id == id);
+        if (m == null) return NotFound();
+        fornecedor = Vazio(fornecedor);
+        codigo = Vazio(codigo);
+        if (fornecedor == null || codigo == null)
+        {
+            TempData["EmailWarning"] = "Indique o fornecedor e o código do fornecedor.";
+            return RedirectToAction(nameof(Material), new { id });
+        }
+        var outro = _db.CodigosFornecedorMaterial.Include(c => c.Material).AsNoTracking()
+            .FirstOrDefault(c => c.Fornecedor == fornecedor && c.Codigo == codigo);
+        if (outro != null && outro.MaterialStockId != id)
+        {
+            TempData["EmailWarning"] = $"O código {codigo} de {fornecedor} já está associado ao material {outro.Material.Codigo}.";
+            return RedirectToAction(nameof(Material), new { id });
+        }
+        GarantirCodigoFornecedor(m, fornecedor, codigo, Vazio(modelo), null);
+        _db.SaveChanges();
+        TempData["Sucesso"] = $"Código {codigo} de {fornecedor} associado a {m.Codigo}.";
+        return RedirectToAction(nameof(Material), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult RemoverCodigoFornecedor(int id, int codigoId)
+    {
+        var c = _db.CodigosFornecedorMaterial.FirstOrDefault(x => x.Id == codigoId && x.MaterialStockId == id);
+        if (c != null)
+        {
+            _db.CodigosFornecedorMaterial.Remove(c);
+            _db.SaveChanges();
+            TempData["Sucesso"] = $"Código {c.Codigo} de {c.Fornecedor} removido.";
+        }
+        return RedirectToAction(nameof(Material), new { id });
+    }
+
+    private void GarantirCodigoFornecedor(MaterialStock m, string? fornecedor, string codigo, string? modelo, string? descricao)
+    {
+        var nomeFornecedor = Limitar(Vazio(fornecedor), 150) ?? "(fornecedor não indicado)";
+        if (m.CodigosFornecedor.Any(c => c.Codigo.Equals(codigo, StringComparison.OrdinalIgnoreCase)
+                                         && CodigosFornecedor.MesmoFornecedor(c.Fornecedor, nomeFornecedor))) return;
+        m.CodigosFornecedor.Add(new CodigoFornecedorMaterial
+        {
+            Fornecedor = nomeFornecedor,
+            Codigo = Limitar(codigo, 60)!,
+            Modelo = Limitar(modelo, 100),
+            Descricao = descricao
+        });
     }
 
     // Decide um alerta de "nome diferente": manter o nome do catálogo (o recebido fica conhecido como
@@ -318,7 +441,7 @@ public class StockController : Controller
             NomeFicheiro = Limitar(Path.GetFileName(ficheiro.FileName), 200)
         };
 
-        var materiais = ObterMateriais(pl.Linhas.Select(l => (l.Codigo, l.Modelo, l.Descricao, l.Unidade)), ehHuawei ? "Huawei" : nomeFornecedor, OrigemNomeMaterial.PackingList, entrada);
+        var materiais = ObterMateriais(pl.Linhas.Select(l => (l.Codigo, l.Modelo, l.Descricao, l.Unidade)), ehHuawei ? "Huawei" : nomeFornecedor, OrigemNomeMaterial.PackingList, entrada, codigosDoFornecedor: true);
         foreach (var l in pl.Linhas)
         {
             entrada.Movimentos.Add(new MovimentoStock
@@ -529,29 +652,53 @@ public class StockController : Controller
         n > 0 ? $" Atenção: {n} material(is) chegaram com um nome diferente do catálogo (mesmo código) — veja em Alarmes." : "";
 
     // Devolve (criando se preciso) os materiais do catálogo pelos códigos indicados.
+    // codigosDoFornecedor (Packing List): o código é do fornecedor — se já estiver associado a um material
+    // SAP vai para esse material; senão cria um material provisório (sem código SAP) para a DEI associar.
+    // Nas outras entradas o código é o código SAP.
     private Dictionary<string, MaterialStock> ObterMateriais(IEnumerable<(string Codigo, string? Modelo, string Descricao, string? Unidade)> linhas, string? fabricante,
-        OrigemNomeMaterial origem, EntradaStock entrada)
+        OrigemNomeMaterial origem, EntradaStock entrada, bool codigosDoFornecedor = false)
     {
         var lista = linhas.GroupBy(l => l.Codigo, StringComparer.OrdinalIgnoreCase).Select(g => g.First()).ToList();
         var codigos = lista.Select(l => l.Codigo).ToList();
         var existentes = _db.MateriaisStock.Where(m => codigos.Contains(m.Codigo)).ToList()
             .ToDictionary(m => m.Codigo, StringComparer.OrdinalIgnoreCase);
+        var diretos = new HashSet<string>(existentes.Keys, StringComparer.OrdinalIgnoreCase);
+
+        var semMaterial = lista.Where(l => !existentes.ContainsKey(l.Codigo)).Select(l => l.Codigo).ToList();
+        var correspondencias = codigosDoFornecedor && semMaterial.Count > 0
+            ? _db.CodigosFornecedorMaterial.Include(c => c.Material).Where(c => semMaterial.Contains(c.Codigo)).ToList()
+            : new List<CodigoFornecedorMaterial>();
 
         foreach (var l in lista.Where(l => !existentes.ContainsKey(l.Codigo)))
         {
+            if (codigosDoFornecedor
+                && CodigosFornecedor.Procurar(correspondencias.Where(c => c.Codigo.Equals(l.Codigo, StringComparison.OrdinalIgnoreCase)), fabricante) is { } c)
+            {
+                existentes[l.Codigo] = c.Material;
+                continue;
+            }
             var m = new MaterialStock
             {
                 Codigo = Limitar(l.Codigo, 60)!,
+                CodigoProvisorio = codigosDoFornecedor,
                 Modelo = Limitar(l.Modelo, 100),
                 Descricao = l.Descricao,
                 Unidade = Limitar(l.Unidade, 20),
                 Fabricante = Limitar(fabricante, 100)
             };
+            if (codigosDoFornecedor)
+                m.CodigosFornecedor.Add(new CodigoFornecedorMaterial
+                {
+                    Fornecedor = Limitar(fabricante, 150) ?? "(fornecedor não indicado)",
+                    Codigo = Limitar(l.Codigo, 60)!,
+                    Modelo = Limitar(l.Modelo, 100),
+                    Descricao = l.Descricao
+                });
             _db.MateriaisStock.Add(m);
             existentes[l.Codigo] = m;
         }
-        // Material que já existe e chegou com outro nome: fica um alerta (identificado pelo código).
-        foreach (var l in lista)
+        // Material que já existe pelo mesmo código e chegou com outro nome: fica um alerta.
+        foreach (var l in lista.Where(l => diretos.Contains(l.Codigo)))
             NomesMaterial.Registar(_db, existentes[l.Codigo], l.Descricao, origem, $"{entrada.Tipo.ToLabel()} {entrada.Numero}", entrada);
         return existentes;
     }

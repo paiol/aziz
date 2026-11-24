@@ -56,6 +56,7 @@ public class AppDbContext : DbContext
     public DbSet<LinhaInventario> LinhasInventario => Set<LinhaInventario>();
     public DbSet<DivergenciaNomeMaterial> DivergenciasNomeMaterial => Set<DivergenciaNomeMaterial>();
     public DbSet<ArmazemStock> ArmazensStock => Set<ArmazemStock>();
+    public DbSet<CodigoFornecedorMaterial> CodigosFornecedorMaterial => Set<CodigoFornecedorMaterial>();
 
     // Integração App → Airtable (ver Services/Airtable).
     public DbSet<AirtableLink> AirtableLinks => Set<AirtableLink>();
@@ -374,6 +375,12 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<MovimentoStock>()
             .HasOne(x => x.Inventario).WithMany().HasForeignKey(x => x.InventarioStockId).OnDelete(DeleteBehavior.Restrict);
 
+        modelBuilder.Entity<CodigoFornecedorMaterial>(e =>
+        {
+            e.HasIndex(x => new { x.Fornecedor, x.Codigo }).IsUnique();
+            e.HasIndex(x => x.Codigo);
+            e.HasOne(x => x.Material).WithMany(m => m.CodigosFornecedor).HasForeignKey(x => x.MaterialStockId).OnDelete(DeleteBehavior.Cascade);
+        });
         modelBuilder.Entity<ArmazemStock>(e =>
         {
             e.HasIndex(x => x.Codigo).IsUnique();

@@ -39,7 +39,7 @@
             <a class="card h-100 text-decoration-none" asp-action="Alarmes" asp-route-area="@area" asp-route-tipo="@t">
                 <div class="card-body py-2">
                     <span class="text-body-tertiary small d-block">@t.ToLabel()</span>
-                    <span class="fw-semibold @(n > 0 && t is TipoAlarmeStock.SaldoNegativo or TipoAlarmeStock.Esgotado ? "text-danger" : n > 0 && t is TipoAlarmeStock.AbaixoMinimo or TipoAlarmeStock.NomeDiferente ? "text-warning" : "")" style="font-size: 1.4rem">@n</span>
+                    <span class="fw-semibold @(n > 0 && t is TipoAlarmeStock.SaldoNegativo or TipoAlarmeStock.Esgotado ? "text-danger" : n > 0 && t is TipoAlarmeStock.AbaixoMinimo or TipoAlarmeStock.NomeDiferente or TipoAlarmeStock.SemCodigoSap ? "text-warning" : "")" style="font-size: 1.4rem">@n</span>
                 </div>
             </a>
         </div>
@@ -68,7 +68,7 @@
                             <td class="text-end">@a.Saldo.ToQtd() @a.Material.Unidade</td>
                             <td class="small">@a.Mensagem</td>
                             <td class="text-end">
-                                @if (a.Tipo is TipoAlarmeStock.AbaixoMinimo or TipoAlarmeStock.Esgotado or TipoAlarmeStock.NomeDiferente)
+                                @if (a.Tipo is TipoAlarmeStock.AbaixoMinimo or TipoAlarmeStock.Esgotado or TipoAlarmeStock.NomeDiferente or TipoAlarmeStock.SemCodigoSap)
                                 {
                                     <div class="dropdown">
                                         <button class="btn btn-sm btn-subtle-secondary btn-menu-acoes" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Opções"><i class="fas fa-ellipsis"></i></button>
@@ -79,6 +79,10 @@
                                                 <li><button type="submit" form="nome-@d.Id" name="usarRecebido" value="false" class="dropdown-item"><i class="fas fa-check me-2"></i>Manter nome do catálogo</button></li>
                                                 <li><button type="submit" form="nome-@d.Id" name="usarRecebido" value="true" class="dropdown-item"><i class="fas fa-pen-to-square me-2"></i>Usar "@d.NomeRecebido"</button></li>
                                                 <li><hr class="dropdown-divider" /></li>
+                                            }
+                                            else if (a.Tipo == TipoAlarmeStock.SemCodigoSap)
+                                            {
+                                                <li><a class="dropdown-item" asp-action="Material" asp-route-id="@a.Material.Id" asp-fragment="codigos"><i class="fas fa-link me-2"></i>Associar ao código SAP</a></li>
                                             }
                                             else
                                             {
