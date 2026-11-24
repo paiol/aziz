@@ -83,7 +83,8 @@ public class InventarioExcelService : IInventarioExcelService
 
     // Lê todas as folhas com cabeçalho. Sem filtro de áreas, só a primeira folha com linhas (como antes).
     // Com filtro: nas folhas com a coluna Área entra a linha cuja Área passa no filtro; nas folhas sem
-    // Área entra o código que, noutra folha do mesmo ficheiro, está numa área do filtro (herda essa área).
+    // Área entram os armazéns de Projeto (Observações com "Projeto"), que são DEI; a área técnica vem do
+    // mesmo código noutra folha (ex.: DEI_FTTH na Praia) ou fica DEI (outros).
     private static List<Registo> LerRegistos(DataSet ds, List<string> avisos, IReadOnlyCollection<string>? filtroAreas, out bool encontrouCabecalho)
     {
         var filtrar = filtroAreas is { Count: > 0 };
@@ -148,8 +149,10 @@ public class InventarioExcelService : IInventarioExcelService
                 if (AreaPassa(r.Area, filtroAreas)) resultado.Add(r);
                 else ignoradas[r.Folha] = ignoradas.GetValueOrDefault(r.Folha) + 1;
             }
-            else if (areaPorCodigo.TryGetValue(r.Codigo, out var area))
-                resultado.Add(r with { Area = area });
+            // Sem coluna Área: os armazéns de Projeto (SAL_Projeto, Fogo_S.Filipe_Projeto...) são da DEI e
+            // entram inteiros; a área vem do mesmo código noutra folha, se houver. Técnico / outros ficam de fora.
+            else if (EhArmazemDeProjeto(r.NomeArmazem))
+                resultado.Add(r with { Area = areaPorCodigo.GetValueOrDefault(r.Codigo) ?? AreaArmazemProjeto });
             else ignoradas[r.Folha] = ignoradas.GetValueOrDefault(r.Folha) + 1;
         }
 
@@ -158,7 +161,7 @@ public class InventarioExcelService : IInventarioExcelService
             + string.Join("; ", todos.Select(r => r.Folha).Distinct().Select(fl =>
                 $"\"{fl}\" {resultado.Count(r => r.Folha == fl)} aceite(s), {ignoradas.GetValueOrDefault(fl)} de outras áreas")) + ".");
         if (semArea.Count > 0)
-            avisos.Add($"Folha(s) sem coluna Área ({string.Join(", ", semArea.Select(s => $"\"{s}\""))}): entram só os códigos que noutra folha estão em {string.Join(", ", filtroAreas!)}, com a mesma área.");
+            avisos.Add($"Folha(s) sem coluna Área ({string.Join(", ", semArea.Select(s => $"\"{s}\""))}): entram as linhas dos armazéns de Projeto (são DEI), com a área do mesmo código noutra folha quando existe; os armazéns Técnico e outros ficam de fora.");
         if (semArea.Count > 0 && areaPorCodigo.Count == 0)
             avisos.Add("Nenhuma folha do ficheiro tem a coluna Área: não há como saber que linhas são destes projetos.");
         return resultado;
@@ -228,6 +231,15 @@ public class InventarioExcelService : IInventarioExcelService
                 Juntar(g)))
             .OrderBy(a => a.Deposito)
             .ToList();
+    }
+
+    public const string AreaArmazemProjeto = "DEI (armazém de projeto)";
+
+    // "Praia_Projeto", "SAL_Projeto", "S.Vicente_Mindelo_Projeto" → sim; "Boavista_Técnico", "D Gest Rede" → não.
+    public static bool EhArmazemDeProjeto(string? nomeArmazem)
+    {
+        var palavras = NomesMaterial.Normalizar(nomeArmazem).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return palavras.Contains("PROJETO") || palavras.Contains("PROJECTO");
     }
 
     private static string? Vazio(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
