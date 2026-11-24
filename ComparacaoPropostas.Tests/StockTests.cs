@@ -482,3 +482,70 @@ public class CodigosFornecedorTests
         Assert.Equal(TipoAlarmeStock.SemCodigoSap, a.Tipo);
     }
 }
+
+public class SugestoesSapTests
+{
+    private static int _id;
+    private static MaterialStock Sap(string codigo, string descricao, string? modelo = null) =>
+        new() { Id = ++_id, Codigo = codigo, Descricao = descricao, Modelo = modelo };
+    private static MaterialStock Huawei(string codigo, string descricao, string? modelo = null) =>
+        new() { Id = ++_id, Codigo = codigo, Descricao = descricao, Modelo = modelo, CodigoProvisorio = true, Fabricante = "Huawei" };
+
+    // Exemplos reais (Packing List Huawei vs catálogo SAP do armazém).
+    private static readonly MaterialStock[] Catalogo =
+    {
+        Sap("27393", "25030429 Power Cable,450V/750V,60227 IEC"),
+        Sap("25606", "25030429-PwCable450/750V,16mm2Ye/GR"),
+        Sap("27047", "02310FFA Rectifier Module, R4850, 1U"),
+        Sap("26544", "Rectifier module R4850 1U 3000WNormal ef"),
+        Sap("29020", "02312NFE-002 Rectifier Module, R4875, 1U"),
+        Sap("26441", "Cabo Terra 10mm2 (Amarelo)"),
+        Sap("28351", "Cabo para cabloc"),
+        Sap("20076", "Escudete para Espia")
+    };
+
+    [Fact]
+    public void CodigoDoFornecedorNaDescricaoSap_ConfiancaMaxima()
+    {
+        var cabo = Huawei("25030429", "Power Cable,450V/750V,60227 IEC 02(RV),16mm^2,Yellow/Green,85A,CCC,CE (Unit:meter)", "C1016YG00");
+        var s = SugestoesSap.Sugerir(cabo, Catalogo);
+        Assert.Equal(new[] { "27393", "25606" }, s.Take(2).Select(x => x.Material.Codigo).OrderByDescending(c => c).ToArray());
+        Assert.All(s.Take(2), x => Assert.True(x.CodigoNaDescricao));
+        Assert.Equal("Alta", s[0].Confianca);
+    }
+
+    [Fact]
+    public void RetificadorR4850_SugereOsR4850AntesDoR4875()
+    {
+        var r = Huawei("02312TCX", "Rectifier Module, R4850, 1U, 3000W, High Efficiency", "R4850G5");
+        var s = SugestoesSap.Sugerir(r, Catalogo);
+        Assert.Equal(new[] { "26544", "27047" }, s.Take(2).Select(x => x.Material.Codigo).OrderBy(c => c).ToArray());
+        Assert.Contains("R4850", s[0].EmComum);
+    }
+
+    [Fact]
+    public void SoPalavraGenericaEmComum_NaoSugere()
+    {
+        var hdmi = Huawei("04051013", "-- 5M HDMI Cable", "CHDMI5M01");
+        Assert.DoesNotContain(SugestoesSap.Sugerir(hdmi, Catalogo), x => x.Material.Codigo == "28351");   // só "CABO"
+    }
+
+    [Fact]
+    public void MedidaDiferente_BaixaAPontuacao()
+    {
+        var caboPreto = Huawei("25030711", "Power Cable,450V/750V,H07Z-K UL3386,10mm^2,Black,80A,LSZH Cable", "P-10mm^2-Black-LSZH");
+        var mesmaMedida = SugestoesSap.Pontuar(caboPreto, Catalogo.Single(c => c.Codigo == "26441"), out _, out _);
+        var outraMedida = SugestoesSap.Pontuar(caboPreto, Catalogo.Single(c => c.Codigo == "25606"), out _, out _);   // 16mm2
+        Assert.True(mesmaMedida > outraMedida);
+    }
+
+    [Fact]
+    public void ModeloEscritoNoSap_ModeloIgual()
+    {
+        var bateria = Huawei("01076667", "Energy Storage Module,ESM-48150B1, 48V, 150Ah", "ESM-48150B1");
+        var sap = Sap("29999", "Bateria lítio ESM-48150B1 48V 150Ah");
+        var s = Assert.Single(SugestoesSap.Sugerir(bateria, new[] { sap }));
+        Assert.True(s.ModeloIgual);
+        Assert.True(s.Pontuacao >= 0.9m);
+    }
+}
