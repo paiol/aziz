@@ -17,6 +17,7 @@ public class StockIndexVM
 {
     public AreaDepartamento? Area { get; set; }
     public string? Pesquisa { get; set; }
+    public string? AreaTecnica { get; set; }
     public bool SoComStock { get; set; } = true;
     public List<LinhaSaldoVM> Linhas { get; set; } = new();
     public int NumEntradas { get; set; }

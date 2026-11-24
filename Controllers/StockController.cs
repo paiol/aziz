@@ -27,7 +27,7 @@ public class StockController : Controller
 
     // ---- Saldos ------------------------------------------------------------------------------
 
-    public IActionResult Index(AreaDepartamento? area, string? q, bool soComStock = true)
+    public IActionResult Index(AreaDepartamento? area, string? q, bool soComStock = true, string? at = null)
     {
         var materiais = _db.MateriaisStock.Include(m => m.Movimentos).Include(m => m.NumerosSerie).AsNoTracking().ToList();
         var linhas = materiais
@@ -42,6 +42,7 @@ public class StockController : Controller
                         || l.Material.Descricao.Contains(q, StringComparison.OrdinalIgnoreCase)
                         || (l.Material.Modelo ?? "").Contains(q, StringComparison.OrdinalIgnoreCase))
             .Where(l => !soComStock || (area == null ? l.Total != 0 : l.PorArea.GetValueOrDefault(area.Value) != 0))
+            .Where(l => at == null || (at == "sem" ? l.Material.AreaTecnica == null : l.Material.AreaTecnica == at))
             .OrderBy(l => l.Material.Descricao)
             .ToList();
 
@@ -51,6 +52,7 @@ public class StockController : Controller
         {
             Area = area,
             Pesquisa = q,
+            AreaTecnica = at,
             SoComStock = soComStock,
             Linhas = linhas,
             NumEntradas = _db.EntradasStock.Count(),
@@ -82,7 +84,7 @@ public class StockController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult EditarMaterial(int id, string? modelo, string descricao, string? unidade, string? fabricante, decimal? stockMinimo,
-        decimal? precoUnitario, int? diasParado)
+        decimal? precoUnitario, int? diasParado, string? areaTecnica)
     {
         var m = _db.MateriaisStock.Find(id);
         if (m == null) return NotFound();
@@ -90,6 +92,7 @@ public class StockController : Controller
         m.Modelo = Vazio(modelo);
         m.Unidade = Vazio(unidade);
         m.Fabricante = Vazio(fabricante);
+        m.AreaTecnica = Vazio(areaTecnica);
         m.StockMinimo = stockMinimo;
         m.PrecoUnitario = precoUnitario;
         m.DiasParado = diasParado is > 0 ? diasParado : null;

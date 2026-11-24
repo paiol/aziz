@@ -7,7 +7,11 @@
     var saldos = (Dictionary<string, decimal>)ViewBag.Saldos;
     var aberto = inv.Estado == EstadoInventario.Aberto;
     decimal Sistema(LinhaInventario l) => aberto ? saldos.GetValueOrDefault(l.Codigo) : l.QuantidadeSistema ?? 0m;
-    var linhas = inv.Linhas.OrderBy(l => l.Descricao ?? l.Codigo).ToList();
+    var at = (string?)ViewBag.AreaTecnica;
+    var todas = inv.Linhas.OrderBy(l => l.Descricao ?? l.Codigo).ToList();
+    var linhas = at == null ? todas : todas.Where(l => at == "sem" ? l.AreaTecnica == null : l.AreaTecnica == at).ToList();
+    var areasTec = ComparacaoPropostas.Services.Stock.AreasTecnicas.Todas.Select(a => (Valor: a, N: todas.Count(l => l.AreaTecnica == a))).Where(x => x.N > 0).ToList();
+    var semAreaTec = todas.Count(l => l.AreaTecnica == null);
     var nomesCatalogo = (Dictionary<string, string>)ViewBag.NomesCatalogo;
     var comDiferenca = linhas.Count(l => l.QuantidadeContada != null && l.QuantidadeContada != Sistema(l));
 }
@@ -58,9 +62,25 @@
 <div class="card mb-3">
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
         <h5 class="mb-0">Contagem (@linhas.Count(l => l.QuantidadeContada != null) de @linhas.Count contadas · @comDiferenca com diferença)</h5>
+        @if (areasTec.Count > 0)
+        {
+            <div class="d-flex flex-wrap gap-1 align-items-center">
+                <span class="small text-body-tertiary me-1">Área técnica:</span>
+                <a asp-action="Details" asp-route-id="@inv.Id" class="btn btn-sm @(at == null ? "btn-primary" : "btn-subtle-secondary")">Todas (@todas.Count)</a>
+                @foreach (var (valor, n) in areasTec)
+                {
+                    <a asp-action="Details" asp-route-id="@inv.Id" asp-route-at="@valor" class="btn btn-sm @(at == valor ? "btn-primary" : "btn-subtle-secondary")">@valor (@n)</a>
+                }
+                @if (semAreaTec > 0)
+                {
+                    <a asp-action="Details" asp-route-id="@inv.Id" asp-route-at="sem" class="btn btn-sm @(at == "sem" ? "btn-primary" : "btn-subtle-secondary")">Sem área (@semAreaTec)</a>
+                }
+            </div>
+        }
     </div>
     <div class="card-body table-responsive">
         <form asp-action="GuardarContagem" asp-route-id="@inv.Id" method="post" id="form-contagem">
+            <input type="hidden" name="at" value="@at" />
             <table class="table table-sm align-middle mb-2">
                 <thead>
                     <tr><th>Código</th><th>Descrição</th><th>Un.</th><th class="text-end">Sistema</th><th class="text-end" style="width: 8rem">Contado</th><th class="text-end">Diferença</th><th style="width: 22%">Nºs de série</th><th></th></tr>
@@ -74,7 +94,8 @@
                             <td class="text-nowrap">@if (l.MaterialStockId != null) { <a asp-controller="Stock" asp-action="Material" asp-route-id="@l.MaterialStockId">@l.Codigo</a> } else { @l.Codigo <span class="badge bg-info text-dark ms-1" title="Material novo: é criado ao fechar">novo</span> }</td>
                             <td class="small">
                                 @(l.Descricao ?? "-")
-                                @if (!string.IsNullOrWhiteSpace(l.Observacoes)) { <span class="badge bg-light text-dark border ms-1" title="Área no armazém">@l.Observacoes</span> }
+                                @if (l.AreaTecnica != null) { <span class="badge bg-primary ms-1" title="Área técnica">@l.AreaTecnica</span> }
+                                @if (!string.IsNullOrWhiteSpace(l.Observacoes)) { <span class="badge bg-light text-dark border ms-1" title="Área no ficheiro do armazém">@l.Observacoes</span> }
                                 @if (nomesCatalogo.TryGetValue(l.Codigo, out var nomeCat) && ComparacaoPropostas.Services.Stock.NomesMaterial.Diferem(l.Descricao, nomeCat))
                                 {
                                     <span class="badge bg-warning text-dark ms-1" title="Mesmo código, nome diferente no catálogo: @nomeCat"><i class="fas fa-triangle-exclamation me-1"></i>nome diferente</span>

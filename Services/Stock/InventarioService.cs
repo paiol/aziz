@@ -14,6 +14,8 @@ public class LinhaInventarioImportada
     public decimal? Quantidade { get; set; }
     // Projeto / área indicada pelo armazém (coluna "Área"), ex.: DEI_FTTH, AIRPON, ENERGIA.
     public string? AreaArmazem { get; set; }
+    // MBB, FBB, INF ENR ou DEI (outros), conforme a Área do armazém.
+    public string? AreaTecnica { get; set; }
     public List<string> Series { get; set; } = new();
 }
 
@@ -123,6 +125,7 @@ public class InventarioExcelService : IInventarioExcelService
                 }
                 if (qtd != null) linha.Quantidade = (linha.Quantidade ?? 0m) + qtd.Value;
                 linha.Series.AddRange(series.Where(s => !linha.Series.Contains(s, StringComparer.OrdinalIgnoreCase)));
+                linha.AreaTecnica ??= AreasTecnicas.De(area);
                 if (!string.IsNullOrWhiteSpace(area))
                     linha.AreaArmazem = linha.AreaArmazem == null ? area
                         : linha.AreaArmazem.Split(" · ").Contains(area, StringComparer.OrdinalIgnoreCase) ? linha.AreaArmazem : $"{linha.AreaArmazem} · {area}";

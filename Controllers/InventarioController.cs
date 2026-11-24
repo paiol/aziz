@@ -43,7 +43,7 @@ public class InventarioController : Controller
             foreach (var m in _db.MateriaisStock.Include(x => x.Movimentos).AsNoTracking().ToList()
                          .Where(m => StockCalculos.Saldo(m.Movimentos, inventario.Area) != 0).OrderBy(m => m.Descricao))
             {
-                inventario.Linhas.Add(new LinhaInventario { MaterialStockId = m.Id, Codigo = m.Codigo, Descricao = m.Descricao, Unidade = m.Unidade });
+                inventario.Linhas.Add(new LinhaInventario { MaterialStockId = m.Id, Codigo = m.Codigo, Descricao = m.Descricao, Unidade = m.Unidade, AreaTecnica = m.AreaTecnica });
             }
         }
         _db.InventariosStock.Add(inventario);
@@ -55,8 +55,9 @@ public class InventarioController : Controller
         return RedirectToAction(nameof(Details), new { id = inventario.Id });
     }
 
-    public IActionResult Details(int id)
+    public IActionResult Details(int id, string? at)
     {
+        ViewBag.AreaTecnica = at;
         var inventario = _db.InventariosStock.Include(i => i.Linhas).AsNoTracking().FirstOrDefault(i => i.Id == id);
         if (inventario == null) return NotFound();
 
@@ -124,6 +125,7 @@ public class InventarioController : Controller
             existente.Unidade ??= Limitar(l.Unidade, 20) ?? material?.Unidade;
             if (l.Quantidade != null) existente.QuantidadeContada = l.Quantidade;
             if (!string.IsNullOrWhiteSpace(l.AreaArmazem)) existente.Observacoes = l.AreaArmazem;
+            existente.AreaTecnica = l.AreaTecnica ?? existente.AreaTecnica ?? material?.AreaTecnica;
             if (l.Series.Count > 0)
                 existente.Series = string.Join(" ", InventarioCalculos.SepararSeries(existente.Series).Concat(l.Series).Distinct(StringComparer.OrdinalIgnoreCase));
         }
@@ -157,7 +159,7 @@ public class InventarioController : Controller
         }
         _db.SaveChanges();
         TempData["Sucesso"] = "Contagem guardada.";
-        return RedirectToAction(nameof(Details), new { id });
+        return RedirectToAction(nameof(Details), new { id, at = string.IsNullOrEmpty(form["at"]) ? null : form["at"].ToString() });
     }
 
     [HttpPost]
@@ -185,6 +187,7 @@ public class InventarioController : Controller
                 MaterialStockId = material?.Id,
                 Descricao = string.IsNullOrWhiteSpace(descricao) ? material?.Descricao : descricao.Trim(),
                 Unidade = string.IsNullOrWhiteSpace(unidade) ? material?.Unidade : Limitar(unidade.Trim(), 20),
+                AreaTecnica = material?.AreaTecnica,
                 QuantidadeContada = contado
             });
             if (material != null && !string.IsNullOrWhiteSpace(descricao))
@@ -234,12 +237,13 @@ public class InventarioController : Controller
         {
             if (!materiais.TryGetValue(l.Codigo, out var material))
             {
-                material = new MaterialStock { Codigo = l.Codigo, Descricao = l.Descricao ?? l.Codigo, Unidade = l.Unidade };
+                material = new MaterialStock { Codigo = l.Codigo, Descricao = l.Descricao ?? l.Codigo, Unidade = l.Unidade, AreaTecnica = l.AreaTecnica };
                 _db.MateriaisStock.Add(material);
                 materiais[l.Codigo] = material;
                 novosMateriais++;
             }
             l.Material = material;
+            material.AreaTecnica ??= l.AreaTecnica;
 
             var saldo = StockCalculos.Saldo(material.Movimentos, inventario.Area);
             l.QuantidadeSistema = saldo;

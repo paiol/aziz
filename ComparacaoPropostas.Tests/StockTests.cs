@@ -217,6 +217,8 @@ public class PackingListGenericoTests
         Assert.Equal(new[] { "20076", "20211", "30002", "30003", "30004" }, linhas.Select(l => l.Codigo).OrderBy(c => c).ToArray());
         var escudete = linhas.Single(l => l.Codigo == "20076");
         Assert.Equal(("Escudete para Espia", "UN", 367m, "DEI_FTTH"), (escudete.Descricao, escudete.Unidade, escudete.Quantidade, escudete.AreaArmazem));
+        Assert.Equal("FBB", escudete.AreaTecnica);
+        Assert.Equal("INF ENR", linhas.Single(l => l.Codigo == "30004").AreaTecnica);
         var ont = linhas.Single(l => l.Codigo == "30003");
         Assert.Equal(15m, ont.Quantidade);
         Assert.Equal("AIRPON · DEI_FTTH, AIRPON", ont.AreaArmazem);
@@ -351,4 +353,26 @@ public class NomesMaterialTests
         Assert.Equal(3, a.Divergencia!.Id);
         Assert.Contains("Cabo FO 24 fibras", a.Mensagem);
     }
+}
+
+public class AreasTecnicasTests
+{
+    [Theory]
+    [InlineData("DEI_TORRE", "MBB")]
+    [InlineData("DEI_TORRE, RAM", "MBB")]
+    [InlineData("DEI_FTTH", "FBB")]
+    [InlineData("DEI_FTTH, AIRPON", "FBB")]
+    [InlineData("AIRPON", "FBB")]
+    [InlineData("RAM, AIRPON", "FBB")]
+    [InlineData("ENERGIA", "INF ENR")]
+    [InlineData("ENERGIA_Projeto Power Mindelo", "INF ENR")]
+    [InlineData("RAM, ENERGIA", "INF ENR")]
+    [InlineData("SPARE_ENERGIA_DPSBLADE", "INF ENR")]
+    [InlineData("DEI_TORRE E ENERGIA", "MBB")]
+    [InlineData("DEI PROJETO", "DEI (outros)")]
+    [InlineData("DEI_RAM, RAM", "DEI (outros)")]
+    [InlineData("RAM", null)]
+    [InlineData(null, null)]
+    public void AreaDoArmazemDaAreaTecnica(string? areaArmazem, string? esperado) =>
+        Assert.Equal(esperado, AreasTecnicas.De(areaArmazem));
 }
