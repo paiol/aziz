@@ -214,7 +214,9 @@ public class PackingListGenericoTests
 
         var linhas = InventarioExcelService.Ler(ds, out var avisos, InventarioExcelService.SepararFiltro("DEI, AIRPON, ENERGIA"));
 
-        Assert.Equal(new[] { "20076", "20211", "30002", "30003", "30004" }, linhas.Select(l => l.Codigo).OrderBy(c => c).ToArray());
+        // 12596 vem do SAL_Projeto (armazém de projeto = DEI, sem coluna Área).
+        Assert.Equal(new[] { "12596", "20076", "20211", "30002", "30003", "30004" }, linhas.Select(l => l.Codigo).OrderBy(c => c).ToArray());
+        Assert.Equal("DEI (outros)", linhas.Single(l => l.Codigo == "12596").AreaTecnica);
         var escudete = linhas.Single(l => l.Codigo == "20076");
         Assert.Equal(("Escudete para Espia", "UN", 367m, "DEI_FTTH"), (escudete.Descricao, escudete.Unidade, escudete.Quantidade, escudete.AreaArmazem));
         Assert.Equal("FBB", escudete.AreaTecnica);
@@ -227,7 +229,7 @@ public class PackingListGenericoTests
     }
 
     [Fact]
-    public void Inventario_UmGrupoPorArmazem_FolhasSemAreaHerdamDaOutraFolha()
+    public void Inventario_UmGrupoPorArmazem_ArmazensDeProjetoEntramInteiros()
     {
         var praia = Folha("Armazém Praia", 8);
         Linha(praia, "Centro", "Depósito", "Material", "TxtBreveMaterial", "Contagem Total", "Utiliz.livre", "Observações", "Área");
@@ -237,8 +239,9 @@ public class PackingListGenericoTests
         var sal = Folha("SAL jun 2025", 7);
         Linha(sal, "Centro", "Depósito", "Material", "TxtBreveMaterial", "Contagem ", "Utiliz.livre", "Observações");
         Linha(sal, "CPRA", "DSRP", "20076", "Escudete p/ Espia", 12d, "UN", "SAL_Projeto");
-        Linha(sal, "CPRA", "DSRP", "30001", "Cabo RAM", 3d, "M", "SAL_Projeto");    // RAM na Praia: fica de fora
-        Linha(sal, "CPRA", "DSRP", "99999", "Outro", 1d, "UN", "SAL_Projeto");      // não existe na Praia: fica de fora
+        Linha(sal, "CPRA", "DSRP", "30001", "Cabo RAM", 3d, "M", "SAL_Projeto");    // armazém de projeto: entra (DEI)
+        Linha(sal, "CPRA", "DSRP", "99999", "Outro", 1d, "UN", "SAL_Projeto");      // idem, área técnica DEI (outros)
+        Linha(sal, "CPRA", "DBVS", "20076", "Escudete", 50d, "UN", "Boavista_Técnico");  // armazém técnico: fica de fora
         Linha(sal, "CPRA", "DSRP", "20211", "Oculos 6020", 2d, "UN", "SAL_Projeto");
         var ds = new DataSet();
         ds.Tables.Add(praia);
@@ -246,10 +249,11 @@ public class PackingListGenericoTests
 
         var armazens = InventarioExcelService.LerPorArmazem(ds, out var avisos, InventarioExcelService.SepararFiltro("DEI, AIRPON, ENERGIA"));
 
-        Assert.Equal(new[] { "DPRP", "DSRP" }, armazens.Select(a => a.Deposito).ToArray());
+        Assert.Equal(new[] { "DPRP", "DSRP" }, armazens.Select(a => a.Deposito).ToArray());   // DBVS (Técnico) não entra
         var dsrp = armazens[1];
         Assert.Equal(("CPRA", "SAL_Projeto"), (dsrp.Centro, dsrp.Nome));
-        Assert.Equal(new[] { "20076", "20211" }, dsrp.Linhas.Select(l => l.Codigo).OrderBy(c => c).ToArray());
+        Assert.Equal(new[] { "20076", "20211", "30001", "99999" }, dsrp.Linhas.Select(l => l.Codigo).OrderBy(c => c).ToArray());
+        Assert.Equal("DEI (outros)", dsrp.Linhas.Single(l => l.Codigo == "99999").AreaTecnica);
         var escudete = dsrp.Linhas.Single(l => l.Codigo == "20076");
         Assert.Equal((12m, "FBB", "DEI_FTTH", "Escudete p/ Espia"), (escudete.Quantidade, escudete.AreaTecnica, escudete.AreaArmazem, escudete.Descricao));
         Assert.Equal("MBB", dsrp.Linhas.Single(l => l.Codigo == "20211").AreaTecnica);
@@ -430,4 +434,18 @@ public class SaldoPorArmazemTests
         var porArmazem = StockCalculos.SaldoPorArmazem(movs);
         Assert.Equal((7m, 4m, 2m), (porArmazem["DPRP"], porArmazem["DSRP"], porArmazem[""]));
     }
+}
+
+public class ArmazemDeProjetoTests
+{
+    [Theory]
+    [InlineData("Praia_Projeto", true)]
+    [InlineData("SAL_Projeto", true)]
+    [InlineData("Fogo_S.Filipe_Projeto", true)]
+    [InlineData("S.Vicente_Mindelo_Projeto", true)]
+    [InlineData("Boavista_Técnico", false)]
+    [InlineData("S.Vicente_D Gest Rede Mind", false)]
+    [InlineData(null, false)]
+    public void ArmazemDeProjeto(string? nome, bool esperado) =>
+        Assert.Equal(esperado, InventarioExcelService.EhArmazemDeProjeto(nome));
 }
