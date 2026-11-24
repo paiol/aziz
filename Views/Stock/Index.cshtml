@@ -50,7 +50,18 @@
                 <option value="" selected="@(Model.Area == null)">Todas as áreas</option>
             </select>
         </div>
-        <div class="col-md-5">
+        <div class="col-md-2">
+            <label class="form-label mb-1" for="at">Área técnica</label>
+            <select id="at" name="at" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">Todas</option>
+                @foreach (var a in ComparacaoPropostas.Services.Stock.AreasTecnicas.Todas)
+                {
+                    <option value="@a" selected="@(Model.AreaTecnica == a)">@a</option>
+                }
+                <option value="sem" selected="@(Model.AreaTecnica == "sem")">Sem área técnica</option>
+            </select>
+        </div>
+        <div class="col-md-3">
             <label class="form-label mb-1" for="q">Pesquisar</label>
             <input id="q" name="q" value="@Model.Pesquisa" class="form-control form-control-sm" placeholder="Código, modelo ou descrição" />
         </div>
@@ -81,6 +92,7 @@
                         <th>Código</th>
                         <th>Descrição</th>
                         <th>Modelo</th>
+                        <th>Área téc.</th>
                         <th>Un.</th>
                         @foreach (var a in areas.Where(a => Model.Area == null || a == Model.Area))
                         {
@@ -107,6 +119,7 @@
                                 }
                             </td>
                             <td class="small">@(l.Material.Modelo ?? "-")</td>
+                            <td>@if (l.Material.AreaTecnica != null) { <span class="badge bg-primary">@l.Material.AreaTecnica</span> } else { <span class="text-body-tertiary">-</span> }</td>
                             <td>@(l.Material.Unidade ?? "-")</td>
                             @foreach (var a in areas.Where(a => Model.Area == null || a == Model.Area))
                             {

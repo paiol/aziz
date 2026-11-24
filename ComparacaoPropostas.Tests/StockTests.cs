@@ -191,6 +191,54 @@ public class PackingListGenericoTests
         Assert.Equal(2, smu.Series.Count);
     }
 
+    [Fact]
+    public void Inventario_FormatoSapDoArmazem_SoAreasDeiAirponEnergia()
+    {
+        var praia = Folha("Armazém Praia_Projeto 26082025", 8);
+        Linha(praia, "Centro", "Depósito", "Material", "TxtBreveMaterial", "Contagem Total", "Utiliz.livre", "Observações", "Área");
+        Linha(praia, "CPRA", "DPRP", "12453", "Pigtail SC/PC 1m", 275d, "UN", "Praia_Projeto", null);
+        Linha(praia, "CPRA", "DPRP", "20076", "Escudete para Espia", 367d, "UN", "Praia_Projeto", "DEI_FTTH");
+        Linha(praia, "CPRA", "DPRP", "20211", "Oculos 6020", 8d, "UN", "Praia_Projeto", "DEI_TORRE");
+        Linha(praia, "CPRA", "DPRP", "30001", "Cabo RAM", 5d, "M", "Praia_Projeto", "RAM");
+        Linha(praia, "CPRA", "DPRP", "30002", "Bateria 48V", 4d, "UN", "Praia_Projeto", "RAM, ENERGIA");
+        Linha(praia, "CPRA", "DPRP", "30003", "ONT", 10d, "UN", "Praia_Projeto", "AIRPON");
+        Linha(praia, "CPRA", "DPRP", "30004", "Retificador", 2d, "UN", "Praia_Projeto", "ENERGIA_Projeto Power Mindelo");
+        Linha(praia, "CPRA", "DPRP", "30005", "Switch", 1d, "UN", "Praia_Projeto", "DOM_REDE IP");
+        Linha(praia, "CPRA", "DPRP", "30003", "ONT", 5d, "UN", "Praia_Projeto", "DEI_FTTH, AIRPON");
+        var sal = Folha("SAL jun 2025", 7);
+        Linha(sal, "Centro", "Depósito", "Material", "TxtBreveMaterial", "Contagem ", "Utiliz.livre", "Observações");
+        Linha(sal, "CPRA", "DSRP", "12596", "Patch Cord", 1d, "UN", "SAL_Projeto");
+        var ds = new DataSet();
+        ds.Tables.Add(praia);
+        ds.Tables.Add(sal);
+
+        var linhas = InventarioExcelService.Ler(ds, out var avisos, InventarioExcelService.SepararFiltro("DEI, AIRPON, ENERGIA"));
+
+        Assert.Equal(new[] { "20076", "20211", "30002", "30003", "30004" }, linhas.Select(l => l.Codigo).OrderBy(c => c).ToArray());
+        var escudete = linhas.Single(l => l.Codigo == "20076");
+        Assert.Equal(("Escudete para Espia", "UN", 367m, "DEI_FTTH"), (escudete.Descricao, escudete.Unidade, escudete.Quantidade, escudete.AreaArmazem));
+        Assert.Equal("FBB", escudete.AreaTecnica);
+        Assert.Equal("INF ENR", linhas.Single(l => l.Codigo == "30004").AreaTecnica);
+        var ont = linhas.Single(l => l.Codigo == "30003");
+        Assert.Equal(15m, ont.Quantidade);
+        Assert.Equal("AIRPON · DEI_FTTH, AIRPON", ont.AreaArmazem);
+        Assert.Contains(avisos, a => a.Contains("SAL jun 2025"));   // folha sem coluna Área
+        Assert.Contains(avisos, a => a.Contains("3 linha(s)"));      // 12453 (sem área), RAM e DOM_REDE IP
+    }
+
+    [Theory]
+    [InlineData("DEI_FTTH", true)]
+    [InlineData("DEI PROJETO", true)]
+    [InlineData("SPARE_ENERGIA_DPSBLADE", true)]
+    [InlineData("Energia CORE PS", true)]
+    [InlineData("DEI_FTTH, 10 DEI, 10 CV MULTIMEDIA", true)]
+    [InlineData("RAM", false)]
+    [InlineData("DOM_REDE IP", false)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void Inventario_FiltroDeAreas(string? area, bool passa) =>
+        Assert.Equal(passa, InventarioExcelService.AreaPassa(area, new[] { "DEI", "AIRPON", "ENERGIA" }));
+
     [Theory]
     [InlineData(10, 8, 2)]
     [InlineData(5, 8, -3)]
@@ -305,4 +353,26 @@ public class NomesMaterialTests
         Assert.Equal(3, a.Divergencia!.Id);
         Assert.Contains("Cabo FO 24 fibras", a.Mensagem);
     }
+}
+
+public class AreasTecnicasTests
+{
+    [Theory]
+    [InlineData("DEI_TORRE", "MBB")]
+    [InlineData("DEI_TORRE, RAM", "MBB")]
+    [InlineData("DEI_FTTH", "FBB")]
+    [InlineData("DEI_FTTH, AIRPON", "FBB")]
+    [InlineData("AIRPON", "FBB")]
+    [InlineData("RAM, AIRPON", "FBB")]
+    [InlineData("ENERGIA", "INF ENR")]
+    [InlineData("ENERGIA_Projeto Power Mindelo", "INF ENR")]
+    [InlineData("RAM, ENERGIA", "INF ENR")]
+    [InlineData("SPARE_ENERGIA_DPSBLADE", "INF ENR")]
+    [InlineData("DEI_TORRE E ENERGIA", "MBB")]
+    [InlineData("DEI PROJETO", "DEI (outros)")]
+    [InlineData("DEI_RAM, RAM", "DEI (outros)")]
+    [InlineData("RAM", null)]
+    [InlineData(null, null)]
+    public void AreaDoArmazemDaAreaTecnica(string? areaArmazem, string? esperado) =>
+        Assert.Equal(esperado, AreasTecnicas.De(areaArmazem));
 }

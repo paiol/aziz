@@ -933,6 +933,10 @@ namespace ComparacaoPropostas.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AreaTecnica")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<string>("Codigo")
                         .IsRequired()
                         .HasMaxLength(60)
@@ -981,6 +985,10 @@ namespace ComparacaoPropostas.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AreaTecnica")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("Codigo")
                         .IsRequired()

@@ -52,6 +52,10 @@ public class MaterialStock
     [StringLength(100), Display(Name = "Fabricante")]
     public string? Fabricante { get; set; }
 
+    // Área técnica no armazém (MBB, FBB, INF ENR, DEI (outros)) — classificação dentro da área DEP.
+    [StringLength(20), Display(Name = "Área técnica")]
+    public string? AreaTecnica { get; set; }
+
     // Custo unitário em CVE (para os valores do stock). Opcional.
     [Display(Name = "Preço unitário (CVE)")]
     public decimal? PrecoUnitario { get; set; }
@@ -282,6 +286,9 @@ public class LinhaInventario
 
     [StringLength(20), Display(Name = "Unidade")]
     public string? Unidade { get; set; }
+
+    [StringLength(20), Display(Name = "Área técnica")]
+    public string? AreaTecnica { get; set; }
 
     // Vazio = ainda não contado (a linha é ignorada ao fechar).
     [Display(Name = "Contado")]

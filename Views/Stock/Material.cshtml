@@ -11,7 +11,7 @@
 
 <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
     <div>
-        <h2 class="mb-1">@m.Codigo <span class="text-body-tertiary fw-normal" style="font-size: 1rem">@m.Modelo</span></h2>
+        <h2 class="mb-1">@m.Codigo <span class="text-body-tertiary fw-normal" style="font-size: 1rem">@m.Modelo</span>@if (m.AreaTecnica != null) { <span class="badge bg-primary ms-2" style="font-size: .8rem">@m.AreaTecnica</span> }</h2>
         <span class="text-body-tertiary">@m.Descricao</span>
         <div><a asp-action="Index" class="small"><span class="fas fa-arrow-left me-1"></span>Voltar ao stock</a></div>
     </div>
@@ -92,6 +92,7 @@
             <div class="col-md-2"><label class="form-label" for="modelo">Modelo</label><input id="modelo" name="modelo" class="form-control" value="@m.Modelo" maxlength="100" /></div>
             <div class="col-md-1"><label class="form-label" for="unidade">Unidade</label><input id="unidade" name="unidade" class="form-control" value="@m.Unidade" maxlength="20" /></div>
             <div class="col-md-2"><label class="form-label" for="fabricante">Fabricante</label><input id="fabricante" name="fabricante" class="form-control" value="@m.Fabricante" maxlength="100" /></div>
+            <div class="col-md-2"><label class="form-label" for="areaTecnica">Área técnica</label><select id="areaTecnica" name="areaTecnica" class="form-select"><option value="">—</option>@foreach (var a in AreasTecnicas.Todas) { <option value="@a" selected="@(m.AreaTecnica == a)">@a</option> }</select></div>
             <div class="col-md-1"><label class="form-label" for="stockMinimo">Mínimo</label><input id="stockMinimo" name="stockMinimo" class="form-control" value="@m.StockMinimo?.ToString("0.###", new System.Globalization.CultureInfo("pt-PT"))" inputmode="decimal" /></div>
             <div class="col-md-3"><label class="form-label" for="precoUnitario">Preço unitário (CVE)</label><input id="precoUnitario" name="precoUnitario" class="form-control" value="@m.PrecoUnitario?.ToString("0.##", new System.Globalization.CultureInfo("pt-PT"))" inputmode="decimal" /></div>
             <div class="col-md-3"><label class="form-label" for="diasParado">Alarme de stock parado (dias)</label><input id="diasParado" name="diasParado" type="number" min="1" class="form-control" value="@m.DiasParado" placeholder="180" /></div>
