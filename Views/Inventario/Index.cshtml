@@ -17,7 +17,7 @@
     <div class="card-body">
         <h6 class="mb-2"><i class="fas fa-file-excel text-success me-1"></i> Importar o ficheiro do SAP do armazém (cria um inventário por armazém)</h6>
         <div class="row g-2 align-items-end">
-            <div class="col-md-4"><label class="form-label mb-1 small" for="ficheiro">Ficheiro (.xls / .xlsx)</label><input id="ficheiro" type="file" name="ficheiro" accept=".xls,.xlsx" class="form-control form-control-sm" required /></div>
+            <div class="col-md-4"><label class="form-label mb-1 small" for="ficheiro">Ficheiro (Excel, Word ou PDF)</label><input id="ficheiro" type="file" name="ficheiro" accept=".xls,.xlsx,.docx,.pdf" class="form-control form-control-sm" required /></div>
             <div class="col-md-2"><label class="form-label mb-1 small" for="area">Área</label><select id="area" name="area" class="form-select form-select-sm" asp-items="Html.GetEnumSelectList<ComparacaoPropostas.Models.Entities.Enums.AreaDepartamento>()"></select></div>
             <div class="col-md-2"><label class="form-label mb-1 small" for="data">Data da contagem</label><input id="data" name="data" type="date" class="form-control form-control-sm" value="@DateTime.Today.ToString("yyyy-MM-dd")" /></div>
             <div class="col-md-3"><label class="form-label mb-1 small" for="filtroAreas">Só as áreas</label><input id="filtroAreas" name="filtroAreas" value="DEI, AIRPON, ENERGIA" class="form-control form-control-sm" /></div>

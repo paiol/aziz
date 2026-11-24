@@ -37,7 +37,7 @@ public class PackingListImportado
 
 public interface IPackingListService
 {
-    PackingListImportado Ler(Stream ficheiro);
+    PackingListImportado Ler(Stream ficheiro, string? nomeFicheiro = null);
 }
 
 // Lê o Packing List da Huawei (.xls ou .xlsx): folha "PACKING LIST" (linhas por caixa) e,
@@ -46,13 +46,8 @@ public class PackingListService : IPackingListService
 {
     static PackingListService() => Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-    public PackingListImportado Ler(Stream ficheiro)
-    {
-        DataSet ds;
-        using (var reader = ExcelReaderFactory.CreateReader(ficheiro))
-            ds = reader.AsDataSet();
-        return Ler(ds);
-    }
+    // Excel, Word (.docx) ou PDF com texto: ver DocumentoTabelas.
+    public PackingListImportado Ler(Stream ficheiro, string? nomeFicheiro = null) => Ler(DocumentoTabelas.Ler(ficheiro, nomeFicheiro));
 
     // Nomes de colunas aceites (inglês dos fornecedores e português). Comparação sem maiúsculas;
     // nomes com 4+ letras também aceitam o cabeçalho que começa por eles (ex.: "QTY (PCS)").
@@ -194,23 +189,43 @@ public class PackingListService : IPackingListService
                 var rotulo = Norm(celula).TrimEnd(':').Trim();
 
                 if (r.Fornecedor == null && rotulo.Contains("huawei") && !rotulo.StartsWith("to")) r.Fornecedor = celula.Trim();
-                if (!Rotulos.TryGetValue(rotulo, out var campo)) continue;
-
-                var valor = Seguinte(t, i, c);
+                string? valor;
+                if (Rotulos.TryGetValue(rotulo, out var campo)) valor = Seguinte(t, i, c);
+                else if (RotuloComValor(celula) is { } rv) (campo, valor) = rv;   // "P/L No. 0001322..." (PDF)
+                else continue;
                 switch (campo)
                 {
-                    case "numero": r.Numero ??= valor; break;
-                    case "contrato": r.Contrato ??= valor; break;
-                    case "fatura": r.Fatura ??= valor; break;
-                    case "po": r.PurchaseOrder ??= valor; break;
-                    case "projeto": r.ProjetoFornecedor ??= valor; break;
+                    case "numero": r.Numero = Vazio(r.Numero) ?? Vazio(valor); break;
+                    case "contrato": r.Contrato = Vazio(r.Contrato) ?? Vazio(valor); break;
+                    case "fatura": r.Fatura = Vazio(r.Fatura) ?? Vazio(valor); break;
+                    case "po": r.PurchaseOrder = Vazio(r.PurchaseOrder) ?? Vazio(valor); break;
+                    case "projeto": r.ProjetoFornecedor = Vazio(r.ProjetoFornecedor) ?? Vazio(valor); break;
                     case "data":
                         if (r.Data == null && valor != null && DateTime.TryParse(valor.Replace('/', '-'), CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt)) r.Data = dt.Date;
                         break;
                 }
             }
         }
+        // PDF: o valor do "Project" pode ficar noutra linha (célula com texto centrado): procura o "1+1".
+        if (r.ProjetoFornecedor == null)
+            for (var i = 0; i < ateLinha && r.ProjetoFornecedor == null; i++)
+                for (var c = 0; c < t.Columns.Count; c++)
+                    if (Texto(t, i, c) is { } x && x.Contains("1+1")) { r.ProjetoFornecedor = x.Trim(); break; }
         r.Contrato1Mais1 = Contrato1Mais1(r.ProjetoFornecedor, r.Data);
+    }
+
+    private static string? Vazio(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+
+    // Etiqueta e valor na mesma célula (ex.: "Contract No. 0001322602230A", "Date 2026/04/10 14:30").
+    private static (string Campo, string Valor)? RotuloComValor(string celula)
+    {
+        foreach (var (rotulo, campo) in Rotulos.OrderByDescending(r => r.Key.Length))
+        {
+            var padrao = @"^\s*" + string.Join(@"\s*", rotulo.Split(' ').Select(Regex.Escape)) + @"\s*:?\s+(.+)$";
+            var m = Regex.Match(celula, padrao, RegexOptions.IgnoreCase);
+            if (m.Success) return (campo, m.Groups[1].Value.Trim());
+        }
+        return null;
     }
 
     // "Cape Verde CVT 2026-2027 1+1 Package Project" → "1+1_2026". Sem "1+1" no nome: null.

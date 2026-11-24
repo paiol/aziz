@@ -51,12 +51,12 @@ public class InventarioController : Controller
         try
         {
             using var stream = ficheiro.OpenReadStream();
-            armazens = _excel.LerPorArmazem(stream, out avisos, InventarioExcelService.SepararFiltro(filtroAreas));
+            armazens = _excel.LerPorArmazem(stream, out avisos, InventarioExcelService.SepararFiltro(filtroAreas), ficheiro.FileName);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erro ao ler o ficheiro do armazém {Ficheiro}.", ficheiro.FileName);
-            TempData["EmailWarning"] = "Não foi possível ler o ficheiro. Confirme que é um Excel (.xls ou .xlsx).";
+            TempData["EmailWarning"] = ex is NotSupportedException ? ex.Message : "Não foi possível ler o ficheiro. Confirme que é um Excel (.xls ou .xlsx), um Word (.docx) ou um PDF com texto (não digitalizado).";
             return RedirectToAction(nameof(Index));
         }
         armazens = armazens.Where(a => a.Linhas.Count > 0).ToList();
@@ -165,12 +165,12 @@ public class InventarioController : Controller
         try
         {
             using var stream = ficheiro.OpenReadStream();
-            linhas = _excel.Ler(stream, out avisos, InventarioExcelService.SepararFiltro(filtroAreas), inventario.Armazem);
+            linhas = _excel.Ler(stream, out avisos, InventarioExcelService.SepararFiltro(filtroAreas), inventario.Armazem, ficheiro.FileName);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erro ao ler o inventário {Ficheiro}.", ficheiro.FileName);
-            TempData["EmailWarning"] = "Não foi possível ler o ficheiro. Confirme que é um Excel (.xls ou .xlsx).";
+            TempData["EmailWarning"] = ex is NotSupportedException ? ex.Message : "Não foi possível ler o ficheiro. Confirme que é um Excel (.xls ou .xlsx), um Word (.docx) ou um PDF com texto (não digitalizado).";
             return RedirectToAction(nameof(Details), new { id });
         }
         if (linhas.Count == 0)

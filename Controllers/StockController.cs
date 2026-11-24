@@ -379,7 +379,7 @@ public class StockController : Controller
     {
         if (ficheiro == null || ficheiro.Length == 0)
         {
-            TempData["EmailWarning"] = "Escolha o ficheiro do Packing List (.xls ou .xlsx).";
+            TempData["EmailWarning"] = "Escolha o ficheiro do Packing List (Excel, Word .docx ou PDF).";
             return RedirectToAction(nameof(Entradas));
         }
 
@@ -387,12 +387,12 @@ public class StockController : Controller
         try
         {
             using var stream = ficheiro.OpenReadStream();
-            pl = _packingList.Ler(stream);
+            pl = _packingList.Ler(stream, ficheiro.FileName);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erro ao ler o Packing List {Ficheiro}.", ficheiro.FileName);
-            TempData["EmailWarning"] = "Não foi possível ler o ficheiro. Confirme que é um Packing List em Excel (.xls ou .xlsx).";
+            TempData["EmailWarning"] = ex is NotSupportedException ? ex.Message : "Não foi possível ler o ficheiro. Confirme que é um Packing List em Excel (.xls ou .xlsx), Word (.docx) ou PDF com texto (não digitalizado).";
             return RedirectToAction(nameof(Entradas));
         }
 

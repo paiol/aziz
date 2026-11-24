@@ -184,6 +184,8 @@ O ficheiro do SAP do armazém traz **todas as ilhas** no mesmo Excel (uma folha 
 | CMIN | DMIN | S.Vicente_Mindelo_Técnico | São Vicente | Não (técnico) |
 | CMIN | DGRM | S.Vicente_D Gest Rede Mind | São Vicente | Não (técnico) |
 
+**Formatos aceites** (Packing List, inventário e ficheiro SAP): Excel (`.xls`, `.xlsx`), **Word** (`.docx` — cada tabela do documento é lida como uma folha; o texto antes da tabela dá os dados como "P/L No.", "Contract No.") e **PDF com texto** (não digitalizado — as colunas são encontradas pelo espaço entre os dados; cabeçalhos em duas linhas, números alinhados à direita e descrições em várias linhas são tratados). Word antigo (`.doc`) não: guardar como `.docx` ou PDF. Um PDF só tem as linhas visíveis quando foi impresso (linhas ocultas / filtradas no Excel não aparecem).
+
 Colunas lidas: `Centro`, `Depósito`, `Material` (código = ID do material), `TxtBreveMaterial` (descrição), `Contagem` / `Contagem Total`, `Utiliz.livre` (unidade), `Observações` (armazém) e `Área` (projeto, quando existe).
 
 ### Que materiais entram (DEI, AIRPON, ENERGIA) e área técnica
