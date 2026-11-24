@@ -44,9 +44,13 @@
                     <label for="ficheiro" class="form-label mb-1">Importar a contagem do armazém (.xls ou .xlsx)</label>
                     <input id="ficheiro" type="file" name="ficheiro" accept=".xls,.xlsx" class="form-control form-control-sm" required />
                 </div>
+                <div>
+                    <label for="filtroAreas" class="form-label mb-1">Só as áreas (coluna Área do armazém)</label>
+                    <input id="filtroAreas" name="filtroAreas" value="DEI, AIRPON, ENERGIA" class="form-control form-control-sm" style="min-width: 220px" placeholder="vazio = todas as linhas" />
+                </div>
                 <button type="submit" class="btn btn-sm btn-subtle-primary"><span class="fas fa-upload me-1"></span> Importar</button>
             </form>
-            <div class="form-text">Colunas reconhecidas: código / part number, descrição, unidade, quantidade (contada / existência / stock) e nº de série. Linhas com o mesmo código são somadas; uma linha por equipamento com nº de série conta 1.</div>
+            <div class="form-text">Aceita o ficheiro do SAP do armazém (Material, TxtBreveMaterial, Contagem, Área). Com o filtro, só entram as linhas cuja Área tem uma destas palavras (ex.: DEI_FTTH, DEI_TORRE, AIRPON, ENERGIA_Projeto Power Mindelo) e só as folhas com a coluna Área; deixe vazio para importar tudo. Colunas reconhecidas: código / part number, descrição, unidade, quantidade (contada / existência / stock) e nº de série. Linhas com o mesmo código são somadas; uma linha por equipamento com nº de série conta 1.</div>
         </div>
     </div>
 }
@@ -70,6 +74,7 @@
                             <td class="text-nowrap">@if (l.MaterialStockId != null) { <a asp-controller="Stock" asp-action="Material" asp-route-id="@l.MaterialStockId">@l.Codigo</a> } else { @l.Codigo <span class="badge bg-info text-dark ms-1" title="Material novo: é criado ao fechar">novo</span> }</td>
                             <td class="small">
                                 @(l.Descricao ?? "-")
+                                @if (!string.IsNullOrWhiteSpace(l.Observacoes)) { <span class="badge bg-light text-dark border ms-1" title="Área no armazém">@l.Observacoes</span> }
                                 @if (nomesCatalogo.TryGetValue(l.Codigo, out var nomeCat) && ComparacaoPropostas.Services.Stock.NomesMaterial.Diferem(l.Descricao, nomeCat))
                                 {
                                     <span class="badge bg-warning text-dark ms-1" title="Mesmo código, nome diferente no catálogo: @nomeCat"><i class="fas fa-triangle-exclamation me-1"></i>nome diferente</span>

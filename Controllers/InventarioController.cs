@@ -71,7 +71,7 @@ public class InventarioController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Importar(int id, IFormFile? ficheiro)
+    public IActionResult Importar(int id, IFormFile? ficheiro, string? filtroAreas)
     {
         var inventario = CarregarAberto(id, out var erro);
         if (inventario == null) return erro!;
@@ -87,7 +87,7 @@ public class InventarioController : Controller
         try
         {
             using var stream = ficheiro.OpenReadStream();
-            linhas = _excel.Ler(stream, out avisos);
+            linhas = _excel.Ler(stream, out avisos, InventarioExcelService.SepararFiltro(filtroAreas));
         }
         catch (Exception ex)
         {
@@ -123,6 +123,7 @@ public class InventarioController : Controller
             if (material != null) NomesMaterial.Registar(_db, material, l.Descricao, OrigemNomeMaterial.Inventario, RefInventario(inventario), inventarioId: inventario.Id);
             existente.Unidade ??= Limitar(l.Unidade, 20) ?? material?.Unidade;
             if (l.Quantidade != null) existente.QuantidadeContada = l.Quantidade;
+            if (!string.IsNullOrWhiteSpace(l.AreaArmazem)) existente.Observacoes = l.AreaArmazem;
             if (l.Series.Count > 0)
                 existente.Series = string.Join(" ", InventarioCalculos.SepararSeries(existente.Series).Concat(l.Series).Distinct(StringComparer.OrdinalIgnoreCase));
         }
@@ -131,6 +132,7 @@ public class InventarioController : Controller
         _db.SaveChanges();
 
         TempData["Sucesso"] = $"Inventário importado: {novas} linha(s) nova(s), {atualizadas} atualizada(s)."
+            + (avisos.Count > 0 ? " " + string.Join(" ", avisos) : "")
             + (nomesDiferentes > 0 ? $" Atenção: {nomesDiferentes} material(is) têm no armazém um nome diferente do catálogo (mesmo código) — veja em Alarmes." : "");
         return RedirectToAction(nameof(Details), new { id });
     }
