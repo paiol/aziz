@@ -31,14 +31,20 @@ public enum EstadoNumeroSerie
     Saiu
 }
 
-// Material do catálogo de stock, identificado pelo código do fornecedor (Part Number na Huawei).
+// Material do catálogo de stock, identificado pelo código SAP (coluna Material do armazém). Os códigos
+// de cada fornecedor (ex.: Part Number da Huawei) ficam em CodigosFornecedor. Um material que chegou só
+// com o código do fornecedor fica "provisório" (sem código SAP) até a DEI o associar ao código SAP.
 // O saldo não se guarda: calcula-se pelos movimentos, por área.
 public class MaterialStock
 {
     public int Id { get; set; }
 
-    [Required, StringLength(60), Display(Name = "Código")]
+    [Required, StringLength(60), Display(Name = "Código SAP")]
     public string Codigo { get; set; } = "";
+
+    // true = o Codigo é do fornecedor (ainda sem código SAP).
+    [Display(Name = "Sem código SAP")]
+    public bool CodigoProvisorio { get; set; }
 
     [StringLength(100), Display(Name = "Modelo")]
     public string? Modelo { get; set; }
@@ -71,6 +77,7 @@ public class MaterialStock
     public ICollection<MovimentoStock> Movimentos { get; set; } = new List<MovimentoStock>();
     public ICollection<NumeroSerieStock> NumerosSerie { get; set; } = new List<NumeroSerieStock>();
     public ICollection<DivergenciaNomeMaterial> DivergenciasNome { get; set; } = new List<DivergenciaNomeMaterial>();
+    public ICollection<CodigoFornecedorMaterial> CodigosFornecedor { get; set; } = new List<CodigoFornecedorMaterial>();
 }
 
 // Uma receção de material: um Packing List da Huawei, uma compra da DEI ou uma entrada manual.
@@ -396,4 +403,29 @@ public class ArmazemStock
     public string? Nome { get; set; }
 
     public string Rotulo => string.IsNullOrWhiteSpace(Nome) ? Codigo : $"{Codigo} · {Nome}";
+}
+
+// Código que um fornecedor usa para um material SAP (ex.: Huawei 02314JWW → SAP 25030732).
+// Uma entrada (Packing List / compra) com este código vai para o material SAP certo.
+public class CodigoFornecedorMaterial
+{
+    public int Id { get; set; }
+
+    public int MaterialStockId { get; set; }
+    [ValidateNever]
+    public MaterialStock Material { get; set; } = null!;
+
+    [Required, StringLength(150), Display(Name = "Fornecedor")]
+    public string Fornecedor { get; set; } = "";
+
+    [Required, StringLength(60), Display(Name = "Código do fornecedor")]
+    public string Codigo { get; set; } = "";
+
+    [StringLength(100), Display(Name = "Modelo")]
+    public string? Modelo { get; set; }
+
+    [Display(Name = "Descrição do fornecedor")]
+    public string? Descricao { get; set; }
+
+    public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
 }

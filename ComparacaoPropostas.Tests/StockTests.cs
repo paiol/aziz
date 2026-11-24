@@ -449,3 +449,36 @@ public class ArmazemDeProjetoTests
     public void ArmazemDeProjeto(string? nome, bool esperado) =>
         Assert.Equal(esperado, InventarioExcelService.EhArmazemDeProjeto(nome));
 }
+
+public class CodigosFornecedorTests
+{
+    [Theory]
+    [InlineData("Huawei International Co. Limited", "Huawei", true)]
+    [InlineData("HUAWEI", "huawei technologies", true)]
+    [InlineData("Huawei", "ZTE", false)]
+    [InlineData(null, "Huawei", false)]
+    public void MesmoFornecedor(string? a, string? b, bool esperado) =>
+        Assert.Equal(esperado, CodigosFornecedor.MesmoFornecedor(a, b));
+
+    [Fact]
+    public void ProcuraPeloFornecedorDaEntrada()
+    {
+        var huawei = new CodigoFornecedorMaterial { MaterialStockId = 1, Fornecedor = "Huawei International Co. Limited", Codigo = "02314JWW" };
+        var zte = new CodigoFornecedorMaterial { MaterialStockId = 2, Fornecedor = "ZTE", Codigo = "02314JWW" };
+
+        Assert.Same(huawei, CodigosFornecedor.Procurar(new[] { huawei, zte }, "Huawei"));
+        Assert.Same(zte, CodigosFornecedor.Procurar(new[] { huawei, zte }, "ZTE Corporation"));
+        Assert.Null(CodigosFornecedor.Procurar(new[] { huawei, zte }, "Nokia"));     // ambíguo
+        Assert.Same(huawei, CodigosFornecedor.Procurar(new[] { huawei }, null));      // único: serve
+        Assert.Null(CodigosFornecedor.Procurar(Array.Empty<CodigoFornecedorMaterial>(), "Huawei"));
+    }
+
+    [Fact]
+    public void MaterialSemCodigoSapComStockDaAlarme()
+    {
+        var m = new MaterialStock { Id = 1, Codigo = "02314JWW", CodigoProvisorio = true, Descricao = "Board", Fabricante = "Huawei" };
+        m.Movimentos.Add(new MovimentoStock { Area = AreaDepartamento.DepInf, Tipo = TipoMovimentoStock.Entrada, Quantidade = 2, Data = DateTime.Today });
+        var a = Assert.Single(StockAlarmes.Calcular(new[] { m }, DateTime.Today));
+        Assert.Equal(TipoAlarmeStock.SemCodigoSap, a.Tipo);
+    }
+}
