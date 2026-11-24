@@ -43,7 +43,7 @@
 
 <form method="get" class="card mb-3">
     <div class="card-body row g-2 align-items-end">
-        <div class="col-md-3">
+        <div class="col-md-2">
             <label class="form-label mb-1" for="area">Área</label>
             <select id="area" name="area" class="form-select form-select-sm" onchange="this.form.submit()"
                     asp-items="areas.Select(a => new SelectListItem(a.ToLabel(), a.ToString(), a == Model.Area))">
@@ -61,7 +61,17 @@
                 <option value="sem" selected="@(Model.AreaTecnica == "sem")">Sem área técnica</option>
             </select>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
+            <label class="form-label mb-1" for="arm">Armazém</label>
+            <select id="arm" name="arm" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">Todos</option>
+                @foreach (var a in Model.Armazens)
+                {
+                    <option value="@a.Codigo" selected="@(string.Equals(Model.Armazem, a.Codigo, StringComparison.OrdinalIgnoreCase))">@a.Rotulo</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2">
             <label class="form-label mb-1" for="q">Pesquisar</label>
             <input id="q" name="q" value="@Model.Pesquisa" class="form-control form-control-sm" placeholder="Código, modelo ou descrição" />
         </div>

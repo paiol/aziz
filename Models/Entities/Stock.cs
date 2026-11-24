@@ -120,6 +120,9 @@ public class EntradaStock
     [ValidateNever]
     public PedidoProposta? PedidoProposta { get; set; }
 
+    [StringLength(20), Display(Name = "Armazém")]
+    public string? Armazem { get; set; }
+
     [StringLength(100), Display(Name = "Armazém / localização")]
     public string? Localizacao { get; set; }
 
@@ -171,6 +174,10 @@ public class MovimentoStock
     public int? InventarioStockId { get; set; }
     [ValidateNever]
     public InventarioStock? Inventario { get; set; }
+
+    // Depósito (ArmazemStock.Codigo) onde o material entrou / saiu / foi contado. Vazio = sem armazém.
+    [StringLength(20), Display(Name = "Armazém")]
+    public string? Armazem { get; set; }
 
     [StringLength(30), Display(Name = "Caixa")]
     public string? Caixa { get; set; }
@@ -242,6 +249,13 @@ public class InventarioStock
     [Display(Name = "Data")]
     [DataType(DataType.Date)]
     public DateTime Data { get; set; } = DateTime.Today;
+
+    // Depósito contado (ex.: DPRP). Com armazém, o inventário só acerta o stock deste armazém.
+    [StringLength(20), Display(Name = "Armazém")]
+    public string? Armazem { get; set; }
+
+    [StringLength(10), Display(Name = "Centro")]
+    public string? Centro { get; set; }
 
     [StringLength(100), Display(Name = "Armazém / localização")]
     public string? Localizacao { get; set; }
@@ -363,4 +377,23 @@ public class DivergenciaNomeMaterial
 
     public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
     public DateTime? ResolvidoEm { get; set; }
+}
+
+// Armazém (depósito do SAP): ex.: CPRA / DPRP — Praia_Projeto. O stock de cada material é seguido
+// por área DEP e por armazém; o inventário de um armazém só acerta o stock desse armazém.
+public class ArmazemStock
+{
+    public int Id { get; set; }
+
+    [StringLength(10), Display(Name = "Centro")]
+    public string? Centro { get; set; }
+
+    // Código do depósito no SAP (ex.: DPRP, DSRP, DBVS).
+    [Required, StringLength(20), Display(Name = "Depósito")]
+    public string Codigo { get; set; } = "";
+
+    [StringLength(100), Display(Name = "Designação")]
+    public string? Nome { get; set; }
+
+    public string Rotulo => string.IsNullOrWhiteSpace(Nome) ? Codigo : $"{Codigo} · {Nome}";
 }

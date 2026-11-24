@@ -20,14 +20,22 @@
     <div>
         <h2 class="mb-1">Inventário @inv.Data.ToString("dd/MM/yyyy") · @inv.Area.ToLabel()</h2>
         <span class="badge @(aberto ? "bg-warning text-dark" : "bg-success")">@(aberto ? "Aberto" : "Fechado")</span>
+        @if (inv.Armazem != null) { <span class="badge bg-light text-dark border ms-1"><i class="fas fa-warehouse me-1"></i>@inv.Centro @inv.Armazem</span> }
         <span class="text-body-tertiary ms-1">@(inv.Localizacao ?? "") @(inv.Descricao != null ? "· " + inv.Descricao : "") @(inv.Responsavel != null ? "· " + inv.Responsavel : "")</span>
         <div><a asp-action="Index" class="small"><span class="fas fa-arrow-left me-1"></span>Voltar aos inventários</a></div>
     </div>
     @if (aberto)
     {
         <div class="d-flex gap-2">
-            <form asp-action="Fechar" asp-route-id="@inv.Id" method="post"
-                  onsubmit="return confirm('Fechar o inventário? O stock da área @inv.Area.ToLabel() passa a ser o contado (@comDiferenca material(is) com diferença) e não pode ser alterado depois.');">
+            <form asp-action="Fechar" asp-route-id="@inv.Id" method="post" class="d-flex align-items-center"
+                  onsubmit="return confirm('Fechar o inventário? O stock da área @inv.Area.ToLabel()@(inv.Armazem != null ? " no armazém " + inv.Armazem : "") passa a ser o contado (@comDiferenca material(is) com diferença) e não pode ser alterado depois.');">
+                @if (inv.Armazem != null)
+                {
+                    <div class="form-check form-check-inline small mb-0 me-2" title="O que tinha stock neste armazém e não aparece nesta contagem passa a 0">
+                        <input class="form-check-input" type="checkbox" id="zerarNaoContados" name="zerarNaoContados" value="true" />
+                        <label class="form-check-label" for="zerarNaoContados">Não contados passam a 0</label>
+                    </div>
+                }
                 <button type="submit" class="btn btn-success"><span class="fas fa-lock me-1"></span> Fechar inventário</button>
             </form>
             <button type="button" class="btn btn-subtle-danger js-delete-btn" data-url="@Url.Action("Delete", new { id = inv.Id })" data-id="@inv.Id"><i class="fas fa-trash"></i></button>

@@ -50,6 +50,12 @@
                 <div class="form-text">O projeto Capex e o fornecedor vêm do processo, se não forem indicados.</div>
             </div>
             <div class="col-md-4">
+                <label asp-for="Entrada.Armazem" class="form-label"></label>
+                <select asp-for="Entrada.Armazem" class="form-select" asp-items="((List<ArmazemStock>)ViewBag.Armazens).Select(a => new SelectListItem(a.Rotulo, a.Codigo))">
+                    <option value="">— sem armazém —</option>
+                </select>
+            </div>
+            <div class="col-md-4">
                 <label asp-for="Entrada.Localizacao" class="form-label"></label>
                 <input asp-for="Entrada.Localizacao" class="form-control" />
             </div>

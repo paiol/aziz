@@ -18,6 +18,8 @@ public class StockIndexVM
     public AreaDepartamento? Area { get; set; }
     public string? Pesquisa { get; set; }
     public string? AreaTecnica { get; set; }
+    public string? Armazem { get; set; }
+    public List<ArmazemStock> Armazens { get; set; } = new();
     public bool SoComStock { get; set; } = true;
     public List<LinhaSaldoVM> Linhas { get; set; } = new();
     public int NumEntradas { get; set; }
@@ -51,6 +53,10 @@ public class NovaSaidaVM
 
     [Display(Name = "Área")]
     public AreaDepartamento Area { get; set; } = AreaDepartamento.DepInf;
+
+    // Armazém de onde sai (vazio = sem armazém; o saldo validado é o da área).
+    [StringLength(20), Display(Name = "Armazém")]
+    public string? Armazem { get; set; }
 
     [Display(Name = "Quantidade")]
     public decimal Quantidade { get; set; } = 1;

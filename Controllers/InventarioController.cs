@@ -29,19 +29,96 @@ public class InventarioController : Controller
         return View(inventarios);
     }
 
-    public IActionResult Create() => View(new InventarioStock());
+    public IActionResult Create()
+    {
+        ViewBag.Armazens = _db.ArmazensStock.OrderBy(a => a.Codigo).AsNoTracking().ToList();
+        return View(new InventarioStock());
+    }
 
-    // comStockAtual: começa com uma linha por material com saldo na área (para contar por cima).
+    // Ficheiro do SAP do armazém com vários depósitos: cria um inventário (aberto) por armazém.
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult ImportarArmazens(IFormFile? ficheiro, AreaDepartamento area, DateTime? data, string? filtroAreas)
+    {
+        if (ficheiro == null || ficheiro.Length == 0)
+        {
+            TempData["EmailWarning"] = "Escolha o ficheiro Excel do armazém.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        List<ArmazemImportado> armazens;
+        List<string> avisos;
+        try
+        {
+            using var stream = ficheiro.OpenReadStream();
+            armazens = _excel.LerPorArmazem(stream, out avisos, InventarioExcelService.SepararFiltro(filtroAreas));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao ler o ficheiro do armazém {Ficheiro}.", ficheiro.FileName);
+            TempData["EmailWarning"] = "Não foi possível ler o ficheiro. Confirme que é um Excel (.xls ou .xlsx).";
+            return RedirectToAction(nameof(Index));
+        }
+        armazens = armazens.Where(a => a.Linhas.Count > 0).ToList();
+        if (armazens.Count == 0)
+        {
+            TempData["EmailWarning"] = "O ficheiro não tem linhas com depósito (armazém). " + string.Join(" ", avisos);
+            return RedirectToAction(nameof(Index));
+        }
+
+        var conhecidos = _db.ArmazensStock.ToList().ToDictionary(a => a.Codigo, StringComparer.OrdinalIgnoreCase);
+        var criados = new List<string>();
+        foreach (var a in armazens)
+        {
+            if (!conhecidos.TryGetValue(a.Deposito, out var armazem))
+            {
+                armazem = new ArmazemStock { Codigo = Limitar(a.Deposito, 20)!, Centro = Limitar(a.Centro, 10), Nome = Limitar(a.Nome, 100) };
+                _db.ArmazensStock.Add(armazem);
+                conhecidos[a.Deposito] = armazem;
+            }
+            var inventario = new InventarioStock
+            {
+                Area = area,
+                Data = data ?? DateTime.Today,
+                Armazem = armazem.Codigo,
+                Centro = armazem.Centro,
+                Localizacao = Limitar(armazem.Nome, 100),
+                Descricao = Limitar($"{armazem.Rotulo}{(string.IsNullOrWhiteSpace(filtroAreas) ? "" : $" ({filtroAreas.Trim()})")}", 200),
+                NomeFicheiro = Limitar(Path.GetFileName(ficheiro.FileName), 200)
+            };
+            _db.InventariosStock.Add(inventario);
+            PreencherLinhas(inventario, a.Linhas, out _, out _);
+            criados.Add($"{armazem.Rotulo}: {a.Linhas.Count}");
+        }
+        var nomesDiferentes = _db.ChangeTracker.Entries<DivergenciaNomeMaterial>().Count(e => e.State == EntityState.Added);
+        _db.SaveChanges();
+
+        TempData["Sucesso"] = $"Criados {criados.Count} inventário(s), um por armazém — {string.Join("; ", criados)} material(is). Reveja cada um e feche-o para acertar o stock desse armazém. "
+            + string.Join(" ", avisos)
+            + (nomesDiferentes > 0 ? $" Atenção: {nomesDiferentes} material(is) têm no armazém um nome diferente do catálogo — veja em Alarmes." : "");
+        return RedirectToAction(nameof(Index));
+    }
+
+    // comStockAtual: começa com uma linha por material com saldo na área (e no armazém, se indicado).
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Create(InventarioStock inventario, bool comStockAtual)
     {
-        if (!ModelState.IsValid) return View(inventario);
+        if (!ModelState.IsValid)
+        {
+            ViewBag.Armazens = _db.ArmazensStock.OrderBy(a => a.Codigo).AsNoTracking().ToList();
+            return View(inventario);
+        }
+        if (inventario.Armazem != null && _db.ArmazensStock.AsNoTracking().FirstOrDefault(a => a.Codigo == inventario.Armazem) is { } arm)
+        {
+            inventario.Centro = arm.Centro;
+            inventario.Localizacao ??= arm.Nome;
+        }
 
         if (comStockAtual)
         {
             foreach (var m in _db.MateriaisStock.Include(x => x.Movimentos).AsNoTracking().ToList()
-                         .Where(m => StockCalculos.Saldo(m.Movimentos, inventario.Area) != 0).OrderBy(m => m.Descricao))
+                         .Where(m => StockCalculos.Saldo(m.Movimentos, inventario.Area, inventario.Armazem) != 0).OrderBy(m => m.Descricao))
             {
                 inventario.Linhas.Add(new LinhaInventario { MaterialStockId = m.Id, Codigo = m.Codigo, Descricao = m.Descricao, Unidade = m.Unidade, AreaTecnica = m.AreaTecnica });
             }
@@ -64,7 +141,7 @@ public class InventarioController : Controller
         // Saldo atual da plataforma por código (só interessa enquanto está aberto; fechado usa o valor guardado).
         var codigos = inventario.Linhas.Select(l => l.Codigo).ToList();
         ViewBag.Saldos = _db.MateriaisStock.Where(m => codigos.Contains(m.Codigo)).Include(m => m.Movimentos).AsNoTracking().ToList()
-            .ToDictionary(m => m.Codigo, m => StockCalculos.Saldo(m.Movimentos, inventario.Area), StringComparer.OrdinalIgnoreCase);
+            .ToDictionary(m => m.Codigo, m => StockCalculos.Saldo(m.Movimentos, inventario.Area, inventario.Armazem), StringComparer.OrdinalIgnoreCase);
         ViewBag.NomesCatalogo = _db.MateriaisStock.Where(m => codigos.Contains(m.Codigo)).AsNoTracking()
             .ToDictionary(m => m.Codigo, m => m.Descricao, StringComparer.OrdinalIgnoreCase);
         return View(inventario);
@@ -88,7 +165,7 @@ public class InventarioController : Controller
         try
         {
             using var stream = ficheiro.OpenReadStream();
-            linhas = _excel.Ler(stream, out avisos, InventarioExcelService.SepararFiltro(filtroAreas));
+            linhas = _excel.Ler(stream, out avisos, InventarioExcelService.SepararFiltro(filtroAreas), inventario.Armazem);
         }
         catch (Exception ex)
         {
@@ -101,10 +178,24 @@ public class InventarioController : Controller
             TempData["EmailWarning"] = "O ficheiro não tem linhas de inventário. " + string.Join(" ", avisos);
             return RedirectToAction(nameof(Details), new { id });
         }
+        PreencherLinhas(inventario, linhas, out var novas, out var atualizadas);
+        inventario.NomeFicheiro = Limitar(Path.GetFileName(ficheiro.FileName), 200);
+        var nomesDiferentes = _db.ChangeTracker.Entries<DivergenciaNomeMaterial>().Count(e => e.State == EntityState.Added);
+        _db.SaveChanges();
+
+        TempData["Sucesso"] = $"Inventário importado: {novas} linha(s) nova(s), {atualizadas} atualizada(s)."
+            + (avisos.Count > 0 ? " " + string.Join(" ", avisos) : "")
+            + (nomesDiferentes > 0 ? $" Atenção: {nomesDiferentes} material(is) têm no armazém um nome diferente do catálogo (mesmo código) — veja em Alarmes." : "");
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    // Junta as linhas lidas do Excel ao inventário (soma por código; o nome do armazém prevalece na linha).
+    private void PreencherLinhas(InventarioStock inventario, List<LinhaInventarioImportada> linhas, out int novas, out int atualizadas)
+    {
 
         var codigos = linhas.Select(l => l.Codigo).ToList();
         var materiais = _db.MateriaisStock.Where(m => codigos.Contains(m.Codigo)).ToList().ToDictionary(m => m.Codigo, StringComparer.OrdinalIgnoreCase);
-        int novas = 0, atualizadas = 0;
+        novas = 0; atualizadas = 0;
         foreach (var l in linhas)
         {
             var existente = inventario.Linhas.FirstOrDefault(x => x.Codigo.Equals(l.Codigo, StringComparison.OrdinalIgnoreCase));
@@ -121,7 +212,7 @@ public class InventarioController : Controller
             // O nome usado pelo armazém prevalece na linha; se for diferente do catálogo fica um alerta.
             if (!string.IsNullOrWhiteSpace(l.Descricao)) existente.Descricao = l.Descricao.Trim();
             existente.Descricao ??= material?.Descricao;
-            if (material != null) NomesMaterial.Registar(_db, material, l.Descricao, OrigemNomeMaterial.Inventario, RefInventario(inventario), inventarioId: inventario.Id);
+            if (material != null) NomesMaterial.Registar(_db, material, l.Descricao, OrigemNomeMaterial.Inventario, RefInventario(inventario), inventario: inventario);
             existente.Unidade ??= Limitar(l.Unidade, 20) ?? material?.Unidade;
             if (l.Quantidade != null) existente.QuantidadeContada = l.Quantidade;
             if (!string.IsNullOrWhiteSpace(l.AreaArmazem)) existente.Observacoes = l.AreaArmazem;
@@ -129,14 +220,6 @@ public class InventarioController : Controller
             if (l.Series.Count > 0)
                 existente.Series = string.Join(" ", InventarioCalculos.SepararSeries(existente.Series).Concat(l.Series).Distinct(StringComparer.OrdinalIgnoreCase));
         }
-        inventario.NomeFicheiro = Limitar(Path.GetFileName(ficheiro.FileName), 200);
-        var nomesDiferentes = _db.ChangeTracker.Entries<DivergenciaNomeMaterial>().Count(e => e.State == EntityState.Added);
-        _db.SaveChanges();
-
-        TempData["Sucesso"] = $"Inventário importado: {novas} linha(s) nova(s), {atualizadas} atualizada(s)."
-            + (avisos.Count > 0 ? " " + string.Join(" ", avisos) : "")
-            + (nomesDiferentes > 0 ? $" Atenção: {nomesDiferentes} material(is) têm no armazém um nome diferente do catálogo (mesmo código) — veja em Alarmes." : "");
-        return RedirectToAction(nameof(Details), new { id });
     }
 
     // Grava as quantidades contadas escritas na página (campos contado_<idLinha> e series_<idLinha>).
@@ -191,7 +274,7 @@ public class InventarioController : Controller
                 QuantidadeContada = contado
             });
             if (material != null && !string.IsNullOrWhiteSpace(descricao))
-                NomesMaterial.Registar(_db, material, descricao, OrigemNomeMaterial.Inventario, RefInventario(inventario), inventarioId: inventario.Id);
+                NomesMaterial.Registar(_db, material, descricao, OrigemNomeMaterial.Inventario, RefInventario(inventario), inventario: inventario);
             _db.SaveChanges();
             TempData["Sucesso"] = $"{codigo} acrescentado.";
         }
@@ -216,7 +299,7 @@ public class InventarioController : Controller
     // Fecha o inventário: o saldo da área passa a ser o contado (ajustes) e os nºs de série contados ficam em armazém.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Fechar(int id)
+    public IActionResult Fechar(int id, bool zerarNaoContados = false)
     {
         var inventario = CarregarAberto(id, out var erro);
         if (inventario == null) return erro!;
@@ -245,7 +328,7 @@ public class InventarioController : Controller
             l.Material = material;
             material.AreaTecnica ??= l.AreaTecnica;
 
-            var saldo = StockCalculos.Saldo(material.Movimentos, inventario.Area);
+            var saldo = StockCalculos.Saldo(material.Movimentos, inventario.Area, inventario.Armazem);
             l.QuantidadeSistema = saldo;
             if (InventarioCalculos.Ajuste(l.QuantidadeContada, saldo) is decimal ajuste)
             {
@@ -257,6 +340,7 @@ public class InventarioController : Controller
                     Quantidade = ajuste,
                     Data = inventario.Data,
                     Inventario = inventario,
+                    Armazem = inventario.Armazem,
                     Observacoes = $"Inventário {inventario.Data:dd/MM/yyyy}{(inventario.Localizacao != null ? " · " + inventario.Localizacao : "")}"
                 });
                 ajustes++;
@@ -277,11 +361,31 @@ public class InventarioController : Controller
             }
         }
 
+        // Opcional: o que tinha stock neste armazém e não apareceu na contagem passa a 0 (a contagem é a mais recente).
+        var zerados = 0;
+        if (zerarNaoContados && inventario.Armazem != null)
+        {
+            var contados = new HashSet<string>(contadas.Select(l => l.Codigo), StringComparer.OrdinalIgnoreCase);
+            foreach (var m in _db.MateriaisStock.Include(x => x.Movimentos).Where(x => x.Movimentos.Any(mv => mv.Armazem == inventario.Armazem)).ToList()
+                         .Where(x => !contados.Contains(x.Codigo)))
+            {
+                var saldo = StockCalculos.Saldo(m.Movimentos, inventario.Area, inventario.Armazem);
+                if (saldo == 0) continue;
+                _db.MovimentosStock.Add(new MovimentoStock
+                {
+                    Material = m, Area = inventario.Area, Armazem = inventario.Armazem, Tipo = TipoMovimentoStock.Ajuste, Quantidade = -saldo,
+                    Data = inventario.Data, Inventario = inventario,
+                    Observacoes = $"Inventário {inventario.Data:dd/MM/yyyy} · {inventario.Armazem}: não contado, passa a 0"
+                });
+                zerados++;
+            }
+        }
+
         inventario.Estado = EstadoInventario.Fechado;
         inventario.FechadoEm = DateTime.UtcNow;
         _db.SaveChanges();
 
-        TempData["Sucesso"] = $"Inventário fechado: {ajustes} ajuste(s) de stock, {novosMateriais} material(is) novo(s), {novasSeries} nº(s) de série registado(s).";
+        TempData["Sucesso"] = $"Inventário fechado: {ajustes} ajuste(s) de stock, {novosMateriais} material(is) novo(s), {novasSeries} nº(s) de série registado(s)." + (zerados > 0 ? $" {zerados} material(is) não contados passaram a 0." : "");
         return RedirectToAction(nameof(Details), new { id });
     }
 

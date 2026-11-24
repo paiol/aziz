@@ -21,8 +21,18 @@
             <select id="g-area" name="area" class="form-select" onchange="this.form.submit()"
                     asp-items="Enum.GetValues<AreaDepartamento>().Select(a => new SelectListItem(a.ToLabel(), a.ToString(), a == Model.Area))"></select>
         </div>
-        <div class="col-md-9">
-            <label class="form-label" for="g-material">Material (com stock na área)</label>
+        <div class="col-md-3">
+            <label class="form-label" for="g-armazem">Armazém</label>
+            <select id="g-armazem" name="armazem" class="form-select" onchange="this.form.submit()">
+                <option value="">Todos / sem armazém</option>
+                @foreach (var a in (List<ArmazemStock>)ViewBag.Armazens)
+                {
+                    <option value="@a.Codigo" selected="@(string.Equals(Model.Armazem, a.Codigo, StringComparison.OrdinalIgnoreCase))">@a.Rotulo</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="g-material">Material (com stock na área@(Model.Armazem != null ? " e armazém" : ""))</label>
             <select id="g-material" name="materialStockId" class="form-select" onchange="this.form.submit()" asp-items="materiais">
                 <option value="">— escolha —</option>
             </select>
@@ -36,6 +46,7 @@
     <form asp-action="NovaSaida" method="post">
         <input type="hidden" asp-for="MaterialStockId" />
         <input type="hidden" asp-for="Area" />
+        <input type="hidden" asp-for="Armazem" />
         <div asp-validation-summary="All" class="text-danger mb-3"></div>
         <div class="card mb-3">
             <div class="card-body row g-3">

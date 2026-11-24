@@ -180,6 +180,35 @@ namespace ComparacaoPropostas.Migrations
                     b.ToTable("AirtableSyncPendentes");
                 });
 
+            modelBuilder.Entity("ComparacaoPropostas.Models.Entities.ArmazemStock", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Centro")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Nome")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Codigo")
+                        .IsUnique();
+
+                    b.ToTable("ArmazensStock");
+                });
+
             modelBuilder.Entity("ComparacaoPropostas.Models.Entities.Avaliacao", b =>
                 {
                     b.Property<int>("Id")
@@ -423,6 +452,10 @@ namespace ComparacaoPropostas.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<string>("Armazem")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<string>("Contrato")
                         .HasMaxLength(60)
                         .HasColumnType("nvarchar(60)");
@@ -546,6 +579,14 @@ namespace ComparacaoPropostas.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Armazem")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Centro")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
 
                     b.Property<DateTime>("CriadoEm")
                         .HasColumnType("datetime2");
@@ -1079,6 +1120,10 @@ namespace ComparacaoPropostas.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<string>("Armazem")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<string>("Caixa")
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
@@ -1138,6 +1183,8 @@ namespace ComparacaoPropostas.Migrations
                     b.HasIndex("ProjetoPlanoId");
 
                     b.HasIndex("MaterialStockId", "Area");
+
+                    b.HasIndex("MaterialStockId", "Area", "Armazem");
 
                     b.ToTable("MovimentosStock");
                 });

@@ -58,7 +58,7 @@ public static class NomesMaterial
 
     // Regista (sem gravar) o alerta, se for preciso. Materiais acabados de criar não geram alerta.
     public static DivergenciaNomeMaterial? Registar(AppDbContext db, MaterialStock m, string? nomeRecebido, OrigemNomeMaterial origem,
-        string? referencia, EntradaStock? entrada = null, int? inventarioId = null)
+        string? referencia, EntradaStock? entrada = null, InventarioStock? inventario = null)
     {
         if (m.Id == 0) return null;
         db.DivergenciasNomeMaterial.Where(d => d.MaterialStockId == m.Id).Load();
@@ -74,7 +74,7 @@ public static class NomesMaterial
             Origem = origem,
             Referencia = referencia?.Length > 150 ? referencia[..150] : referencia,
             Entrada = entrada,
-            InventarioStockId = inventarioId
+            Inventario = inventario
         };
         db.DivergenciasNomeMaterial.Add(d);
         return d;

@@ -20,6 +20,13 @@
                     <input asp-for="Data" class="form-control" type="date" />
                 </div>
                 <div class="col-md-6">
+                    <label asp-for="Armazem" class="form-label"></label>
+                    <select asp-for="Armazem" class="form-select" asp-items="((List<ComparacaoPropostas.Models.Entities.ArmazemStock>)ViewBag.Armazens).Select(a => new SelectListItem(a.Rotulo, a.Codigo))">
+                        <option value="">— Toda a área (sem armazém) —</option>
+                    </select>
+                    <div class="form-text">Com armazém, ao fechar só se acerta o stock desse armazém.</div>
+                </div>
+                <div class="col-md-6">
                     <label asp-for="Localizacao" class="form-label"></label>
                     <input asp-for="Localizacao" class="form-control" placeholder="ex.: Armazém Praia" />
                 </div>
