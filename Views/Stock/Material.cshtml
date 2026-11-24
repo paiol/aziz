@@ -31,6 +31,28 @@
     }
 </div>
 
+@{
+    var porArmazem = StockCalculos.SaldoPorArmazem(m.Movimentos).Where(x => x.Value != 0).OrderBy(x => x.Key).ToList();
+    var nomesArmazens = (Dictionary<string, string>)ViewBag.NomesArmazens;
+}
+@if (porArmazem.Count > 0)
+{
+    <div class="card mb-3">
+        <div class="card-header py-2"><h6 class="mb-0"><i class="fas fa-warehouse me-1"></i> Stock por armazém</h6></div>
+        <div class="card-body py-2">
+            <div class="d-flex flex-wrap gap-3">
+                @foreach (var (arm, qtd) in porArmazem)
+                {
+                    <div>
+                        <span class="text-body-tertiary small d-block">@(arm == "" ? "Sem armazém" : nomesArmazens.GetValueOrDefault(arm, arm))</span>
+                        <span class="fw-semibold">@qtd.ToQtd() <span class="small">@m.Unidade</span></span>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
 @if (m.DivergenciasNome.Count > 0)
 {
     var pendentes = m.DivergenciasNome.Where(d => d.Estado == EstadoDivergenciaNome.Pendente).ToList();

@@ -16,12 +16,19 @@ public class LinhaInventarioImportada
     public string? AreaArmazem { get; set; }
     // MBB, FBB, INF ENR ou DEI (outros), conforme a Área do armazém.
     public string? AreaTecnica { get; set; }
+    // Armazém (SAP): centro, depósito e designação (coluna Observações, ex.: Praia_Projeto).
+    public string? Centro { get; set; }
+    public string? Deposito { get; set; }
+    public string? NomeArmazem { get; set; }
     public List<string> Series { get; set; } = new();
 }
 
+public record ArmazemImportado(string? Centro, string Deposito, string? Nome, List<LinhaInventarioImportada> Linhas);
+
 public interface IInventarioExcelService
 {
-    List<LinhaInventarioImportada> Ler(Stream ficheiro, out List<string> avisos, IReadOnlyCollection<string>? filtroAreas = null);
+    List<LinhaInventarioImportada> Ler(Stream ficheiro, out List<string> avisos, IReadOnlyCollection<string>? filtroAreas = null, string? deposito = null);
+    List<ArmazemImportado> LerPorArmazem(Stream ficheiro, out List<string> avisos, IReadOnlyCollection<string>? filtroAreas = null);
 }
 
 // Lê a folha de inventário do armazém (Excel .xls/.xlsx): código, descrição, unidade, quantidade
@@ -42,12 +49,16 @@ public class InventarioExcelService : IInventarioExcelService
         "quantidade contada", "qtd contada", "contado", "contagem", "contagem total", "qtd física", "qtd fisica", "existência", "existencia", "stock"
     }.Concat(PackingListService.ColQuantidade).ToArray();
 
-    public List<LinhaInventarioImportada> Ler(Stream ficheiro, out List<string> avisos, IReadOnlyCollection<string>? filtroAreas = null)
+    public List<LinhaInventarioImportada> Ler(Stream ficheiro, out List<string> avisos, IReadOnlyCollection<string>? filtroAreas = null, string? deposito = null)
+        => Ler(LerDataSet(ficheiro), out avisos, filtroAreas, deposito);
+
+    public List<ArmazemImportado> LerPorArmazem(Stream ficheiro, out List<string> avisos, IReadOnlyCollection<string>? filtroAreas = null)
+        => LerPorArmazem(LerDataSet(ficheiro), out avisos, filtroAreas);
+
+    private static DataSet LerDataSet(Stream ficheiro)
     {
-        DataSet ds;
-        using (var reader = ExcelReaderFactory.CreateReader(ficheiro))
-            ds = reader.AsDataSet();
-        return Ler(ds, out avisos, filtroAreas);
+        using var reader = ExcelReaderFactory.CreateReader(ficheiro);
+        return reader.AsDataSet();
     }
 
     // A linha é de uma das áreas pedidas? Compara palavra a palavra, sem maiúsculas/acentos:
@@ -62,14 +73,22 @@ public class InventarioExcelService : IInventarioExcelService
     public static List<string> SepararFiltro(string? texto) =>
         (texto ?? "").Split(new[] { ',', ';', '/', '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).Where(s => s.Length > 0).ToList();
 
-    public static List<LinhaInventarioImportada> Ler(DataSet ds, out List<string> avisos, IReadOnlyCollection<string>? filtroAreas = null)
+    private static readonly string[] ColCentro = { "centro" };
+    private static readonly string[] ColDeposito = { "depósito", "deposito", "armazém", "armazem" };
+    private static readonly string[] ColNomeArmazem = { "observações", "observacoes", "designação armazém", "localização", "localizacao" };
+
+    // Uma linha do Excel, antes de juntar por código.
+    private record Registo(string Folha, bool FolhaTemArea, string Codigo, string? Descricao, string? Unidade, decimal? Quantidade,
+        List<string> Series, string? Area, string? Centro, string? Deposito, string? NomeArmazem);
+
+    // Lê todas as folhas com cabeçalho. Sem filtro de áreas, só a primeira folha com linhas (como antes).
+    // Com filtro: nas folhas com a coluna Área entra a linha cuja Área passa no filtro; nas folhas sem
+    // Área entra o código que, noutra folha do mesmo ficheiro, está numa área do filtro (herda essa área).
+    private static List<Registo> LerRegistos(DataSet ds, List<string> avisos, IReadOnlyCollection<string>? filtroAreas, out bool encontrouCabecalho)
     {
-        avisos = new List<string>();
         var filtrar = filtroAreas is { Count: > 0 };
-        var porCodigo = new Dictionary<string, LinhaInventarioImportada>(StringComparer.OrdinalIgnoreCase);
-        var folhasLidas = new List<string>();
-        var ignoradasArea = 0;
-        var encontrouCabecalho = false;
+        var todos = new List<Registo>();
+        encontrouCabecalho = false;
 
         foreach (DataTable t in ds.Tables)
         {
@@ -84,68 +103,134 @@ public class InventarioExcelService : IInventarioExcelService
             var cQtd = Col(ColQuantidade);
             var cSerie = Col(PackingListService.ColSerie);
             var cArea = Col(ColArea);
+            var cCentro = Col(ColCentro);
+            var cDep = Col(ColDeposito);
+            var cNome = Col(ColNomeArmazem);
 
-            // Com filtro de áreas, só servem as folhas que dizem a área de cada linha.
-            if (filtrar && cArea == null)
-            {
-                avisos.Add($"Folha \"{t.TableName}\" ignorada: não tem a coluna Área para filtrar ({string.Join(", ", filtroAreas!)}).");
-                continue;
-            }
-
-            var linhasFolha = 0;
+            var antes = todos.Count;
             for (var i = cab + 1; i < t.Rows.Count; i++)
             {
                 var codigo = Texto(t, i, cCodigo)?.Trim();
                 if (string.IsNullOrWhiteSpace(codigo) || codigo.StartsWith("total", StringComparison.OrdinalIgnoreCase)) continue;
-
-                var area = cArea is int ca ? Texto(t, i, ca)?.Trim() : null;
-                if (filtrar && !AreaPassa(area, filtroAreas))
-                {
-                    ignoradasArea++;
-                    continue;
-                }
 
                 var series = (cSerie is int cs ? Texto(t, i, cs) : null)?
                     .Split(new[] { ' ', ',', ';', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToList() ?? new();
                 var qtd = cQtd is int cq ? Numero(t.Rows[i][cq]) : null;
                 // Uma linha por equipamento sem quantidade: conta 1 por número de série.
                 if (qtd == null && series.Count > 0) qtd = series.Count;
+                // A coluna da unidade só conta se tiver texto (no SAP "Utiliz.livre" pode trazer números).
+                var unidade = cUn is int cu && Numero(t.Rows[i][cu]) == null ? Vazio(Texto(t, i, cu)) : null;
 
-                if (!porCodigo.TryGetValue(codigo, out var linha))
-                {
-                    // A coluna da unidade só conta se tiver texto (no SAP "Utiliz.livre" pode trazer números).
-                    var unidade = cUn is int cu && Numero(t.Rows[i][cu]) == null ? Texto(t, i, cu)?.Trim() : null;
-                    linha = new LinhaInventarioImportada
-                    {
-                        Codigo = codigo,
-                        Descricao = cDesc is int cd ? Texto(t, i, cd)?.Trim() : null,
-                        Unidade = string.IsNullOrEmpty(unidade) ? null : unidade
-                    };
-                    porCodigo[codigo] = linha;
-                }
-                if (qtd != null) linha.Quantidade = (linha.Quantidade ?? 0m) + qtd.Value;
-                linha.Series.AddRange(series.Where(s => !linha.Series.Contains(s, StringComparer.OrdinalIgnoreCase)));
-                linha.AreaTecnica ??= AreasTecnicas.De(area);
-                if (!string.IsNullOrWhiteSpace(area))
-                    linha.AreaArmazem = linha.AreaArmazem == null ? area
-                        : linha.AreaArmazem.Split(" · ").Contains(area, StringComparer.OrdinalIgnoreCase) ? linha.AreaArmazem : $"{linha.AreaArmazem} · {area}";
-                linhasFolha++;
+                todos.Add(new Registo(t.TableName, cArea != null, codigo,
+                    cDesc is int cd ? Vazio(Texto(t, i, cd)) : null, unidade, qtd, series,
+                    cArea is int ca ? Vazio(Texto(t, i, ca)) : null,
+                    cCentro is int cc ? Vazio(Texto(t, i, cc)) : null,
+                    cDep is int cdp ? Vazio(Texto(t, i, cdp)) : null,
+                    cNome is int cn ? Vazio(Texto(t, i, cn)) : null));
             }
-
-            if (linhasFolha > 0) folhasLidas.Add(t.TableName);
             // Sem filtro mantém-se o comportamento antigo: a primeira folha com linhas é a contagem.
-            if (!filtrar && porCodigo.Count > 0) break;
+            if (!filtrar && todos.Count > antes) break;
         }
 
-        if (!encontrouCabecalho)
+        if (!filtrar) return todos;
+
+        // Área de cada código nas folhas que têm a coluna Área (só as que passam no filtro).
+        var areaPorCodigo = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var r in todos.Where(r => r.FolhaTemArea && AreaPassa(r.Area, filtroAreas)))
+            areaPorCodigo.TryAdd(r.Codigo, r.Area!);
+
+        var resultado = new List<Registo>();
+        var ignoradas = new Dictionary<string, int>();
+        foreach (var r in todos)
+        {
+            if (r.FolhaTemArea)
+            {
+                if (AreaPassa(r.Area, filtroAreas)) resultado.Add(r);
+                else ignoradas[r.Folha] = ignoradas.GetValueOrDefault(r.Folha) + 1;
+            }
+            else if (areaPorCodigo.TryGetValue(r.Codigo, out var area))
+                resultado.Add(r with { Area = area });
+            else ignoradas[r.Folha] = ignoradas.GetValueOrDefault(r.Folha) + 1;
+        }
+
+        var semArea = todos.Where(r => !r.FolhaTemArea).Select(r => r.Folha).Distinct().ToList();
+        avisos.Add($"Filtro {string.Join(", ", filtroAreas!)}: {resultado.Count} linha(s) aceites; "
+            + string.Join("; ", todos.Select(r => r.Folha).Distinct().Select(fl =>
+                $"\"{fl}\" {resultado.Count(r => r.Folha == fl)} aceite(s), {ignoradas.GetValueOrDefault(fl)} de outras áreas")) + ".");
+        if (semArea.Count > 0)
+            avisos.Add($"Folha(s) sem coluna Área ({string.Join(", ", semArea.Select(s => $"\"{s}\""))}): entram só os códigos que noutra folha estão em {string.Join(", ", filtroAreas!)}, com a mesma área.");
+        if (semArea.Count > 0 && areaPorCodigo.Count == 0)
+            avisos.Add("Nenhuma folha do ficheiro tem a coluna Área: não há como saber que linhas são destes projetos.");
+        return resultado;
+    }
+
+    private static List<LinhaInventarioImportada> Juntar(IEnumerable<Registo> registos)
+    {
+        var porCodigo = new Dictionary<string, LinhaInventarioImportada>(StringComparer.OrdinalIgnoreCase);
+        foreach (var r in registos)
+        {
+            if (!porCodigo.TryGetValue(r.Codigo, out var linha))
+            {
+                linha = new LinhaInventarioImportada
+                {
+                    Codigo = r.Codigo, Descricao = r.Descricao, Unidade = r.Unidade,
+                    Centro = r.Centro, Deposito = r.Deposito, NomeArmazem = r.NomeArmazem
+                };
+                porCodigo[r.Codigo] = linha;
+            }
+            if (r.Quantidade != null) linha.Quantidade = (linha.Quantidade ?? 0m) + r.Quantidade.Value;
+            linha.Series.AddRange(r.Series.Where(s => !linha.Series.Contains(s, StringComparer.OrdinalIgnoreCase)));
+            linha.AreaTecnica ??= AreasTecnicas.De(r.Area);
+            if (r.Area != null)
+                linha.AreaArmazem = linha.AreaArmazem == null ? r.Area
+                    : linha.AreaArmazem.Split(" · ").Contains(r.Area, StringComparer.OrdinalIgnoreCase) ? linha.AreaArmazem : $"{linha.AreaArmazem} · {r.Area}";
+        }
+        return porCodigo.Values.ToList();
+    }
+
+    // Linhas para um inventário. deposito: só as linhas desse armazém (as linhas sem depósito também entram).
+    public static List<LinhaInventarioImportada> Ler(DataSet ds, out List<string> avisos, IReadOnlyCollection<string>? filtroAreas = null, string? deposito = null)
+    {
+        avisos = new List<string>();
+        var registos = LerRegistos(ds, avisos, filtroAreas, out var encontrou);
+        if (!encontrou)
         {
             avisos.Add("Não foi encontrada a linha de cabeçalho (é preciso uma coluna de código — ex.: \"Código\", \"Material\" ou \"Part Number\").");
             return new List<LinhaInventarioImportada>();
         }
-        if (filtrar)
-            avisos.Insert(0, $"Filtro {string.Join(", ", filtroAreas!)}: {porCodigo.Count} material(is) da(s) folha(s) {string.Join(", ", folhasLidas.Select(f => $"\"{f}\""))}; {ignoradasArea} linha(s) de outras áreas (ou sem área) ignoradas.");
-        return porCodigo.Values.ToList();
+        if (deposito != null)
+        {
+            var outros = registos.Count(r => r.Deposito != null && !r.Deposito.Equals(deposito, StringComparison.OrdinalIgnoreCase));
+            registos = registos.Where(r => r.Deposito == null || r.Deposito.Equals(deposito, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (outros > 0) avisos.Add($"{outros} linha(s) de outros armazéns ignoradas (este inventário é do armazém {deposito}).");
+        }
+        return Juntar(registos);
     }
+
+    // Um grupo de linhas por armazém (depósito), para criar um inventário por armazém.
+    public static List<ArmazemImportado> LerPorArmazem(DataSet ds, out List<string> avisos, IReadOnlyCollection<string>? filtroAreas = null)
+    {
+        avisos = new List<string>();
+        var registos = LerRegistos(ds, avisos, filtroAreas, out var encontrou);
+        if (!encontrou)
+        {
+            avisos.Add("Não foi encontrada a linha de cabeçalho (é preciso uma coluna de código — ex.: \"Código\", \"Material\" ou \"Part Number\").");
+            return new List<ArmazemImportado>();
+        }
+        var semDeposito = registos.Count(r => r.Deposito == null);
+        if (semDeposito > 0) avisos.Add($"{semDeposito} linha(s) sem depósito ignoradas.");
+        return registos.Where(r => r.Deposito != null)
+            .GroupBy(r => r.Deposito!, StringComparer.OrdinalIgnoreCase)
+            .Select(g => new ArmazemImportado(
+                g.Select(r => r.Centro).FirstOrDefault(c => c != null),
+                g.Key.ToUpperInvariant(),
+                g.Select(r => r.NomeArmazem).FirstOrDefault(n => n != null),
+                Juntar(g)))
+            .OrderBy(a => a.Deposito)
+            .ToList();
+    }
+
+    private static string? Vazio(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 
     private static int Cabecalho(DataTable t)
     {

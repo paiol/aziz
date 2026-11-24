@@ -8,10 +8,24 @@
 <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
     <div>
         <h2 class="mb-1">Inventários do armazém</h2>
-        <span class="text-body-tertiary">Contagens físicas por área. Ao fechar um inventário, o stock da área passa a ser o contado.</span>
+        <span class="text-body-tertiary">Contagens físicas por área e armazém. Ao fechar um inventário, o stock desse armazém passa a ser o contado (fica a contagem mais recente).</span>
     </div>
     <a class="btn btn-primary" asp-action="Create"><span class="fas fa-plus me-1"></span> Novo inventário</a>
 </div>
+
+<form asp-action="ImportarArmazens" method="post" enctype="multipart/form-data" class="card mb-3">
+    <div class="card-body">
+        <h6 class="mb-2"><i class="fas fa-file-excel text-success me-1"></i> Importar o ficheiro do SAP do armazém (cria um inventário por armazém)</h6>
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4"><label class="form-label mb-1 small" for="ficheiro">Ficheiro (.xls / .xlsx)</label><input id="ficheiro" type="file" name="ficheiro" accept=".xls,.xlsx" class="form-control form-control-sm" required /></div>
+            <div class="col-md-2"><label class="form-label mb-1 small" for="area">Área</label><select id="area" name="area" class="form-select form-select-sm" asp-items="Html.GetEnumSelectList<ComparacaoPropostas.Models.Entities.Enums.AreaDepartamento>()"></select></div>
+            <div class="col-md-2"><label class="form-label mb-1 small" for="data">Data da contagem</label><input id="data" name="data" type="date" class="form-control form-control-sm" value="@DateTime.Today.ToString("yyyy-MM-dd")" /></div>
+            <div class="col-md-3"><label class="form-label mb-1 small" for="filtroAreas">Só as áreas</label><input id="filtroAreas" name="filtroAreas" value="DEI, AIRPON, ENERGIA" class="form-control form-control-sm" /></div>
+            <div class="col-md-1"><button type="submit" class="btn btn-sm btn-primary w-100"><span class="fas fa-upload"></span></button></div>
+        </div>
+        <div class="form-text">Uma linha por armazém (Centro / Depósito, ex.: CPRA / DPRP · Praia_Projeto). Nas folhas sem a coluna Área entram só os códigos que noutra folha estão numa destas áreas. Os inventários ficam abertos para rever; ao fechar cada um, o stock desse armazém fica com a contagem.</div>
+    </div>
+</form>
 
 <div class="card">
     <div class="card-body table-responsive">
@@ -31,7 +45,7 @@
                         <tr>
                             <td data-order="@i.Data.ToString("yyyy-MM-dd")"><a asp-action="Details" asp-route-id="@i.Id">@i.Data.ToString("dd/MM/yyyy")</a></td>
                             <td>@i.Area.ToLabel()</td>
-                            <td>@(i.Localizacao ?? "-")</td>
+                            <td>@if (i.Armazem != null) { <span class="badge bg-light text-dark border">@i.Armazem</span> } @(i.Localizacao ?? (i.Armazem == null ? "-" : ""))</td>
                             <td class="small">@(i.Descricao ?? "-")</td>
                             <td><span class="badge @(i.Estado == EstadoInventario.Fechado ? "bg-success" : "bg-warning text-dark")">@(i.Estado == EstadoInventario.Fechado ? "Fechado" : "Aberto")</span></td>
                             <td class="text-end">@i.Linhas.Count</td>

@@ -18,6 +18,14 @@ public static class StockCalculos
     public static decimal Saldo(IEnumerable<MovimentoStock> movimentos, AreaDepartamento area)
         => movimentos.Where(m => m.Area == area).Sum(Efeito);
 
+    // Saldo numa área e num armazém (armazem null = todos os armazéns da área).
+    public static decimal Saldo(IEnumerable<MovimentoStock> movimentos, AreaDepartamento area, string? armazem)
+        => movimentos.Where(m => m.Area == area && (armazem == null || string.Equals(m.Armazem, armazem, StringComparison.OrdinalIgnoreCase))).Sum(Efeito);
+
+    // Saldo por armazém ("" = movimentos sem armazém).
+    public static Dictionary<string, decimal> SaldoPorArmazem(IEnumerable<MovimentoStock> movimentos)
+        => movimentos.GroupBy(m => m.Armazem ?? "", StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.Sum(Efeito), StringComparer.OrdinalIgnoreCase);
+
     public static Dictionary<AreaDepartamento, decimal> SaldoPorArea(IEnumerable<MovimentoStock> movimentos)
         => movimentos.GroupBy(m => m.Area).ToDictionary(g => g.Key, g => g.Sum(Efeito));
 

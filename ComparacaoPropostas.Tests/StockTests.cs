@@ -223,7 +223,42 @@ public class PackingListGenericoTests
         Assert.Equal(15m, ont.Quantidade);
         Assert.Equal("AIRPON · DEI_FTTH, AIRPON", ont.AreaArmazem);
         Assert.Contains(avisos, a => a.Contains("SAL jun 2025"));   // folha sem coluna Área
-        Assert.Contains(avisos, a => a.Contains("3 linha(s)"));      // 12453 (sem área), RAM e DOM_REDE IP
+        Assert.Contains(avisos, a => a.Contains("6 aceite(s), 3 de outras áreas"));   // 12453 (sem área), RAM e DOM_REDE IP
+    }
+
+    [Fact]
+    public void Inventario_UmGrupoPorArmazem_FolhasSemAreaHerdamDaOutraFolha()
+    {
+        var praia = Folha("Armazém Praia", 8);
+        Linha(praia, "Centro", "Depósito", "Material", "TxtBreveMaterial", "Contagem Total", "Utiliz.livre", "Observações", "Área");
+        Linha(praia, "CPRA", "DPRP", "20076", "Escudete para Espia", 367d, "UN", "Praia_Projeto", "DEI_FTTH");
+        Linha(praia, "CPRA", "DPRP", "20211", "Oculos 6020", 8d, "UN", "Praia_Projeto", "DEI_TORRE");
+        Linha(praia, "CPRA", "DPRP", "30001", "Cabo RAM", 5d, "M", "Praia_Projeto", "RAM");
+        var sal = Folha("SAL jun 2025", 7);
+        Linha(sal, "Centro", "Depósito", "Material", "TxtBreveMaterial", "Contagem ", "Utiliz.livre", "Observações");
+        Linha(sal, "CPRA", "DSRP", "20076", "Escudete p/ Espia", 12d, "UN", "SAL_Projeto");
+        Linha(sal, "CPRA", "DSRP", "30001", "Cabo RAM", 3d, "M", "SAL_Projeto");    // RAM na Praia: fica de fora
+        Linha(sal, "CPRA", "DSRP", "99999", "Outro", 1d, "UN", "SAL_Projeto");      // não existe na Praia: fica de fora
+        Linha(sal, "CPRA", "DSRP", "20211", "Oculos 6020", 2d, "UN", "SAL_Projeto");
+        var ds = new DataSet();
+        ds.Tables.Add(praia);
+        ds.Tables.Add(sal);
+
+        var armazens = InventarioExcelService.LerPorArmazem(ds, out var avisos, InventarioExcelService.SepararFiltro("DEI, AIRPON, ENERGIA"));
+
+        Assert.Equal(new[] { "DPRP", "DSRP" }, armazens.Select(a => a.Deposito).ToArray());
+        var dsrp = armazens[1];
+        Assert.Equal(("CPRA", "SAL_Projeto"), (dsrp.Centro, dsrp.Nome));
+        Assert.Equal(new[] { "20076", "20211" }, dsrp.Linhas.Select(l => l.Codigo).OrderBy(c => c).ToArray());
+        var escudete = dsrp.Linhas.Single(l => l.Codigo == "20076");
+        Assert.Equal((12m, "FBB", "DEI_FTTH", "Escudete p/ Espia"), (escudete.Quantidade, escudete.AreaTecnica, escudete.AreaArmazem, escudete.Descricao));
+        Assert.Equal("MBB", dsrp.Linhas.Single(l => l.Codigo == "20211").AreaTecnica);
+        Assert.Equal(2, armazens[0].Linhas.Count);
+
+        // Um inventário de um armazém só leva as linhas desse depósito.
+        var soSal = InventarioExcelService.Ler(ds, out var avisos2, InventarioExcelService.SepararFiltro("DEI, AIRPON, ENERGIA"), "DSRP");
+        Assert.Equal(12m, soSal.Single(l => l.Codigo == "20076").Quantidade);
+        Assert.Contains(avisos2, a => a.Contains("outros armazéns"));
     }
 
     [Theory]
@@ -375,4 +410,24 @@ public class AreasTecnicasTests
     [InlineData(null, null)]
     public void AreaDoArmazemDaAreaTecnica(string? areaArmazem, string? esperado) =>
         Assert.Equal(esperado, AreasTecnicas.De(areaArmazem));
+}
+
+public class SaldoPorArmazemTests
+{
+    [Fact]
+    public void SaldoPorAreaEArmazem()
+    {
+        var movs = new[]
+        {
+            new MovimentoStock { Area = AreaDepartamento.DepInf, Armazem = "DPRP", Tipo = TipoMovimentoStock.Ajuste, Quantidade = 10 },
+            new MovimentoStock { Area = AreaDepartamento.DepInf, Armazem = "DSRP", Tipo = TipoMovimentoStock.Ajuste, Quantidade = 4 },
+            new MovimentoStock { Area = AreaDepartamento.DepInf, Armazem = "dprp", Tipo = TipoMovimentoStock.Saida, Quantidade = 3 },
+            new MovimentoStock { Area = AreaDepartamento.DepInf, Tipo = TipoMovimentoStock.Entrada, Quantidade = 2 }
+        };
+        Assert.Equal(7m, StockCalculos.Saldo(movs, AreaDepartamento.DepInf, "DPRP"));
+        Assert.Equal(4m, StockCalculos.Saldo(movs, AreaDepartamento.DepInf, "DSRP"));
+        Assert.Equal(13m, StockCalculos.Saldo(movs, AreaDepartamento.DepInf, null));
+        var porArmazem = StockCalculos.SaldoPorArmazem(movs);
+        Assert.Equal((7m, 4m, 2m), (porArmazem["DPRP"], porArmazem["DSRP"], porArmazem[""]));
+    }
 }

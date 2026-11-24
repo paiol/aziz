@@ -61,6 +61,16 @@
                 <label for="area-pl" class="form-label mb-1">Área</label>
                 <select id="area-pl" name="area" class="form-select" asp-items="areas.Select(a => new SelectListItem(a.ToLabel(), a.ToString(), a == (area ?? AreaDepartamento.DepInf)))"></select>
             </div>
+            <div class="col-md-2">
+                <label for="armazem-pl" class="form-label mb-1">Armazém</label>
+                <select id="armazem-pl" name="armazem" class="form-select">
+                    <option value="">— sem armazém —</option>
+                    @foreach (var a in (List<ComparacaoPropostas.Models.Entities.ArmazemStock>)ViewBag.Armazens)
+                    {
+                        <option value="@a.Codigo">@a.Rotulo</option>
+                    }
+                </select>
+            </div>
             <div class="col-md-4">
                 <label for="projeto-pl" class="form-label mb-1">Projeto Capex</label>
                 <select id="projeto-pl" name="projetoPlanoId" class="form-select" asp-items="projetos">

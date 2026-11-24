@@ -27,14 +27,14 @@ public class StockController : Controller
 
     // ---- Saldos ------------------------------------------------------------------------------
 
-    public IActionResult Index(AreaDepartamento? area, string? q, bool soComStock = true, string? at = null)
+    public IActionResult Index(AreaDepartamento? area, string? q, bool soComStock = true, string? at = null, string? arm = null)
     {
         var materiais = _db.MateriaisStock.Include(m => m.Movimentos).Include(m => m.NumerosSerie).AsNoTracking().ToList();
         var linhas = materiais
             .Select(m => new LinhaSaldoVM
             {
                 Material = m,
-                PorArea = StockCalculos.SaldoPorArea(m.Movimentos),
+                PorArea = StockCalculos.SaldoPorArea(m.Movimentos.Where(mv => arm == null || string.Equals(mv.Armazem, arm, StringComparison.OrdinalIgnoreCase))),
                 SeriesEmArmazem = m.NumerosSerie.Count(s => s.Estado == EstadoNumeroSerie.EmArmazem && (area == null || s.Area == area))
             })
             .Where(l => string.IsNullOrWhiteSpace(q)
@@ -53,6 +53,8 @@ public class StockController : Controller
             Area = area,
             Pesquisa = q,
             AreaTecnica = at,
+            Armazem = arm,
+            Armazens = _db.ArmazensStock.OrderBy(a => a.Codigo).AsNoTracking().ToList(),
             SoComStock = soComStock,
             Linhas = linhas,
             NumEntradas = _db.EntradasStock.Count(),
@@ -78,6 +80,7 @@ public class StockController : Controller
             .AsNoTracking()
             .FirstOrDefault(m => m.Id == id);
         if (material == null) return NotFound();
+        ViewBag.NomesArmazens = _db.ArmazensStock.AsNoTracking().ToList().ToDictionary(a => a.Codigo, a => a.Rotulo, StringComparer.OrdinalIgnoreCase);
         return View(material);
     }
 
@@ -234,7 +237,7 @@ public class StockController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult ImportarPackingList(IFormFile? ficheiro, AreaDepartamento area, int? projetoPlanoId, string? contrato1Mais1,
-        string? localizacao, string? fornecedor, int? processoId)
+        string? localizacao, string? fornecedor, int? processoId, string? armazem = null)
     {
         if (ficheiro == null || ficheiro.Length == 0)
         {
@@ -311,6 +314,7 @@ public class StockController : Controller
             ProjetoPlanoId = projetoPlanoId,
             PedidoPropostaId = compra?.PedidoPropostaId,
             Localizacao = Vazio(localizacao),
+            Armazem = Vazio(armazem),
             NomeFicheiro = Limitar(Path.GetFileName(ficheiro.FileName), 200)
         };
 
@@ -321,6 +325,7 @@ public class StockController : Controller
             {
                 Material = materiais[l.Codigo],
                 Area = area,
+                Armazem = entrada.Armazem,
                 Tipo = TipoMovimentoStock.Entrada,
                 Quantidade = l.Quantidade,
                 Data = entrada.Data,
@@ -389,6 +394,7 @@ public class StockController : Controller
             {
                 Material = materiais[l.Codigo!.Trim()],
                 Area = entrada.Area,
+                Armazem = entrada.Armazem,
                 Tipo = TipoMovimentoStock.Entrada,
                 Quantidade = l.Quantidade!.Value,
                 Data = entrada.Data,
@@ -457,9 +463,9 @@ public class StockController : Controller
         return View(saidas);
     }
 
-    public IActionResult NovaSaida(int? materialStockId, AreaDepartamento? area, int? projetoPlanoId)
+    public IActionResult NovaSaida(int? materialStockId, AreaDepartamento? area, int? projetoPlanoId, string? armazem = null)
     {
-        var vm = new NovaSaidaVM { MaterialStockId = materialStockId, Area = area ?? AreaDepartamento.DepInf, ProjetoPlanoId = projetoPlanoId };
+        var vm = new NovaSaidaVM { MaterialStockId = materialStockId, Area = area ?? AreaDepartamento.DepInf, ProjetoPlanoId = projetoPlanoId, Armazem = string.IsNullOrWhiteSpace(armazem) ? null : armazem };
         CarregarListasSaida(vm);
         return View(vm);
     }
@@ -475,7 +481,7 @@ public class StockController : Controller
         var series = new List<NumeroSerieStock>();
         if (material != null)
         {
-            var saldo = StockCalculos.Saldo(_db.MovimentosStock.Where(m => m.MaterialStockId == material.Id && m.Area == vm.Area).ToList());
+            var saldo = StockCalculos.Saldo(_db.MovimentosStock.Where(m => m.MaterialStockId == material.Id && m.Area == vm.Area && (vm.Armazem == null || m.Armazem == vm.Armazem)).ToList());
             var emArmazem = _db.NumerosSerieStock.Where(s => s.MaterialStockId == material.Id && s.Area == vm.Area && s.Estado == EstadoNumeroSerie.EmArmazem).ToList();
             series = emArmazem.Where(s => vm.SeriesEscolhidas.Contains(s.Id)).ToList();
             foreach (var e in StockCalculos.ValidarSaida(vm.Quantidade, saldo, emArmazem.Count, series.Count))
@@ -492,6 +498,7 @@ public class StockController : Controller
         {
             MaterialStockId = material!.Id,
             Area = vm.Area,
+            Armazem = vm.Armazem,
             Tipo = TipoMovimentoStock.Saida,
             Quantidade = vm.Quantidade,
             Data = vm.Data,
@@ -592,6 +599,7 @@ public class StockController : Controller
     private void CarregarListasCompra(int? projetoPlanoId, int? processoId)
     {
         ViewBag.ProjetosCapex = CapexProjetosHelper.ListaProjetos(_db, projetoPlanoId);
+        ViewBag.Armazens = _db.ArmazensStock.OrderBy(a => a.Codigo).AsNoTracking().ToList();
         ViewBag.Processos = _db.Processos
             .Include(p => p.PedidoProposta)
             .Where(p => p.Status != StatusProcesso.Cancelado || p.Id == processoId)
@@ -620,7 +628,7 @@ public class StockController : Controller
     private void CarregarListasSaida(NovaSaidaVM vm)
     {
         var materiais = _db.MateriaisStock.Include(m => m.Movimentos).AsNoTracking().ToList()
-            .Select(m => (m, Saldo: StockCalculos.Saldo(m.Movimentos, vm.Area)))
+            .Select(m => (m, Saldo: StockCalculos.Saldo(m.Movimentos, vm.Area, vm.Armazem)))
             .Where(x => x.Saldo > 0 || x.m.Id == vm.MaterialStockId)
             .OrderBy(x => x.m.Descricao)
             .ToList();
@@ -630,6 +638,7 @@ public class StockController : Controller
             : _db.NumerosSerieStock.Where(s => s.MaterialStockId == vm.MaterialStockId && s.Area == vm.Area && s.Estado == EstadoNumeroSerie.EmArmazem)
                 .OrderBy(s => s.Serie).AsNoTracking().ToList();
         ViewBag.ProjetosCapex = CapexProjetosHelper.ListaProjetos(_db, vm.ProjetoPlanoId);
+        ViewBag.Armazens = _db.ArmazensStock.OrderBy(a => a.Codigo).AsNoTracking().ToList();
     }
 
     private static string? Vazio(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
