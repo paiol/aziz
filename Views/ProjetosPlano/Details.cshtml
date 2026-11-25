@@ -29,17 +29,21 @@
             <a class="btn btn-primary" asp-controller="Pedidos" asp-action="Create" asp-route-projetoPlanoId="@p.Id">
                 <span class="fas fa-cart-plus me-1"></span> Nova Compra
             </a>
+@* MÓDULO OBRAS — comentado por enquanto.
             <a class="btn @(p.EhObra ? "btn-primary" : "btn-subtle-primary")" asp-controller="ProjetosObra" asp-action="Create" asp-route-projetoPlanoId="@p.Id">
                 <span class="fas fa-helmet-safety me-1"></span> Nova Obra
             </a>
+*@
         }
     </div>
 </div>
+@* MÓDULO OBRAS — comentado por enquanto.
 @if (p.EhObra)
 {
     <div class="mb-2"><span class="badge bg-info text-dark"><i class="fas fa-helmet-safety me-1"></i>Projeto com obra</span>
         <span class="small text-body-tertiary ms-1">A obra (concurso de empreiteiros, MQT, adjudicação) é gerida no módulo Obras e conta na execução deste projeto.</span></div>
 }
+*@
 
 @if (!string.IsNullOrWhiteSpace(p.MotivoDecisao) || p.DataDecisao.HasValue)
 {
@@ -112,6 +116,7 @@
         }
     </div>
 </div>
+@* MÓDULO OBRAS — comentado por enquanto.
 
 <div class="card mb-3">
     <div class="card-header"><h5 class="mb-0">Obras associadas</h5></div>
@@ -154,6 +159,7 @@
         }
     </div>
 </div>
+*@
 
 @{
     var movStock = (List<ComparacaoPropostas.Models.Entities.MovimentoStock>)ViewBag.MovimentosStock;

@@ -1,3 +1,6 @@
+// MÓDULO OBRAS — comentado por enquanto (pedido da DEI, 25/11/2026).
+// Para voltar a ligar: acrescentar <DefineConstants>$(DefineConstants);MODULO_OBRAS</DefineConstants> ao .csproj.
+#if MODULO_OBRAS
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ComparacaoPropostas.Data;
@@ -132,3 +135,5 @@ public class PropostasEmpreiteiroController : Controller
         return RedirectToAction("Details", "ProjetosObra", new { id = projetoObraId });
     }
 }
+
+#endif

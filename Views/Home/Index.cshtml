@@ -6,12 +6,12 @@
     var r = Model.ResumoPlano;
     var plano = Model.Plano;
     var estadosProcesso = Enum.GetValues<StatusProcesso>();
-    var estadosObra = Enum.GetValues<StatusProjetoObra>();
+    // MÓDULO OBRAS — comentado: var estadosObra = Enum.GetValues<StatusProjetoObra>();
 }
 
 <div class="mb-4">
     <h2 class="mb-1">Plataforma DEI</h2>
-    <p class="text-body-tertiary mb-0">Plano Capex das áreas, compras ligadas aos projetos aceites, obras e base de dados.</p>
+    <p class="text-body-tertiary mb-0">Plano Capex das áreas, compras ligadas aos projetos aceites, gestão de stock e base de dados.</p>
 </div>
 
 <div class="row g-3 mb-3">
@@ -150,6 +150,7 @@
     </div>
 
     @* ---------------- Obras ---------------- *@
+@* MÓDULO OBRAS — comentado por enquanto.
     <div class="col-xl-6 col-md-6">
         <div class="card h-100">
             <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -173,6 +174,7 @@
             </div>
         </div>
     </div>
+*@
 
     @* ---------------- Base de dados ---------------- *@
     <div class="col-xl-6 col-md-6">
