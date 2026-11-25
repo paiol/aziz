@@ -2,6 +2,8 @@
 
 Versão visual: página "Mapa da Plataforma DEI" (claude.ai). Os diagramas abaixo são os mesmos, em Mermaid.
 
+> **Módulo Obras desligado por enquanto** (25/11/2026): os controladores das Obras estão comentados com `#if MODULO_OBRAS` e os menus, botões e cartões das Obras com `@* … *@` nas vistas. As tabelas e os dados das obras continuam na base de dados. Para voltar a ligar: acrescentar `<DefineConstants>$(DefineConstants);MODULO_OBRAS</DefineConstants>` ao `ComparacaoPropostas.csproj` e tirar os comentários marcados com "MÓDULO OBRAS" nas vistas.
+
 ## Fluxo do projeto
 
 Cada área (DEP-INF, DEP-PRCS, DEP-PRM, DEP-SAF) propõe os seus projetos no plano do ano. Só os projetos **aceites** formam o Capex e só esses podem ter compras (Pedido → Processo) ou obras (Projeto de Obra). O adjudicado volta ao projeto como execução e, no fim do ano, decide o que transita.
