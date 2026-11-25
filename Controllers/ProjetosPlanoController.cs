@@ -167,6 +167,44 @@ public class ProjetosPlanoController : Controller
         return Url.IsLocalUrl(voltarPara) ? Redirect(voltarPara!) : RedirectToAction(nameof(Index), new { planoId = projeto.PlanoId });
     }
 
+    // Decide de uma vez os projetos marcados na lista (caixas de seleção): aceitar, rejeitar ou voltar a proposto.
+    // Projetos com compras ou obras não podem deixar de estar aceites: ficam como estão e são indicados.
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult DecidirVarios(int planoId, List<int>? ids, EstadoAprovacaoProjeto estado, string? motivo, string? voltarPara)
+    {
+        var voltar = Url.IsLocalUrl(voltarPara) ? Redirect(voltarPara!) : (IActionResult)RedirectToAction(nameof(Index), new { planoId });
+        ids = (ids ?? new List<int>()).Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            TempData["EmailWarning"] = "Selecione pelo menos um projeto (caixas de seleção da lista).";
+            return voltar;
+        }
+
+        var projetos = _db.ProjetosPlano.Where(p => p.PlanoId == planoId && ids.Contains(p.Id)).ToList();
+        var bloqueados = new List<string>();
+        var alterados = 0;
+        foreach (var p in projetos)
+        {
+            if (estado != EstadoAprovacaoProjeto.Aceite && TemComprasOuObras(p.Id))
+            {
+                bloqueados.Add(p.Nome);
+                continue;
+            }
+            if (p.EstadoAprovacao == estado && string.IsNullOrWhiteSpace(motivo)) continue;   // já estava assim
+            p.EstadoAprovacao = estado;
+            p.DataDecisao = estado == EstadoAprovacaoProjeto.Proposto ? null : DateTime.UtcNow;
+            if (motivo != null) p.MotivoDecisao = string.IsNullOrWhiteSpace(motivo) ? null : motivo.Trim();
+            alterados++;
+        }
+        _db.SaveChanges();
+
+        TempData["Sucesso"] = $"{alterados} projeto(s): {estado.ToLabel()}.";
+        if (bloqueados.Count > 0)
+            TempData["EmailWarning"] = $"{bloqueados.Count} projeto(s) com compras ou obras continuam aceites: {string.Join(", ", bloqueados.Take(5))}{(bloqueados.Count > 5 ? "…" : "")}.";
+        return voltar;
+    }
+
     // Aceita de uma vez os projetos propostos que entram no plano (Transitado / Transitado parcial / Novo).
     [HttpPost]
     [ValidateAntiForgeryToken]
