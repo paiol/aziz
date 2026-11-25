@@ -1,0 +1,77 @@
+@using ComparacaoPropostas.Helper
+@using ComparacaoPropostas.Models.Entities
+@using ComparacaoPropostas.Services.Stock
+@model List<(MaterialStock Material, decimal Saldo, List<SugestaoSap> Sugestoes)>
+@{
+    ViewData["Title"] = "Associar códigos SAP";
+    var voltar = Context.Request.Path + Context.Request.QueryString;
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-1"><i class="fas fa-link text-warning me-2"></i>Associar códigos SAP</h2>
+        <span class="text-body-tertiary">Materiais que chegaram só com o código do fornecedor (Packing List). A plataforma compara com os códigos SAP do stock — modelo, medidas e descrição — e a DEI confirma se é o mesmo material.</span>
+        <div><a asp-action="Alarmes" class="small"><span class="fas fa-arrow-left me-1"></span>Voltar aos alarmes</a></div>
+    </div>
+</div>
+
+@if (Model.Count == 0)
+{
+    <div class="alert alert-success"><i class="fas fa-circle-check me-1"></i> Todos os materiais têm código SAP.</div>
+}
+else
+{
+    @foreach (var (m, saldo, sugestoes) in Model)
+    {
+        <div class="card mb-3">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <a asp-action="Material" asp-route-id="@m.Id" class="fw-semibold">@m.Codigo</a>
+                    <span class="badge bg-warning text-dark ms-1">sem código SAP</span>
+                    <span class="small text-body-tertiary ms-1">@(m.Fabricante ?? m.CodigosFornecedor.Select(c => c.Fornecedor).FirstOrDefault() ?? "") @(m.Modelo != null ? "· " + m.Modelo : "")</span>
+                    <div class="small">@m.Descricao</div>
+                </div>
+                <span class="small">Stock: <strong>@saldo.ToQtd()</strong> @m.Unidade</span>
+            </div>
+            <div class="card-body py-2">
+                @if (sugestoes.Count == 0)
+                {
+                    <span class="small text-body-tertiary">Nenhum código SAP parecido no stock.</span>
+                }
+                else
+                {
+                    <table class="table table-sm align-middle mb-1">
+                        <tbody>
+                            @foreach (var s in sugestoes)
+                            {
+                                <tr>
+                                    <td style="width: 9rem" class="fw-semibold"><a asp-action="Material" asp-route-id="@s.Material.Id">SAP @s.Material.Codigo</a></td>
+                                    <td class="small">@s.Material.Descricao</td>
+                                    <td class="text-nowrap" style="width: 12rem">
+                                        <span class="badge @(s.Confianca == "Alta" ? "bg-success" : s.Confianca == "Média" ? "bg-warning text-dark" : "bg-secondary")">@s.Confianca @((s.Pontuacao * 100).ToString("0"))%</span>
+                                        @if (s.CodigoNaDescricao) { <span class="badge bg-success ms-1">código do fornecedor no SAP</span> }
+                                    @if (s.ModeloIgual) { <span class="badge bg-info text-dark ms-1">modelo igual</span> }
+                                    </td>
+                                    <td class="small text-body-tertiary">@string.Join(", ", s.EmComum.Take(5))</td>
+                                    <td style="width: 1%">
+                                        <form asp-action="AssociarSap" asp-route-id="@m.Id" method="post"
+                                              onsubmit="return confirm('Confirmar que @m.Codigo é o mesmo material que o SAP @s.Material.Codigo? O stock e o histórico passam para o @s.Material.Codigo.');">
+                                            <input type="hidden" name="codigoSap" value="@s.Material.Codigo" />
+                                            <input type="hidden" name="voltarPara" value="@voltar" />
+                                            <button type="submit" class="btn btn-sm btn-subtle-success text-nowrap"><i class="fas fa-check me-1"></i>É o mesmo</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                <form asp-action="AssociarSap" asp-route-id="@m.Id" method="post" class="d-flex gap-2 align-items-center mt-1">
+                    <input type="hidden" name="voltarPara" value="@voltar" />
+                    <input name="codigoSap" class="form-control form-control-sm" style="max-width: 14rem" placeholder="Outro código SAP" required maxlength="60" aria-label="Código SAP de @m.Codigo" />
+                    <button type="submit" class="btn btn-sm btn-subtle-primary text-nowrap"><i class="fas fa-link me-1"></i>Associar</button>
+                </form>
+            </div>
+        </div>
+    }
+}

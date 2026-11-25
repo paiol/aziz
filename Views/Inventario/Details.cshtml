@@ -53,8 +53,8 @@
         <div class="card-body">
             <form asp-action="Importar" asp-route-id="@inv.Id" method="post" enctype="multipart/form-data" class="d-flex flex-wrap gap-2 align-items-end">
                 <div>
-                    <label for="ficheiro" class="form-label mb-1">Importar a contagem do armazém (.xls ou .xlsx)</label>
-                    <input id="ficheiro" type="file" name="ficheiro" accept=".xls,.xlsx" class="form-control form-control-sm" required />
+                    <label for="ficheiro" class="form-label mb-1">Importar a contagem do armazém (Excel, Word ou PDF)</label>
+                    <input id="ficheiro" type="file" name="ficheiro" accept=".xls,.xlsx,.docx,.pdf" class="form-control form-control-sm" required />
                 </div>
                 <div>
                     <label for="filtroAreas" class="form-label mb-1">Só as áreas (coluna Área do armazém)</label>

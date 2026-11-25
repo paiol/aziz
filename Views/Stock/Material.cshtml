@@ -46,9 +46,43 @@
     <div class="card-body">
         @if (m.CodigoProvisorio)
         {
+            var sugestoes = (List<SugestaoSap>)ViewBag.SugestoesSap;
+            <h6 class="small text-uppercase text-body-tertiary mb-2">Será o mesmo que algum código SAP?</h6>
+            @if (sugestoes.Count == 0)
+            {
+                <p class="small text-body-tertiary">Não encontrei nenhum material SAP parecido (modelo, medidas ou descrição). Indique o código SAP abaixo, se o souber.</p>
+            }
+            else
+            {
+                <table class="table table-sm align-middle mb-3">
+                    <thead><tr><th>Código SAP</th><th>Descrição no SAP</th><th>Semelhança</th><th>Em comum</th><th style="width: 1%"></th></tr></thead>
+                    <tbody>
+                        @foreach (var s in sugestoes)
+                        {
+                            <tr>
+                                <td class="fw-semibold"><a asp-action="Material" asp-route-id="@s.Material.Id">@s.Material.Codigo</a></td>
+                                <td class="small">@s.Material.Descricao @(s.Material.Modelo != null ? $"· {s.Material.Modelo}" : "")</td>
+                                <td class="text-nowrap">
+                                    <span class="badge @(s.Confianca == "Alta" ? "bg-success" : s.Confianca == "Média" ? "bg-warning text-dark" : "bg-secondary")">@s.Confianca @((s.Pontuacao * 100).ToString("0"))%</span>
+                                    @if (s.CodigoNaDescricao) { <span class="badge bg-success ms-1">código do fornecedor no SAP</span> }
+                                    @if (s.ModeloIgual) { <span class="badge bg-info text-dark ms-1">modelo igual</span> }
+                                </td>
+                                <td class="small text-body-tertiary">@string.Join(", ", s.EmComum.Take(6))</td>
+                                <td>
+                                    <form asp-action="AssociarSap" asp-route-id="@m.Id" method="post"
+                                          onsubmit="return confirm('Confirmar que @m.Codigo (@(m.Fabricante ?? "fornecedor")) é o mesmo material que o SAP @s.Material.Codigo? O stock e o histórico passam para o @s.Material.Codigo.');">
+                                        <input type="hidden" name="codigoSap" value="@s.Material.Codigo" />
+                                        <button type="submit" class="btn btn-sm btn-subtle-success text-nowrap"><i class="fas fa-check me-1"></i>É o mesmo</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
             <form asp-action="AssociarSap" asp-route-id="@m.Id" method="post" class="row g-2 align-items-end mb-3">
                 <div class="col-md-4">
-                    <label class="form-label mb-1" for="codigoSap">Código SAP deste material</label>
+                    <label class="form-label mb-1" for="codigoSap">Ou indique o código SAP</label>
                     <input id="codigoSap" name="codigoSap" class="form-control form-control-sm" placeholder="ex.: 20076" required maxlength="60" />
                 </div>
                 <div class="col-md-3"><button type="submit" class="btn btn-sm btn-warning"><i class="fas fa-link me-1"></i> Associar ao código SAP</button></div>

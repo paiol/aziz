@@ -27,8 +27,8 @@ public record ArmazemImportado(string? Centro, string Deposito, string? Nome, Li
 
 public interface IInventarioExcelService
 {
-    List<LinhaInventarioImportada> Ler(Stream ficheiro, out List<string> avisos, IReadOnlyCollection<string>? filtroAreas = null, string? deposito = null);
-    List<ArmazemImportado> LerPorArmazem(Stream ficheiro, out List<string> avisos, IReadOnlyCollection<string>? filtroAreas = null);
+    List<LinhaInventarioImportada> Ler(Stream ficheiro, out List<string> avisos, IReadOnlyCollection<string>? filtroAreas = null, string? deposito = null, string? nomeFicheiro = null);
+    List<ArmazemImportado> LerPorArmazem(Stream ficheiro, out List<string> avisos, IReadOnlyCollection<string>? filtroAreas = null, string? nomeFicheiro = null);
 }
 
 // Lê a folha de inventário do armazém (Excel .xls/.xlsx): código, descrição, unidade, quantidade
@@ -49,17 +49,11 @@ public class InventarioExcelService : IInventarioExcelService
         "quantidade contada", "qtd contada", "contado", "contagem", "contagem total", "qtd física", "qtd fisica", "existência", "existencia", "stock"
     }.Concat(PackingListService.ColQuantidade).ToArray();
 
-    public List<LinhaInventarioImportada> Ler(Stream ficheiro, out List<string> avisos, IReadOnlyCollection<string>? filtroAreas = null, string? deposito = null)
-        => Ler(LerDataSet(ficheiro), out avisos, filtroAreas, deposito);
+    public List<LinhaInventarioImportada> Ler(Stream ficheiro, out List<string> avisos, IReadOnlyCollection<string>? filtroAreas = null, string? deposito = null, string? nomeFicheiro = null)
+        => Ler(DocumentoTabelas.Ler(ficheiro, nomeFicheiro), out avisos, filtroAreas, deposito);
 
-    public List<ArmazemImportado> LerPorArmazem(Stream ficheiro, out List<string> avisos, IReadOnlyCollection<string>? filtroAreas = null)
-        => LerPorArmazem(LerDataSet(ficheiro), out avisos, filtroAreas);
-
-    private static DataSet LerDataSet(Stream ficheiro)
-    {
-        using var reader = ExcelReaderFactory.CreateReader(ficheiro);
-        return reader.AsDataSet();
-    }
+    public List<ArmazemImportado> LerPorArmazem(Stream ficheiro, out List<string> avisos, IReadOnlyCollection<string>? filtroAreas = null, string? nomeFicheiro = null)
+        => LerPorArmazem(DocumentoTabelas.Ler(ficheiro, nomeFicheiro), out avisos, filtroAreas);
 
     // A linha é de uma das áreas pedidas? Compara palavra a palavra, sem maiúsculas/acentos:
     // "DEI_FTTH", "DEI PROJETO", "RAM, ENERGIA" e "SPARE_ENERGIA_DPSBLADE" passam no filtro DEI/ENERGIA.

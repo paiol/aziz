@@ -83,6 +83,9 @@ public class StockController : Controller
             .FirstOrDefault(m => m.Id == id);
         if (material == null) return NotFound();
         ViewBag.NomesArmazens = _db.ArmazensStock.AsNoTracking().ToList().ToDictionary(a => a.Codigo, a => a.Rotulo, StringComparer.OrdinalIgnoreCase);
+        ViewBag.SugestoesSap = material.CodigoProvisorio
+            ? SugestoesSap.Sugerir(material, _db.MateriaisStock.Where(m => !m.CodigoProvisorio).AsNoTracking().ToList(), 5)
+            : new List<SugestaoSap>();
         ViewBag.FornecedoresMaterial = _db.Fornecedores.Where(f => f.Ativo).Select(f => f.Nome).ToList()
             .Concat(_db.EntradasStock.Where(e => e.Fornecedor != null).Select(e => e.Fornecedor!).Distinct().ToList())
             .Concat(_db.CodigosFornecedorMaterial.Select(c => c.Fornecedor).Distinct().ToList())
@@ -181,7 +184,7 @@ public class StockController : Controller
     // códigos de fornecedor passam para o material SAP e o provisório desaparece.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult AssociarSap(int id, string? codigoSap)
+    public IActionResult AssociarSap(int id, string? codigoSap, string? voltarPara = null)
     {
         var prov = _db.MateriaisStock.Include(m => m.CodigosFornecedor).Include(m => m.NumerosSerie).Include(m => m.DivergenciasNome)
             .FirstOrDefault(m => m.Id == id);
@@ -205,7 +208,7 @@ public class StockController : Controller
             prov.CodigoProvisorio = false;
             _db.SaveChanges();
             TempData["Sucesso"] = $"Material passou a ter o código SAP {prov.Codigo}.";
-            return RedirectToAction(nameof(Material), new { id });
+            return Url.IsLocalUrl(voltarPara) ? LocalRedirect(voltarPara!) : RedirectToAction(nameof(Material), new { id });
         }
 
         using var tx = _db.Database.BeginTransaction();
@@ -234,7 +237,19 @@ public class StockController : Controller
         tx.Commit();
 
         TempData["Sucesso"] = $"{prov.Codigo} associado ao código SAP {alvo.Codigo}: o stock e o histórico passaram para esse material.";
-        return RedirectToAction(nameof(Material), new { id = alvo.Id });
+        return Url.IsLocalUrl(voltarPara) ? LocalRedirect(voltarPara!) : RedirectToAction(nameof(Material), new { id = alvo.Id });
+    }
+
+    // Materiais que chegaram só com o código do fornecedor e os códigos SAP que podem ser o mesmo.
+    public IActionResult CodigosSap()
+    {
+        var todos = _db.MateriaisStock.Include(m => m.Movimentos).Include(m => m.CodigosFornecedor).AsNoTracking().ToList();
+        var sap = todos.Where(m => !m.CodigoProvisorio).ToList();
+        var linhas = todos.Where(m => m.CodigoProvisorio)
+            .OrderBy(m => m.Descricao)
+            .Select(m => (Material: m, Saldo: StockCalculos.Saldo(m.Movimentos), Sugestoes: SugestoesSap.Sugerir(m, sap)))
+            .ToList();
+        return View(linhas);
     }
 
     [HttpPost]
@@ -364,7 +379,7 @@ public class StockController : Controller
     {
         if (ficheiro == null || ficheiro.Length == 0)
         {
-            TempData["EmailWarning"] = "Escolha o ficheiro do Packing List (.xls ou .xlsx).";
+            TempData["EmailWarning"] = "Escolha o ficheiro do Packing List (Excel, Word .docx ou PDF).";
             return RedirectToAction(nameof(Entradas));
         }
 
@@ -372,12 +387,12 @@ public class StockController : Controller
         try
         {
             using var stream = ficheiro.OpenReadStream();
-            pl = _packingList.Ler(stream);
+            pl = _packingList.Ler(stream, ficheiro.FileName);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erro ao ler o Packing List {Ficheiro}.", ficheiro.FileName);
-            TempData["EmailWarning"] = "Não foi possível ler o ficheiro. Confirme que é um Packing List em Excel (.xls ou .xlsx).";
+            TempData["EmailWarning"] = ex is NotSupportedException ? ex.Message : "Não foi possível ler o ficheiro. Confirme que é um Packing List em Excel (.xls ou .xlsx), Word (.docx) ou PDF com texto (não digitalizado).";
             return RedirectToAction(nameof(Entradas));
         }
 

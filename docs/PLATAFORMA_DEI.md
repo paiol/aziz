@@ -184,6 +184,8 @@ O ficheiro do SAP do armazém traz **todas as ilhas** no mesmo Excel (uma folha 
 | CMIN | DMIN | S.Vicente_Mindelo_Técnico | São Vicente | Não (técnico) |
 | CMIN | DGRM | S.Vicente_D Gest Rede Mind | São Vicente | Não (técnico) |
 
+**Formatos aceites** (Packing List, inventário e ficheiro SAP): Excel (`.xls`, `.xlsx`), **Word** (`.docx` — cada tabela do documento é lida como uma folha; o texto antes da tabela dá os dados como "P/L No.", "Contract No.") e **PDF com texto** (não digitalizado — as colunas são encontradas pelo espaço entre os dados; cabeçalhos em duas linhas, números alinhados à direita e descrições em várias linhas são tratados). Word antigo (`.doc`) não: guardar como `.docx` ou PDF. Um PDF só tem as linhas visíveis quando foi impresso (linhas ocultas / filtradas no Excel não aparecem).
+
 Colunas lidas: `Centro`, `Depósito`, `Material` (código = ID do material), `TxtBreveMaterial` (descrição), `Contagem` / `Contagem Total`, `Utiliz.livre` (unidade), `Observações` (armazém) e `Área` (projeto, quando existe).
 
 ### Que materiais entram (DEI, AIRPON, ENERGIA) e área técnica
@@ -210,6 +212,7 @@ O **código SAP** (coluna `Material` do ficheiro do armazém, ex.: 20076) é o *
 - Cada material tem a lista **Códigos de fornecedor** (fornecedor, código do fornecedor, modelo, descrição do fornecedor), na ficha do material.
 - **Packing List**: o código da linha é do fornecedor. Se já estiver associado a um código SAP, a entrada vai **diretamente** para esse material. Se não, o material fica **provisório — "sem código SAP"** (alarme *Sem código SAP*).
 - **Associar ao código SAP** (ficha do material): se o código SAP já existe no stock, os dois **juntam-se** (stock, movimentos, nºs de série, contagens e códigos passam para o material SAP); se não existe, o material passa a ter esse código SAP. O código do fornecedor fica registado e as próximas entradas com ele vão diretas.
+- **Sugestões de código SAP** (ficha do material e página *Associar códigos SAP*): a plataforma compara o material do fornecedor com os materiais SAP do stock e propõe até 3 códigos, com a semelhança (Alta / Média / Baixa) e o que têm em comum. Sinais usados: o **código do fornecedor escrito na descrição SAP** (ex.: SAP 25606 "25030429-PwCable450/750V,16mm2"), o **modelo** (ex.: R4850, ESM-48150B1), as **medidas** (16mm2, 48V, 150Ah — medidas diferentes baixam a semelhança) e as palavras da descrição (inglês traduzido: Cable → Cabo, Rectifier → Retificador…). A DEI confirma com **É o mesmo** ou indica outro código SAP.
 - Compras DEI e entradas manuais usam o código SAP.
 - A pesquisa do stock encontra o material pelo código SAP ou por qualquer código de fornecedor.
 - O mesmo código SAP genérico (ex.: "Poste") pode ter vários códigos de fornecedor / modelos associados.
