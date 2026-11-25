@@ -56,6 +56,19 @@
     </div>
 </form>
 
+<form id="form-varios" asp-action="DecidirVarios" method="post" class="card mb-2 d-none" aria-label="Decidir os projetos selecionados">
+    <input type="hidden" name="planoId" value="@plano.Id" />
+    <input type="hidden" name="voltarPara" value="@voltar" />
+    <input type="hidden" name="motivo" />
+    <div class="card-body py-2 d-flex align-items-center gap-2 flex-wrap">
+        <span class="fw-semibold"><span id="sel-num">0</span> projeto(s) selecionado(s)</span>
+        <button type="submit" name="estado" value="@EstadoAprovacaoProjeto.Aceite" class="btn btn-sm btn-success"><i class="fas fa-check me-1"></i>Aceitar</button>
+        <button type="submit" name="estado" value="@EstadoAprovacaoProjeto.Rejeitado" class="btn btn-sm btn-subtle-danger" data-pede-motivo="1"><i class="fas fa-xmark me-1"></i>Rejeitar</button>
+        <button type="submit" name="estado" value="@EstadoAprovacaoProjeto.Proposto" class="btn btn-sm btn-subtle-secondary"><i class="fas fa-rotate-left me-1"></i>Voltar a proposto</button>
+        <button type="button" id="sel-limpar" class="btn btn-sm btn-link">Limpar seleção</button>
+    </div>
+</form>
+
 <div class="card">
     <div class="card-body table-responsive">
         @if (Model.Count == 0)
@@ -67,6 +80,7 @@
             <table class="table table-hover table-sm data-table">
                 <thead>
                     <tr>
+                        <th style="width: 1%" data-orderable="false"><input type="checkbox" class="form-check-input" id="sel-todos" title="Selecionar todos (os filtrados)" aria-label="Selecionar todos" /></th>
                         <th>Área</th>
                         <th>Projeto</th>
                         <th>Rubrica</th>
@@ -84,6 +98,7 @@
                     @foreach (var p in Model)
                     {
                         <tr class="@(p.EstadoAprovacao == EstadoAprovacaoProjeto.Rejeitado ? "text-body-tertiary" : "")">
+                            <td><input type="checkbox" class="form-check-input js-sel" value="@p.Id" aria-label="Selecionar @p.Nome" /></td>
                             <td>@p.Area.ToLabel()</td>
                             <td>
                                 <a asp-action="Details" asp-route-id="@p.Id">@p.Nome</a>
@@ -140,7 +155,7 @@
                 </tbody>
                 <tfoot>
                     <tr class="fw-semibold">
-                        <td colspan="6">Total (@Model.Count projeto(s); rejeitados não contam)</td>
+                        <td colspan="7">Total (@Model.Count projeto(s); rejeitados não contam)</td>
                         @{ var contam = Model.Where(p => p.EstadoAprovacao != EstadoAprovacaoProjeto.Rejeitado).ToList(); }
                         <td class="text-end">@contam.Sum(p => p.ValorTransitar ?? 0).ToCve()</td>
                         <td class="text-end">@contam.Sum(p => p.ValorNovo ?? 0).ToCve()</td>
@@ -153,3 +168,53 @@
         }
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        // Seleção de vários projetos: funciona em todas as páginas da tabela (DataTables só mostra uma de cada vez).
+        $(function () {
+            var $tabela = $('.data-table');
+            if (!$tabela.length) return;
+            var dt = $tabela.DataTable();
+            var $barra = $('#form-varios');
+
+            function selecionados() { return dt.$('input.js-sel:checked'); }
+            function atualizar() {
+                var n = selecionados().length;
+                $('#sel-num').text(n);
+                $barra.toggleClass('d-none', n === 0);
+                var visiveis = $(dt.rows({ search: 'applied' }).nodes()).find('input.js-sel');
+                $('#sel-todos').prop('checked', visiveis.length > 0 && visiveis.filter(':checked').length === visiveis.length);
+            }
+
+            $tabela.on('change', 'input.js-sel', atualizar);
+            $('#sel-todos').on('click', function (e) {
+                e.stopPropagation();   // não ordenar a coluna
+                $(dt.rows({ search: 'applied' }).nodes()).find('input.js-sel').prop('checked', this.checked);
+                atualizar();
+            });
+            $('#sel-limpar').on('click', function () { dt.$('input.js-sel').prop('checked', false); atualizar(); });
+
+            var botao = null;
+            $barra.on('click', 'button[type=submit]', function () { botao = this; });
+            $barra.on('submit', function () {
+                var n = selecionados().length;
+                if (n === 0) return false;
+                var texto = $(botao).text().trim();
+                if (botao && $(botao).data('pede-motivo')) {
+                    var m = prompt('Motivo da rejeição dos ' + n + ' projeto(s) (opcional):');
+                    if (m === null) return false;
+                    $barra.find('[name=motivo]').val(m);
+                } else if (!confirm(texto + ' ' + n + ' projeto(s)?')) {
+                    return false;
+                }
+                $barra.find('input.js-id').remove();
+                selecionados().each(function () {
+                    $('<input type="hidden" name="ids" class="js-id">').val(this.value).appendTo($barra);
+                });
+                return true;
+            });
+            atualizar();
+        });
+    </script>
+}
